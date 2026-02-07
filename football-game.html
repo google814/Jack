@@ -294,35 +294,6 @@ canvas {
   max-width: 280px;
 }
 
-/* Foul Overlay */
-#foulOverlay {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 45;
-  background: rgba(0,0,0,0.5);
-  pointer-events: none;
-}
-#foulOverlay .foul-content {
-  text-align: center;
-}
-#foulOverlay .whistle-text {
-  font-size: 36px;
-  font-weight: bold;
-  color: #fff;
-  text-shadow: 0 0 20px rgba(255,255,255,0.6);
-}
-#foulOverlay .card-icon {
-  font-size: 72px;
-  margin: 8px 0;
-}
-#foulOverlay .foul-team {
-  font-size: 18px;
-  color: #fff;
-}
 </style>
 </head>
 <body>
@@ -363,15 +334,6 @@ canvas {
   <div class="diff-desc">Computer spielt ordentlich mit, aber macht auch Fehler.</div>
   <button class="diff-btn diff-hard" id="diffHard">&#128293; SCHWER</button>
   <div class="diff-desc">Computer ist schnell und treffsicher. Echte Herausforderung!</div>
-</div>
-
-<!-- Foul Overlay -->
-<div id="foulOverlay">
-  <div class="foul-content">
-    <div class="whistle-text" id="foulWhistle"></div>
-    <div class="card-icon" id="foulCard"></div>
-    <div class="foul-team" id="foulTeam"></div>
-  </div>
 </div>
 
 <!-- Goal Overlay -->
@@ -513,28 +475,79 @@ let cpuAI = {
   pauseUntil: 0  // hesitation timer for easy mode
 };
 
-// ===== REFEREE =====
-const REF_RADIUS = 14;
-let referee = {
-  x: 0, y: 0,
-  targetX: 0, targetY: 0
-};
-let fouls = { left: 0, right: 0 }; // foul count per team
-let foulState = {
-  active: false,
-  endTime: 0,
-  foulX: 0, foulY: 0,    // where the foul happened
-  team: '',               // which team committed the foul
-  cardType: 'none'        // 'none', 'yellow', 'red'
-};
-let lastFoulTime = 0;
-const FOUL_COOLDOWN = 4000; // min ms between fouls
-const FOUL_COLLISION_SPEED = 5; // speed threshold for a foul
+// ===== FIREWORK PARTICLES =====
+let fireworks = [];
 
-function resetReferee() {
-  referee.x = FIELD_X + FIELD_W / 2;
-  referee.y = FIELD_Y + FIELD_H * 0.3;
-  fouls = { left: 0, right: 0 };
+function createFireworks() {
+  const colors = ['#ffd700', '#ff4444', '#44ff44', '#4488ff', '#ff44ff', '#ff8800', '#00ffff', '#ffffff'];
+  for (let burst = 0; burst < 6; burst++) {
+    const cx = FIELD_X + FIELD_W * (0.2 + Math.random() * 0.6);
+    const cy = FIELD_Y + FIELD_H * (0.15 + Math.random() * 0.5);
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const particleCount = 25 + Math.floor(Math.random() * 20);
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 / particleCount) * i + (Math.random() - 0.5) * 0.3;
+      const speed = 2 + Math.random() * 5;
+      fireworks.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1,
+        life: 1.0,
+        decay: 0.008 + Math.random() * 0.012,
+        color: color,
+        size: 2 + Math.random() * 3,
+        trail: [],
+        sparkle: Math.random() < 0.3
+      });
+    }
+  }
+}
+
+function updateFireworks() {
+  for (let i = fireworks.length - 1; i >= 0; i--) {
+    const p = fireworks[i];
+    p.trail.push({ x: p.x, y: p.y, life: p.life });
+    if (p.trail.length > 6) p.trail.shift();
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.08; // gravity
+    p.vx *= 0.98;
+    p.vy *= 0.98;
+    p.life -= p.decay;
+    if (p.life <= 0) {
+      fireworks.splice(i, 1);
+    }
+  }
+}
+
+function drawFireworks() {
+  fireworks.forEach(p => {
+    // Draw trail
+    for (let t = 0; t < p.trail.length; t++) {
+      const tp = p.trail[t];
+      const alpha = (t / p.trail.length) * p.life * 0.4;
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.arc(tp.x, tp.y, p.size * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Draw particle
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    // Sparkle effect
+    if (p.sparkle && Math.random() < 0.5) {
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = p.life * 0.8;
+      ctx.beginPath();
+      ctx.arc(p.x + (Math.random() - 0.5) * 4, p.y + (Math.random() - 0.5) * 4, 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+  ctx.globalAlpha = 1;
 }
 
 function createTeams() {
@@ -615,7 +628,6 @@ function resetPositions() {
   ball.y = FIELD_Y + FIELD_H / 2;
   ball.vx = 0;
   ball.vy = 0;
-  resetReferee();
 }
 
 // ===== TOUCH CONTROLS =====
@@ -901,77 +913,6 @@ function updateCPU() {
   }
 }
 
-// ===== REFEREE LOGIC =====
-function callFoul(fouler, foulX, foulY) {
-  lastFoulTime = Date.now();
-  foulState.active = true;
-  foulState.foulX = Math.max(FIELD_X + 20, Math.min(FIELD_X + FIELD_W - 20, foulX));
-  foulState.foulY = Math.max(FIELD_Y + 20, Math.min(FIELD_Y + FIELD_H - 20, foulY));
-  foulState.team = fouler.team;
-
-  fouls[fouler.team]++;
-  const teamFouls = fouls[fouler.team];
-
-  // Card logic: yellow after 2 fouls, red after 4
-  if (teamFouls >= 4) {
-    foulState.cardType = 'red';
-  } else if (teamFouls >= 2) {
-    foulState.cardType = 'yellow';
-  } else {
-    foulState.cardType = 'none';
-  }
-
-  // Show foul overlay
-  const teamName = fouler.team === 'left' ? SCHALKE.short : FORTUNA.short;
-  document.getElementById('foulWhistle').textContent = 'FOUL!';
-
-  if (foulState.cardType === 'yellow') {
-    document.getElementById('foulCard').textContent = '\uD83D\uDFE8'; // yellow square
-    document.getElementById('foulTeam').textContent = 'Gelbe Karte - ' + teamName;
-    foulState.endTime = Date.now() + 2000;
-  } else if (foulState.cardType === 'red') {
-    document.getElementById('foulCard').textContent = '\uD83D\uDFE5'; // red square
-    document.getElementById('foulTeam').textContent = 'Rote Karte! - ' + teamName;
-    foulState.endTime = Date.now() + 2500;
-  } else {
-    document.getElementById('foulCard').textContent = '';
-    document.getElementById('foulTeam').textContent = 'Freisto\u00df ' + (fouler.team === 'left' ? FORTUNA.short : SCHALKE.short);
-    foulState.endTime = Date.now() + 1500;
-  }
-
-  document.getElementById('foulOverlay').style.display = 'flex';
-
-  // Move referee to foul location
-  referee.targetX = foulX;
-  referee.targetY = foulY;
-}
-
-function updateReferee() {
-  // Referee follows the ball at a distance, staying to the side
-  const offsetX = (ball.x > FIELD_X + FIELD_W / 2) ? -40 : 40;
-  const offsetY = (ball.y > FIELD_Y + FIELD_H / 2) ? -50 : 50;
-
-  if (!foulState.active) {
-    referee.targetX = ball.x + offsetX;
-    referee.targetY = ball.y + offsetY;
-  }
-
-  // Clamp target to field
-  referee.targetX = Math.max(FIELD_X + REF_RADIUS, Math.min(FIELD_X + FIELD_W - REF_RADIUS, referee.targetX));
-  referee.targetY = Math.max(FIELD_Y + REF_RADIUS, Math.min(FIELD_Y + FIELD_H - REF_RADIUS, referee.targetY));
-
-  // Move toward target smoothly
-  const dx = referee.targetX - referee.x;
-  const dy = referee.targetY - referee.y;
-  const dist = Math.hypot(dx, dy);
-  const refSpeed = foulState.active ? 4 : 2.5;
-
-  if (dist > 3) {
-    referee.x += (dx / dist) * Math.min(refSpeed, dist);
-    referee.y += (dy / dist) * Math.min(refSpeed, dist);
-  }
-}
-
 // ===== GAME LOGIC =====
 function update() {
   if (gameState !== 'playing') return;
@@ -1125,8 +1066,7 @@ function update() {
     }
   });
 
-  // Player-player collision + foul detection
-  const now2 = Date.now();
+  // Player-player collision
   for (let i = 0; i < players.length; i++) {
     for (let j = i + 1; j < players.length; j++) {
       const a = players[i], b = players[j];
@@ -1142,45 +1082,7 @@ function update() {
         a.y -= ny * overlap;
         b.x += nx * overlap;
         b.y += ny * overlap;
-
-        // Foul detection: different teams, hard collision near ball, not in cooldown
-        if (a.team !== b.team && !foulState.active && now2 - lastFoulTime > FOUL_COOLDOWN) {
-          const ballNearA = Math.hypot(ball.x - a.x, ball.y - a.y) < 60;
-          const ballNearB = Math.hypot(ball.x - b.x, ball.y - b.y) < 60;
-          // One player must be near the ball (tackling for the ball)
-          if (ballNearA || ballNearB) {
-            // Random chance of foul (not every contact is a foul)
-            if (Math.random() < 0.25) {
-              // Determine who committed the foul: the player NOT closest to ball
-              const distA = Math.hypot(ball.x - a.x, ball.y - a.y);
-              const distB = Math.hypot(ball.x - b.x, ball.y - b.y);
-              const fouler = distA > distB ? a : b;
-              callFoul(fouler, (a.x + b.x) / 2, (a.y + b.y) / 2);
-            }
-          }
-        }
       }
-    }
-  }
-
-  // --- Update referee position ---
-  updateReferee();
-
-  // --- Handle active foul (freeze play) ---
-  if (foulState.active) {
-    if (Date.now() < foulState.endTime) {
-      // During foul: freeze ball at foul spot
-      ball.vx = 0;
-      ball.vy = 0;
-      return; // skip rest of update
-    } else {
-      // Foul over: place ball at foul spot for free kick
-      document.getElementById('foulOverlay').style.display = 'none';
-      foulState.active = false;
-      ball.x = foulState.foulX;
-      ball.y = foulState.foulY;
-      ball.vx = 0;
-      ball.vy = 0;
     }
   }
 
@@ -1230,15 +1132,24 @@ function showGoal(teamName) {
   document.getElementById('scorerText').textContent = teamName + '!';
   document.getElementById('goalOverlay').style.display = 'flex';
 
+  // Launch fireworks!
+  fireworks = [];
+  createFireworks();
+  // Launch additional waves of fireworks
+  setTimeout(() => createFireworks(), 400);
+  setTimeout(() => createFireworks(), 900);
+  setTimeout(() => createFireworks(), 1400);
+
   setTimeout(() => {
     document.getElementById('goalOverlay').style.display = 'none';
+    fireworks = [];
     if (score.left >= WINNING_SCORE || score.right >= WINNING_SCORE) {
       showWin();
     } else {
       resetPositions();
       gameState = 'playing';
     }
-  }, 2000);
+  }, 2500);
 }
 
 function showWin() {
@@ -1261,11 +1172,8 @@ function startGame() {
   document.getElementById('startScreen').style.display = 'none';
   document.getElementById('teamSelectScreen').style.display = 'none';
   document.getElementById('difficultyScreen').style.display = 'none';
-  document.getElementById('foulOverlay').style.display = 'none';
   score = { left: 0, right: 0 };
-  fouls = { left: 0, right: 0 };
-  foulState.active = false;
-  lastFoulTime = 0;
+  fireworks = [];
   cpuAI.pauseUntil = 0;
   cpuAI.lastKickTime = 0;
   cpuAI.thinkTimer = 0;
@@ -1282,65 +1190,149 @@ function draw() {
 
   drawField();
   drawPlayers();
-  drawReferee();
   drawBall();
-  drawFoulIndicator();
+  // Fireworks on top of everything
+  if (fireworks.length > 0) {
+    updateFireworks();
+    drawFireworks();
+  }
   drawUI();
   drawControls();
 }
 
 function drawField() {
+  // Base grass
   ctx.fillStyle = '#2d8a4e';
   ctx.fillRect(FIELD_X, FIELD_Y, FIELD_W, FIELD_H);
 
-  const stripeW = FIELD_W / 12;
-  for (let i = 0; i < 12; i += 2) {
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  // Mowing stripes (alternating lighter/darker grass)
+  const stripeW = FIELD_W / 14;
+  for (let i = 0; i < 14; i++) {
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.025)';
     ctx.fillRect(FIELD_X + i * stripeW, FIELD_Y, stripeW, FIELD_H);
   }
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-  ctx.lineWidth = 2;
+  const lineColor = 'rgba(255,255,255,0.75)';
+  const lineWidth = 2;
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = lineWidth;
+  ctx.fillStyle = lineColor;
+
+  // --- Field boundary ---
   ctx.strokeRect(FIELD_X, FIELD_Y, FIELD_W, FIELD_H);
 
+  // --- Halfway line ---
   ctx.beginPath();
   ctx.moveTo(FIELD_X + FIELD_W / 2, FIELD_Y);
   ctx.lineTo(FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H);
   ctx.stroke();
 
+  // --- Center circle ---
   ctx.beginPath();
   ctx.arc(FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H / 2, CENTER_RADIUS, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  // --- Center spot ---
   ctx.beginPath();
   ctx.arc(FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H / 2, 4, 0, Math.PI * 2);
   ctx.fill();
 
-  const penW = PENALTY_W;
-  const penH = PENALTY_H;
+  // --- Penalty areas (18-yard box) ---
+  const penW = FIELD_W * 0.18;
+  const penH = GOAL_H * 1.8;
   ctx.strokeRect(FIELD_X, FIELD_Y + FIELD_H / 2 - penH / 2, penW, penH);
   ctx.strokeRect(FIELD_X + FIELD_W - penW, FIELD_Y + FIELD_H / 2 - penH / 2, penW, penH);
 
+  // --- Goal areas (6-yard box) ---
+  const goalAreaW = FIELD_W * 0.065;
+  const goalAreaH = GOAL_H * 1.05;
+  ctx.strokeRect(FIELD_X, FIELD_Y + FIELD_H / 2 - goalAreaH / 2, goalAreaW, goalAreaH);
+  ctx.strokeRect(FIELD_X + FIELD_W - goalAreaW, FIELD_Y + FIELD_H / 2 - goalAreaH / 2, goalAreaW, goalAreaH);
+
+  // --- Penalty spots ---
+  const penSpotX = FIELD_W * 0.12;
+  ctx.beginPath();
+  ctx.arc(FIELD_X + penSpotX, FIELD_Y + FIELD_H / 2, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(FIELD_X + FIELD_W - penSpotX, FIELD_Y + FIELD_H / 2, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // --- Penalty arcs (D-shape outside penalty area) ---
+  const penArcR = CENTER_RADIUS * 0.85;
+  // Left penalty arc
+  ctx.beginPath();
+  const leftArcAngle = Math.acos((penW - penSpotX) / penArcR);
+  ctx.arc(FIELD_X + penSpotX, FIELD_Y + FIELD_H / 2, penArcR, -leftArcAngle, leftArcAngle);
+  ctx.stroke();
+  // Right penalty arc
+  ctx.beginPath();
+  const rightArcAngle = Math.acos((penW - penSpotX) / penArcR);
+  ctx.arc(FIELD_X + FIELD_W - penSpotX, FIELD_Y + FIELD_H / 2, penArcR, Math.PI - rightArcAngle, Math.PI + rightArcAngle);
+  ctx.stroke();
+
+  // --- Corner arcs ---
+  const cornerR = Math.min(FIELD_W, FIELD_H) * 0.03;
+  // Top-left
+  ctx.beginPath();
+  ctx.arc(FIELD_X, FIELD_Y, cornerR, 0, Math.PI / 2);
+  ctx.stroke();
+  // Top-right
+  ctx.beginPath();
+  ctx.arc(FIELD_X + FIELD_W, FIELD_Y, cornerR, Math.PI / 2, Math.PI);
+  ctx.stroke();
+  // Bottom-left
+  ctx.beginPath();
+  ctx.arc(FIELD_X, FIELD_Y + FIELD_H, cornerR, -Math.PI / 2, 0);
+  ctx.stroke();
+  // Bottom-right
+  ctx.beginPath();
+  ctx.arc(FIELD_X + FIELD_W, FIELD_Y + FIELD_H, cornerR, Math.PI, Math.PI * 1.5);
+  ctx.stroke();
+
+  // --- Goals with net pattern ---
   const goalTop = FIELD_Y + FIELD_H / 2 - GOAL_H / 2;
+
+  // Goal frames
   ctx.lineWidth = 4;
   ctx.strokeStyle = '#ffffff';
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+
+  // Left goal
   ctx.fillRect(FIELD_X - GOAL_DEPTH, goalTop, GOAL_DEPTH, GOAL_H);
   ctx.strokeRect(FIELD_X - GOAL_DEPTH, goalTop, GOAL_DEPTH, GOAL_H);
+  // Right goal
   ctx.fillRect(FIELD_X + FIELD_W, goalTop, GOAL_DEPTH, GOAL_H);
   ctx.strokeRect(FIELD_X + FIELD_W, goalTop, GOAL_DEPTH, GOAL_H);
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < GOAL_H; i += 8) {
+  // Net pattern (horizontal + vertical lines)
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 0.5;
+  const netSpacing = 7;
+  // Left goal net
+  for (let i = 0; i <= GOAL_H; i += netSpacing) {
     ctx.beginPath();
     ctx.moveTo(FIELD_X - GOAL_DEPTH, goalTop + i);
     ctx.lineTo(FIELD_X, goalTop + i);
     ctx.stroke();
+  }
+  for (let i = 0; i <= GOAL_DEPTH; i += netSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(FIELD_X - GOAL_DEPTH + i, goalTop);
+    ctx.lineTo(FIELD_X - GOAL_DEPTH + i, goalTop + GOAL_H);
+    ctx.stroke();
+  }
+  // Right goal net
+  for (let i = 0; i <= GOAL_H; i += netSpacing) {
     ctx.beginPath();
     ctx.moveTo(FIELD_X + FIELD_W, goalTop + i);
     ctx.lineTo(FIELD_X + FIELD_W + GOAL_DEPTH, goalTop + i);
+    ctx.stroke();
+  }
+  for (let i = 0; i <= GOAL_DEPTH; i += netSpacing) {
+    ctx.beginPath();
+    ctx.moveTo(FIELD_X + FIELD_W + i, goalTop);
+    ctx.lineTo(FIELD_X + FIELD_W + i, goalTop + GOAL_H);
     ctx.stroke();
   }
 }
@@ -1405,62 +1397,6 @@ function drawPlayers() {
     ctx.textBaseline = 'middle';
     ctx.fillText(p.teamData.short[0], p.x, p.y + 1);
   });
-}
-
-function drawReferee() {
-  if (gameState !== 'playing' && gameState !== 'goal') return;
-
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(referee.x + 1, referee.y + 2, REF_RADIUS, REF_RADIUS * 0.5, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Body - black shirt
-  ctx.fillStyle = '#111111';
-  ctx.beginPath();
-  ctx.arc(referee.x, referee.y, REF_RADIUS, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Yellow collar detail
-  ctx.strokeStyle = '#ffd700';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // "R" letter
-  ctx.fillStyle = '#ffd700';
-  ctx.font = `bold ${REF_RADIUS * 0.85}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('R', referee.x, referee.y + 1);
-
-  // Whistle indicator when foul is active
-  if (foulState.active) {
-    const pulseScale = 1 + Math.sin(Date.now() * 0.01) * 0.15;
-    ctx.fillStyle = '#ffd700';
-    ctx.font = `bold ${14 * pulseScale}px Arial`;
-    ctx.fillText('\uD83C\uDFB5', referee.x + REF_RADIUS + 5, referee.y - REF_RADIUS);
-  }
-}
-
-function drawFoulIndicator() {
-  if (!foulState.active) return;
-
-  // Draw foul spot marker (pulsing circle where the free kick will be)
-  const pulse = 0.5 + Math.sin(Date.now() * 0.008) * 0.3;
-  ctx.beginPath();
-  ctx.arc(foulState.foulX, foulState.foulY, 15, 0, Math.PI * 2);
-  ctx.strokeStyle = `rgba(255, 255, 0, ${pulse})`;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([3, 3]);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Small ball icon at foul spot
-  ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
-  ctx.beginPath();
-  ctx.arc(foulState.foulX, foulState.foulY, 4, 0, Math.PI * 2);
-  ctx.fill();
 }
 
 function drawBall() {
@@ -1535,15 +1471,6 @@ function drawUI() {
   ctx.fillStyle = '#ffd700';
   ctx.font = 'bold 24px Arial';
   ctx.fillText(score.left + ' : ' + score.right, W / 2, barH / 2);
-
-  // Foul counters
-  if (fouls.left > 0 || fouls.right > 0) {
-    ctx.font = '10px Arial';
-    ctx.fillStyle = fouls.left >= 4 ? '#ff4444' : fouls.left >= 2 ? '#ffcc00' : 'rgba(255,255,255,0.5)';
-    ctx.fillText('Fouls: ' + fouls.left, W * 0.35, barH / 2 + 12);
-    ctx.fillStyle = fouls.right >= 4 ? '#ff4444' : fouls.right >= 2 ? '#ffcc00' : 'rgba(255,255,255,0.5)';
-    ctx.fillText('Fouls: ' + fouls.right, W * 0.65, barH / 2 + 12);
-  }
 }
 
 function drawControls() {
