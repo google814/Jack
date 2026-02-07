@@ -243,6 +243,56 @@ canvas {
   border-radius: 50px;
   cursor: pointer;
 }
+
+/* Difficulty Select Screen */
+#difficultyScreen {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #004d9e 0%, #1a1a2e 50%, #e4002b 100%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 98;
+  gap: 14px;
+}
+#difficultyScreen h2 {
+  color: white;
+  font-size: 20px;
+  text-align: center;
+  margin-bottom: 5px;
+}
+.diff-btn {
+  border: none;
+  padding: 16px 40px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 50px;
+  cursor: pointer;
+  min-width: 250px;
+  letter-spacing: 1px;
+  color: white;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.diff-btn:active {
+  transform: scale(0.95);
+}
+.diff-easy {
+  background: linear-gradient(to bottom, #4CAF50, #388E3C);
+}
+.diff-medium {
+  background: linear-gradient(to bottom, #FF9800, #F57C00);
+}
+.diff-hard {
+  background: linear-gradient(to bottom, #f44336, #C62828);
+}
+.diff-desc {
+  color: rgba(255,255,255,0.6);
+  font-size: 11px;
+  text-align: center;
+  max-width: 280px;
+}
 </style>
 </head>
 <body>
@@ -272,6 +322,17 @@ canvas {
     <div class="team-select-btn schalke-sel" id="selSchalke">S04<br>Schalke</div>
     <div class="team-select-btn fortuna-sel" id="selFortuna">F95<br>Fortuna</div>
   </div>
+</div>
+
+<!-- Difficulty Select Screen -->
+<div id="difficultyScreen">
+  <h2>Wie stark soll der Computer sein?</h2>
+  <button class="diff-btn diff-easy" id="diffEasy">&#128522; LEICHT</button>
+  <div class="diff-desc">Computer ist langsam und schie&szlig;t ungenau. Perfekt zum &Uuml;ben!</div>
+  <button class="diff-btn diff-medium" id="diffMedium">&#128170; MITTEL</button>
+  <div class="diff-desc">Computer spielt ordentlich mit, aber macht auch Fehler.</div>
+  <button class="diff-btn diff-hard" id="diffHard">&#128293; SCHWER</button>
+  <div class="diff-desc">Computer ist schnell und treffsicher. Echte Herausforderung!</div>
 </div>
 
 <!-- Goal Overlay -->
@@ -351,11 +412,53 @@ window.addEventListener('resize', () => {
 });
 
 // ===== GAME STATE =====
-let gameState = 'menu'; // menu, teamselect, playing, goal, finished
+let gameState = 'menu'; // menu, teamselect, difficulty, playing, goal, finished
 let gameMode = '2p'; // '1p' or '2p'
 let playerTeamSide = 'left'; // which side the human controls in 1P mode
 let cpuTeamSide = 'right';
+let difficulty = 'easy'; // 'easy', 'medium', 'hard'
 let score = { left: 0, right: 0 };
+
+// Difficulty settings: controls how fast/smart/accurate the CPU is
+const DIFFICULTY_SETTINGS = {
+  easy: {
+    moveSpeed: 0.35,       // fraction of PLAYER_SPEED (very slow)
+    shootPower: 0.5,       // fraction of SHOOT_POWER (weak shots)
+    shootAccuracy: 2.0,    // radians of random spread (very inaccurate)
+    reactionDelay: 1200,   // ms between strategy changes (slow thinking)
+    shootCooldown: 1500,   // ms between shots (shoots rarely)
+    chaseRadius: 80,       // only chases ball when close
+    missChance: 0.4,       // 40% chance to just miss/hesitate
+    teammateKick: 1.0,     // weaker teammate auto-kicks
+    gkSpeed: 0.03,         // goalkeeper tracking speed
+  },
+  medium: {
+    moveSpeed: 0.6,
+    shootPower: 0.7,
+    shootAccuracy: 0.8,
+    reactionDelay: 700,
+    shootCooldown: 800,
+    chaseRadius: 150,
+    missChance: 0.15,
+    teammateKick: 2.0,
+    gkSpeed: 0.06,
+  },
+  hard: {
+    moveSpeed: 0.85,
+    shootPower: 0.95,
+    shootAccuracy: 0.3,
+    reactionDelay: 400,
+    shootCooldown: 450,
+    chaseRadius: 300,
+    missChance: 0.0,
+    teammateKick: 3.0,
+    gkSpeed: 0.08,
+  }
+};
+
+function getDiff() {
+  return DIFFICULTY_SETTINGS[difficulty];
+}
 
 // Ball
 let ball = { x: 0, y: 0, vx: 0, vy: 0 };
@@ -366,8 +469,9 @@ let cpuAI = {
   targetY: 0,
   shootTimer: 0,
   thinkTimer: 0,
-  strategy: 'chase', // 'chase', 'attack', 'defend', 'position'
-  lastKickTime: 0
+  strategy: 'chase',
+  lastKickTime: 0,
+  pauseUntil: 0  // hesitation timer for easy mode
 };
 
 function createTeams() {
@@ -615,6 +719,16 @@ function updateCPU() {
   if (!cpuPlayer) return;
 
   const now = Date.now();
+  const diff = getDiff();
+
+  // Hesitation: on easy/medium, CPU sometimes just stops for a moment
+  if (now < cpuAI.pauseUntil) return;
+
+  // Random hesitation
+  if (Math.random() < diff.missChance * 0.02) {
+    cpuAI.pauseUntil = now + 300 + Math.random() * 500;
+    return;
+  }
 
   // Determine CPU goal and opponent goal
   const cpuGoalX = cpuTeamSide === 'left' ? FIELD_X : FIELD_X + FIELD_W;
@@ -625,55 +739,50 @@ function updateCPU() {
   const ballDistToOwnGoal = Math.hypot(ball.x - cpuGoalX, ball.y - oppGoalY);
   const ballDistToOppGoal = Math.hypot(ball.x - oppGoalX, ball.y - oppGoalY);
 
-  // Strategy decision
-  if (now - cpuAI.thinkTimer > 500) {
+  // Strategy decision (slower on easier difficulties)
+  if (now - cpuAI.thinkTimer > diff.reactionDelay) {
     cpuAI.thinkTimer = now;
 
     if (ballDistToOwnGoal < FIELD_W * 0.35) {
       cpuAI.strategy = 'defend';
-    } else if (distToBall < 120) {
+    } else if (distToBall < diff.chaseRadius) {
       cpuAI.strategy = 'attack';
     } else {
       cpuAI.strategy = 'chase';
     }
   }
 
+  // CPU movement speed based on difficulty
+  let speed = PLAYER_SPEED * diff.moveSpeed;
   let targetX = ball.x;
   let targetY = ball.y;
-  let speed = PLAYER_SPEED * 0.85;
 
   switch (cpuAI.strategy) {
     case 'chase':
-      // Move toward ball
       targetX = ball.x;
       targetY = ball.y;
-      speed = PLAYER_SPEED * 0.8;
       break;
 
-    case 'attack':
-      // Position behind ball relative to opponent goal, then push toward goal
+    case 'attack': {
       const behindX = cpuTeamSide === 'left'
         ? ball.x - 20
         : ball.x + 20;
       if ((cpuTeamSide === 'left' && cpuPlayer.x < ball.x - 10) ||
           (cpuTeamSide === 'right' && cpuPlayer.x > ball.x + 10)) {
-        // We're behind the ball, push it toward goal
         targetX = ball.x;
         targetY = ball.y;
-        speed = PLAYER_SPEED * 0.95;
+        speed = PLAYER_SPEED * diff.moveSpeed * 1.1;
       } else {
-        // Get behind ball
         targetX = behindX;
-        targetY = ball.y + (Math.random() - 0.5) * 20;
-        speed = PLAYER_SPEED * 0.9;
+        targetY = ball.y + (Math.random() - 0.5) * 30;
       }
       break;
+    }
 
     case 'defend':
-      // Rush toward ball to clear it
       targetX = ball.x;
       targetY = ball.y;
-      speed = PLAYER_SPEED * 0.95;
+      speed = PLAYER_SPEED * diff.moveSpeed * 1.1;
       break;
   }
 
@@ -682,7 +791,7 @@ function updateCPU() {
   const dy = targetY - cpuPlayer.y;
   const dist = Math.hypot(dx, dy);
 
-  if (dist > 3) {
+  if (dist > 5) {
     cpuPlayer.x += (dx / dist) * speed;
     cpuPlayer.y += (dy / dist) * speed;
   }
@@ -691,33 +800,37 @@ function updateCPU() {
   cpuPlayer.x = Math.max(FIELD_X + PLAYER_RADIUS, Math.min(FIELD_X + FIELD_W - PLAYER_RADIUS, cpuPlayer.x));
   cpuPlayer.y = Math.max(FIELD_Y + PLAYER_RADIUS, Math.min(FIELD_Y + FIELD_H - PLAYER_RADIUS, cpuPlayer.y));
 
-  // CPU shooting
+  // CPU shooting (with difficulty-based cooldown and accuracy)
   const distBall = Math.hypot(ball.x - cpuPlayer.x, ball.y - cpuPlayer.y);
-  if (distBall < SHOOT_RANGE && now - cpuAI.lastKickTime > KICK_COOLDOWN + 200) {
-    // Check if we have a decent angle to opponent goal
+  if (distBall < SHOOT_RANGE && now - cpuAI.lastKickTime > diff.shootCooldown) {
+
+    // Random miss chance: CPU just doesn't shoot sometimes
+    if (Math.random() < diff.missChance) {
+      cpuAI.lastKickTime = now - diff.shootCooldown * 0.5; // partial reset
+      return;
+    }
+
     const angleToGoal = Math.atan2(oppGoalY - cpuPlayer.y, oppGoalX - cpuPlayer.x);
     const angleToBall = Math.atan2(ball.y - cpuPlayer.y, ball.x - cpuPlayer.x);
     const angleDiff = Math.abs(angleToGoal - angleToBall);
 
-    // Shoot if roughly facing the goal or defending
     if (angleDiff < 1.2 || cpuAI.strategy === 'defend' || ballDistToOppGoal < FIELD_W * 0.4) {
       cpuAI.lastKickTime = now;
       lastKickTime[cpuTeamSide] = now;
 
       let kickAngle;
       if (cpuAI.strategy === 'defend') {
-        // Clear the ball away from own goal
         kickAngle = Math.atan2(ball.y - cpuGoalX < 0 ? -1 : 1, oppGoalX - cpuGoalX);
-        kickAngle += (Math.random() - 0.5) * 0.8;
+        kickAngle += (Math.random() - 0.5) * diff.shootAccuracy;
       } else {
-        // Aim at goal with some randomness
         const goalY = oppGoalY + (Math.random() - 0.5) * GOAL_H * 0.6;
         kickAngle = Math.atan2(goalY - cpuPlayer.y, oppGoalX - cpuPlayer.x);
-        kickAngle += (Math.random() - 0.5) * 0.3;
+        kickAngle += (Math.random() - 0.5) * diff.shootAccuracy;
       }
 
-      ball.vx = Math.cos(kickAngle) * SHOOT_POWER * (0.8 + Math.random() * 0.4);
-      ball.vy = Math.sin(kickAngle) * SHOOT_POWER * (0.6 + Math.random() * 0.4);
+      const power = SHOOT_POWER * diff.shootPower;
+      ball.vx = Math.cos(kickAngle) * power * (0.7 + Math.random() * 0.3);
+      ball.vy = Math.sin(kickAngle) * power * (0.5 + Math.random() * 0.5);
       cpuPlayer.x -= Math.cos(kickAngle) * 3;
       cpuPlayer.y -= Math.sin(kickAngle) * 3;
     }
@@ -801,15 +914,20 @@ function update() {
 
     let moveX = 0, moveY = 0;
 
+    // CPU team uses difficulty-based GK and teammate speed
+    const isCpuTeammate = gameMode === '1p' && p.team === cpuTeamSide;
+    const diff = getDiff();
+    const gkTrack = isCpuTeammate ? diff.gkSpeed : 0.08;
+
     if (p.isGK) {
       const targetY = Math.max(
         FIELD_Y + FIELD_H / 2 - GOAL_H / 2 + PLAYER_RADIUS,
         Math.min(FIELD_Y + FIELD_H / 2 + GOAL_H / 2 - PLAYER_RADIUS, ball.y)
       );
-      moveY = (targetY - p.y) * 0.08;
+      moveY = (targetY - p.y) * gkTrack;
       moveX = (p.homeX - p.x) * 0.1;
     } else {
-      const ballWeight = Math.max(0, 1 - toBallDist / 250) * 0.6;
+      const ballWeight = Math.max(0, 1 - toBallDist / 250) * (isCpuTeammate ? diff.moveSpeed * 0.7 : 0.6);
       const homeWeight = 0.04;
 
       if (toBallDist > 0) {
@@ -838,8 +956,9 @@ function update() {
       const targetGoalX = p.team === 'left' ? FIELD_X + FIELD_W : FIELD_X;
       const targetGoalY = FIELD_Y + FIELD_H / 2;
       const kickAngle = Math.atan2(targetGoalY - p.y, targetGoalX - p.x);
-      ball.vx += Math.cos(kickAngle) * 3;
-      ball.vy += Math.sin(kickAngle) * 2;
+      const kickStr = isCpuTeammate ? diff.teammateKick : 3;
+      ball.vx += Math.cos(kickAngle) * kickStr;
+      ball.vy += Math.sin(kickAngle) * (kickStr * 0.66);
     }
   });
 
@@ -960,13 +1079,18 @@ function showMenu() {
   gameState = 'menu';
   document.getElementById('winScreen').style.display = 'none';
   document.getElementById('teamSelectScreen').style.display = 'none';
+  document.getElementById('difficultyScreen').style.display = 'none';
   document.getElementById('startScreen').style.display = 'flex';
 }
 
 function startGame() {
   document.getElementById('startScreen').style.display = 'none';
   document.getElementById('teamSelectScreen').style.display = 'none';
+  document.getElementById('difficultyScreen').style.display = 'none';
   score = { left: 0, right: 0 };
+  cpuAI.pauseUntil = 0;
+  cpuAI.lastKickTime = 0;
+  cpuAI.thinkTimer = 0;
   resetPositions();
   gameState = 'playing';
 }
@@ -1154,11 +1278,13 @@ function drawUI() {
   let leftLabel = SCHALKE.short;
   let rightLabel = FORTUNA.short;
   if (gameMode === '1p') {
+    const diffLabels = { easy: 'LEICHT', medium: 'MITTEL', hard: 'SCHWER' };
+    const cpuLabel = 'CPU ' + diffLabels[difficulty];
     if (playerTeamSide === 'left') {
       leftLabel = SCHALKE.short + ' (DU)';
-      rightLabel = FORTUNA.short + ' (CPU)';
+      rightLabel = FORTUNA.short + ' (' + cpuLabel + ')';
     } else {
-      leftLabel = SCHALKE.short + ' (CPU)';
+      leftLabel = SCHALKE.short + ' (' + cpuLabel + ')';
       rightLabel = FORTUNA.short + ' (DU)';
     }
   }
@@ -1299,10 +1425,30 @@ function gameLoop() {
 
 // ===== EVENT LISTENERS =====
 
-// Mode: vs Computer
+// Mode: vs Computer -> go to difficulty selection first
 document.getElementById('btnVsComputer').addEventListener('click', () => {
   gameMode = '1p';
   document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('difficultyScreen').style.display = 'flex';
+  gameState = 'difficulty';
+});
+
+// Difficulty buttons -> then team selection
+document.getElementById('diffEasy').addEventListener('click', () => {
+  difficulty = 'easy';
+  document.getElementById('difficultyScreen').style.display = 'none';
+  document.getElementById('teamSelectScreen').style.display = 'flex';
+  gameState = 'teamselect';
+});
+document.getElementById('diffMedium').addEventListener('click', () => {
+  difficulty = 'medium';
+  document.getElementById('difficultyScreen').style.display = 'none';
+  document.getElementById('teamSelectScreen').style.display = 'flex';
+  gameState = 'teamselect';
+});
+document.getElementById('diffHard').addEventListener('click', () => {
+  difficulty = 'hard';
+  document.getElementById('difficultyScreen').style.display = 'none';
   document.getElementById('teamSelectScreen').style.display = 'flex';
   gameState = 'teamselect';
 });
