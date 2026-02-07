@@ -47,7 +47,7 @@ canvas {
   align-items: center;
   justify-content: center;
   z-index: 100;
-  gap: 20px;
+  gap: 18px;
 }
 #startScreen h1 {
   color: white;
@@ -88,28 +88,87 @@ canvas {
   align-items: center;
   gap: 25px;
 }
-#startBtn {
+.mode-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 5px;
+}
+.mode-btn {
   background: linear-gradient(to bottom, #ffd700, #e6b800);
   color: #1a1a2e;
   border: none;
-  padding: 18px 50px;
-  font-size: 22px;
+  padding: 16px 44px;
+  font-size: 18px;
   font-weight: bold;
   border-radius: 50px;
   cursor: pointer;
   box-shadow: 0 4px 20px rgba(255,215,0,0.4);
-  margin-top: 15px;
   letter-spacing: 1px;
+  min-width: 260px;
 }
-#startBtn:active {
+.mode-btn:active {
   transform: scale(0.95);
+}
+.mode-btn.secondary {
+  background: linear-gradient(to bottom, #ffffff, #dddddd);
+  box-shadow: 0 4px 15px rgba(255,255,255,0.2);
 }
 .instructions {
   color: rgba(255,255,255,0.7);
-  font-size: 13px;
+  font-size: 12px;
   text-align: center;
   max-width: 300px;
   line-height: 1.5;
+}
+
+/* Team Select Screen */
+#teamSelectScreen {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #004d9e 0%, #1a1a2e 50%, #e4002b 100%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99;
+  gap: 20px;
+}
+#teamSelectScreen h2 {
+  color: white;
+  font-size: 20px;
+  text-align: center;
+}
+.team-select-row {
+  display: flex;
+  gap: 30px;
+}
+.team-select-btn {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  color: white;
+  text-align: center;
+  border: 4px solid white;
+  cursor: pointer;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  transition: transform 0.2s;
+}
+.team-select-btn:active {
+  transform: scale(0.92);
+}
+.team-select-btn.schalke-sel {
+  background: radial-gradient(circle, #0055a4, #003d75);
+}
+.team-select-btn.fortuna-sel {
+  background: radial-gradient(circle, #e4002b, #a8001f);
 }
 
 /* Goal Overlay */
@@ -174,6 +233,16 @@ canvas {
   cursor: pointer;
   margin-top: 10px;
 }
+#menuBtn {
+  background: linear-gradient(to bottom, #ffffff, #dddddd);
+  color: #1a1a2e;
+  border: none;
+  padding: 12px 35px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 50px;
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -183,18 +252,25 @@ canvas {
 
 <!-- Start Screen -->
 <div id="startScreen">
-  <h1>&#9917; FU&szlig;BALL DUELL &#9917;</h1>
+  <h1>&#9917; FUSSBALL DUELL &#9917;</h1>
   <div class="teams-row">
     <div class="team-badge badge-schalke">S04<br>Schalke</div>
     <div class="vs">VS</div>
     <div class="team-badge badge-fortuna">F95<br>Fortuna</div>
   </div>
-  <button id="startBtn">ANSTOSS!</button>
-  <div class="instructions">
-    2-Spieler auf einem Ger&auml;t<br>
-    Jeder Spieler steuert mit einem virtuellen Joystick auf seiner Seite.<br>
-    Schuss-Button zum Schie&szlig;en!<br>
-    Erstes Team mit 5 Toren gewinnt!
+  <div class="mode-buttons">
+    <button class="mode-btn" id="btnVsComputer">&#129302; GEGEN COMPUTER</button>
+    <button class="mode-btn secondary" id="btn2Player">&#128101; 2 SPIELER</button>
+  </div>
+  <div class="instructions" id="instructionsText"></div>
+</div>
+
+<!-- Team Select Screen (for 1P mode) -->
+<div id="teamSelectScreen">
+  <h2>W&auml;hle dein Team:</h2>
+  <div class="team-select-row">
+    <div class="team-select-btn schalke-sel" id="selSchalke">S04<br>Schalke</div>
+    <div class="team-select-btn fortuna-sel" id="selFortuna">F95<br>Fortuna</div>
   </div>
 </div>
 
@@ -211,6 +287,7 @@ canvas {
   <h2 id="winnerText"></h2>
   <div class="final-score" id="finalScore"></div>
   <button id="restartBtn">NOCHMAL SPIELEN</button>
+  <button id="menuBtn">HAUPTMEN&Uuml;</button>
 </div>
 
 <script>
@@ -219,7 +296,6 @@ const WINNING_SCORE = 5;
 const PLAYER_RADIUS = 18;
 const BALL_RADIUS = 10;
 const PLAYER_SPEED = 4.5;
-const AI_NONE = true;
 const SHOOT_POWER = 12;
 const BALL_FRICTION = 0.985;
 const BOUNCE_FACTOR = 0.7;
@@ -236,7 +312,7 @@ const SCHALKE = {
   gk: '#ffd700'
 };
 const FORTUNA = {
-  name: 'Fortuna Düsseldorf',
+  name: 'Fortuna D\u00fcsseldorf',
   short: 'F95',
   primary: '#e4002b',
   secondary: '#ffffff',
@@ -257,7 +333,6 @@ function resizeCanvas() {
   canvas.width = W;
   canvas.height = H;
 
-  // Field dimensions with margins
   const margin = 10;
   FIELD_X = margin;
   FIELD_Y = 50;
@@ -276,14 +351,25 @@ window.addEventListener('resize', () => {
 });
 
 // ===== GAME STATE =====
-let gameState = 'menu'; // menu, playing, goal, finished
+let gameState = 'menu'; // menu, teamselect, playing, goal, finished
+let gameMode = '2p'; // '1p' or '2p'
+let playerTeamSide = 'left'; // which side the human controls in 1P mode
+let cpuTeamSide = 'right';
 let score = { left: 0, right: 0 };
 
 // Ball
 let ball = { x: 0, y: 0, vx: 0, vy: 0 };
 
-// Players: each team has 4 field players + 1 goalkeeper
-// Formations stored as ratios of field
+// CPU AI state
+let cpuAI = {
+  targetX: 0,
+  targetY: 0,
+  shootTimer: 0,
+  thinkTimer: 0,
+  strategy: 'chase', // 'chase', 'attack', 'defend', 'position'
+  lastKickTime: 0
+};
+
 function createTeams() {
   const leftFormation = [
     { rx: 0.08, ry: 0.5, isGK: true },
@@ -337,7 +423,6 @@ function initPlayers() {
       idx: i
     });
   });
-  // Select nearest to ball for each team
   updateSelectedPlayers();
 }
 
@@ -366,7 +451,6 @@ function resetPositions() {
 }
 
 // ===== TOUCH CONTROLS =====
-let touches = {};
 let joystick = {
   left: { active: false, startX: 0, startY: 0, currX: 0, currY: 0, id: null },
   right: { active: false, startX: 0, startY: 0, currX: 0, currY: 0, id: null }
@@ -376,8 +460,11 @@ let shootBtn = {
   right: { pressed: false, id: null }
 };
 
-// Shoot button positions
 function getShootBtnPos(side) {
+  if (gameMode === '1p') {
+    // In 1P mode: single shoot button on the right side
+    return { x: W - 60, y: H - 80, r: 38 };
+  }
   if (side === 'left') {
     return { x: W * 0.38, y: H - 45, r: 32 };
   } else {
@@ -386,6 +473,10 @@ function getShootBtnPos(side) {
 }
 
 function getJoystickZone(side) {
+  if (gameMode === '1p') {
+    // In 1P: larger joystick zone on the left 2/3
+    return { x: 0, y: H * 0.4, w: W * 0.65, h: H * 0.6 };
+  }
   if (side === 'left') {
     return { x: 0, y: H * 0.45, w: W * 0.45, h: H * 0.55 };
   } else {
@@ -406,30 +497,53 @@ function handleTouchStart(e) {
     const tx = t.clientX, ty = t.clientY;
     const id = t.identifier;
 
-    // Check shoot buttons first
-    for (let side of ['left', 'right']) {
-      const btn = getShootBtnPos(side);
+    if (gameMode === '1p') {
+      // Single player: one shoot button
+      const btn = getShootBtnPos(playerTeamSide);
       if (Math.hypot(tx - btn.x, ty - btn.y) < btn.r + 10) {
-        shootBtn[side].pressed = true;
-        shootBtn[side].id = id;
-        performShoot(side);
+        shootBtn[playerTeamSide].pressed = true;
+        shootBtn[playerTeamSide].id = id;
+        performShoot(playerTeamSide);
         return;
       }
-    }
-
-    // Check joystick zones
-    for (let side of ['left', 'right']) {
-      const zone = getJoystickZone(side);
-      if (!joystick[side].active &&
+      // Single joystick zone
+      const zone = getJoystickZone(playerTeamSide);
+      if (!joystick[playerTeamSide].active &&
           tx >= zone.x && tx <= zone.x + zone.w &&
           ty >= zone.y && ty <= zone.y + zone.h) {
-        joystick[side].active = true;
-        joystick[side].startX = tx;
-        joystick[side].startY = ty;
-        joystick[side].currX = tx;
-        joystick[side].currY = ty;
-        joystick[side].id = id;
-        break;
+        joystick[playerTeamSide].active = true;
+        joystick[playerTeamSide].startX = tx;
+        joystick[playerTeamSide].startY = ty;
+        joystick[playerTeamSide].currX = tx;
+        joystick[playerTeamSide].currY = ty;
+        joystick[playerTeamSide].id = id;
+      }
+    } else {
+      // 2 Player mode
+      // Check shoot buttons first
+      for (let side of ['left', 'right']) {
+        const btn = getShootBtnPos(side);
+        if (Math.hypot(tx - btn.x, ty - btn.y) < btn.r + 10) {
+          shootBtn[side].pressed = true;
+          shootBtn[side].id = id;
+          performShoot(side);
+          return;
+        }
+      }
+      // Check joystick zones
+      for (let side of ['left', 'right']) {
+        const zone = getJoystickZone(side);
+        if (!joystick[side].active &&
+            tx >= zone.x && tx <= zone.x + zone.w &&
+            ty >= zone.y && ty <= zone.y + zone.h) {
+          joystick[side].active = true;
+          joystick[side].startX = tx;
+          joystick[side].startY = ty;
+          joystick[side].currX = tx;
+          joystick[side].currY = ty;
+          joystick[side].id = id;
+          break;
+        }
       }
     }
   }
@@ -440,7 +554,8 @@ function handleTouchMove(e) {
   if (gameState !== 'playing') return;
 
   for (let t of e.changedTouches) {
-    for (let side of ['left', 'right']) {
+    const sides = gameMode === '1p' ? [playerTeamSide] : ['left', 'right'];
+    for (let side of sides) {
       if (joystick[side].active && joystick[side].id === t.identifier) {
         joystick[side].currX = t.clientX;
         joystick[side].currY = t.clientY;
@@ -452,7 +567,8 @@ function handleTouchMove(e) {
 function handleTouchEnd(e) {
   e.preventDefault();
   for (let t of e.changedTouches) {
-    for (let side of ['left', 'right']) {
+    const sides = gameMode === '1p' ? [playerTeamSide] : ['left', 'right'];
+    for (let side of sides) {
       if (joystick[side].id === t.identifier) {
         joystick[side].active = false;
         joystick[side].id = null;
@@ -465,7 +581,7 @@ function handleTouchEnd(e) {
   }
 }
 
-// ===== KEYBOARD SUPPORT (for testing on desktop) =====
+// ===== KEYBOARD SUPPORT =====
 let keys = {};
 document.addEventListener('keydown', e => { keys[e.key] = true; });
 document.addEventListener('keyup', e => { keys[e.key] = false; });
@@ -486,9 +602,125 @@ function performShoot(side) {
     const angle = Math.atan2(dy, dx);
     ball.vx = Math.cos(angle) * SHOOT_POWER;
     ball.vy = Math.sin(angle) * SHOOT_POWER;
-    // Slight push on player
     player.x -= Math.cos(angle) * 3;
     player.y -= Math.sin(angle) * 3;
+  }
+}
+
+// ===== COMPUTER AI =====
+function updateCPU() {
+  if (gameMode !== '1p') return;
+
+  const cpuPlayer = selectedPlayer[cpuTeamSide];
+  if (!cpuPlayer) return;
+
+  const now = Date.now();
+
+  // Determine CPU goal and opponent goal
+  const cpuGoalX = cpuTeamSide === 'left' ? FIELD_X : FIELD_X + FIELD_W;
+  const oppGoalX = cpuTeamSide === 'left' ? FIELD_X + FIELD_W : FIELD_X;
+  const oppGoalY = FIELD_Y + FIELD_H / 2;
+
+  const distToBall = Math.hypot(ball.x - cpuPlayer.x, ball.y - cpuPlayer.y);
+  const ballDistToOwnGoal = Math.hypot(ball.x - cpuGoalX, ball.y - oppGoalY);
+  const ballDistToOppGoal = Math.hypot(ball.x - oppGoalX, ball.y - oppGoalY);
+
+  // Strategy decision
+  if (now - cpuAI.thinkTimer > 500) {
+    cpuAI.thinkTimer = now;
+
+    if (ballDistToOwnGoal < FIELD_W * 0.35) {
+      cpuAI.strategy = 'defend';
+    } else if (distToBall < 120) {
+      cpuAI.strategy = 'attack';
+    } else {
+      cpuAI.strategy = 'chase';
+    }
+  }
+
+  let targetX = ball.x;
+  let targetY = ball.y;
+  let speed = PLAYER_SPEED * 0.85;
+
+  switch (cpuAI.strategy) {
+    case 'chase':
+      // Move toward ball
+      targetX = ball.x;
+      targetY = ball.y;
+      speed = PLAYER_SPEED * 0.8;
+      break;
+
+    case 'attack':
+      // Position behind ball relative to opponent goal, then push toward goal
+      const behindX = cpuTeamSide === 'left'
+        ? ball.x - 20
+        : ball.x + 20;
+      if ((cpuTeamSide === 'left' && cpuPlayer.x < ball.x - 10) ||
+          (cpuTeamSide === 'right' && cpuPlayer.x > ball.x + 10)) {
+        // We're behind the ball, push it toward goal
+        targetX = ball.x;
+        targetY = ball.y;
+        speed = PLAYER_SPEED * 0.95;
+      } else {
+        // Get behind ball
+        targetX = behindX;
+        targetY = ball.y + (Math.random() - 0.5) * 20;
+        speed = PLAYER_SPEED * 0.9;
+      }
+      break;
+
+    case 'defend':
+      // Rush toward ball to clear it
+      targetX = ball.x;
+      targetY = ball.y;
+      speed = PLAYER_SPEED * 0.95;
+      break;
+  }
+
+  // Move toward target
+  const dx = targetX - cpuPlayer.x;
+  const dy = targetY - cpuPlayer.y;
+  const dist = Math.hypot(dx, dy);
+
+  if (dist > 3) {
+    cpuPlayer.x += (dx / dist) * speed;
+    cpuPlayer.y += (dy / dist) * speed;
+  }
+
+  // Clamp to field
+  cpuPlayer.x = Math.max(FIELD_X + PLAYER_RADIUS, Math.min(FIELD_X + FIELD_W - PLAYER_RADIUS, cpuPlayer.x));
+  cpuPlayer.y = Math.max(FIELD_Y + PLAYER_RADIUS, Math.min(FIELD_Y + FIELD_H - PLAYER_RADIUS, cpuPlayer.y));
+
+  // CPU shooting
+  const distBall = Math.hypot(ball.x - cpuPlayer.x, ball.y - cpuPlayer.y);
+  if (distBall < SHOOT_RANGE && now - cpuAI.lastKickTime > KICK_COOLDOWN + 200) {
+    // Check if we have a decent angle to opponent goal
+    const angleToGoal = Math.atan2(oppGoalY - cpuPlayer.y, oppGoalX - cpuPlayer.x);
+    const angleToBall = Math.atan2(ball.y - cpuPlayer.y, ball.x - cpuPlayer.x);
+    const angleDiff = Math.abs(angleToGoal - angleToBall);
+
+    // Shoot if roughly facing the goal or defending
+    if (angleDiff < 1.2 || cpuAI.strategy === 'defend' || ballDistToOppGoal < FIELD_W * 0.4) {
+      cpuAI.lastKickTime = now;
+      lastKickTime[cpuTeamSide] = now;
+
+      let kickAngle;
+      if (cpuAI.strategy === 'defend') {
+        // Clear the ball away from own goal
+        kickAngle = Math.atan2(ball.y - cpuGoalX < 0 ? -1 : 1, oppGoalX - cpuGoalX);
+        kickAngle += (Math.random() - 0.5) * 0.8;
+      } else {
+        // Aim at goal with some randomness
+        const goalY = oppGoalY + (Math.random() - 0.5) * GOAL_H * 0.6;
+        kickAngle = Math.atan2(goalY - cpuPlayer.y, oppGoalX - cpuPlayer.x);
+        kickAngle += (Math.random() - 0.5) * 0.3;
+      }
+
+      ball.vx = Math.cos(kickAngle) * SHOOT_POWER * (0.8 + Math.random() * 0.4);
+      ball.vy = Math.sin(kickAngle) * SHOOT_POWER * (0.6 + Math.random() * 0.4);
+      cpuPlayer.x -= Math.cos(kickAngle) * 3;
+      cpuPlayer.y -= Math.sin(kickAngle) * 3;
+    }
   }
 }
 
@@ -496,8 +728,10 @@ function performShoot(side) {
 function update() {
   if (gameState !== 'playing') return;
 
-  // --- Move controlled players ---
-  for (let side of ['left', 'right']) {
+  // --- Move human-controlled players ---
+  const humanSides = gameMode === '1p' ? [playerTeamSide] : ['left', 'right'];
+
+  for (let side of humanSides) {
     const p = selectedPlayer[side];
     if (!p) continue;
 
@@ -511,7 +745,6 @@ function update() {
       if (mag > maxDist) {
         dx = (dx / mag) * maxDist;
         dy = (dy / mag) * maxDist;
-        // Recenter joystick
         joystick[side].startX = joystick[side].currX - dx;
         joystick[side].startY = joystick[side].currY - dy;
       }
@@ -519,34 +752,45 @@ function update() {
       dy = (dy / maxDist) * PLAYER_SPEED;
     }
 
-    // Keyboard fallback (WASD for left, Arrows for right)
-    if (side === 'left') {
+    // Keyboard fallback
+    if (side === 'left' || (gameMode === '1p' && playerTeamSide === 'left')) {
       if (keys['w'] || keys['W']) dy -= PLAYER_SPEED;
       if (keys['s'] || keys['S']) dy += PLAYER_SPEED;
       if (keys['a'] || keys['A']) dx -= PLAYER_SPEED;
       if (keys['d'] || keys['D']) dx += PLAYER_SPEED;
-      if (keys[' ']) performShoot('left');
-    } else {
+      if (keys[' ']) performShoot(side);
+    }
+    if (side === 'right' || (gameMode === '1p' && playerTeamSide === 'right')) {
+      if (gameMode === '2p' || playerTeamSide === 'right') {
+        if (keys['ArrowUp']) dy -= PLAYER_SPEED;
+        if (keys['ArrowDown']) dy += PLAYER_SPEED;
+        if (keys['ArrowLeft']) dx -= PLAYER_SPEED;
+        if (keys['ArrowRight']) dx += PLAYER_SPEED;
+        if (keys['Enter']) performShoot(side);
+      }
+    }
+    // In 1P mode, also allow arrow keys
+    if (gameMode === '1p') {
       if (keys['ArrowUp']) dy -= PLAYER_SPEED;
       if (keys['ArrowDown']) dy += PLAYER_SPEED;
       if (keys['ArrowLeft']) dx -= PLAYER_SPEED;
       if (keys['ArrowRight']) dx += PLAYER_SPEED;
-      if (keys['Enter']) performShoot('right');
+      if (keys['Enter'] || keys[' ']) performShoot(playerTeamSide);
     }
 
     p.x += dx;
     p.y += dy;
-
-    // Clamp to field
     p.x = Math.max(FIELD_X + PLAYER_RADIUS, Math.min(FIELD_X + FIELD_W - PLAYER_RADIUS, p.x));
     p.y = Math.max(FIELD_Y + PLAYER_RADIUS, Math.min(FIELD_Y + FIELD_H - PLAYER_RADIUS, p.y));
   }
 
-  // --- AI for non-selected players ---
+  // --- CPU AI for selected player ---
+  updateCPU();
+
+  // --- AI for non-selected players (teammates) ---
   players.forEach(p => {
     if (p === selectedPlayer.left || p === selectedPlayer.right) return;
 
-    // Simple AI: drift toward ball but stay near home position
     const toBallX = ball.x - p.x;
     const toBallY = ball.y - p.y;
     const toBallDist = Math.hypot(toBallX, toBallY);
@@ -558,7 +802,6 @@ function update() {
     let moveX = 0, moveY = 0;
 
     if (p.isGK) {
-      // Goalkeeper: track ball Y but stay near goal line
       const targetY = Math.max(
         FIELD_Y + FIELD_H / 2 - GOAL_H / 2 + PLAYER_RADIUS,
         Math.min(FIELD_Y + FIELD_H / 2 + GOAL_H / 2 - PLAYER_RADIUS, ball.y)
@@ -566,7 +809,6 @@ function update() {
       moveY = (targetY - p.y) * 0.08;
       moveX = (p.homeX - p.x) * 0.1;
     } else {
-      // Field players: balance between ball and home
       const ballWeight = Math.max(0, 1 - toBallDist / 250) * 0.6;
       const homeWeight = 0.04;
 
@@ -579,7 +821,6 @@ function update() {
         moveY += (toHomeY / toHomeDist) * PLAYER_SPEED * homeWeight;
       }
 
-      // Limit speed
       const speed = Math.hypot(moveX, moveY);
       if (speed > PLAYER_SPEED * 0.5) {
         moveX = (moveX / speed) * PLAYER_SPEED * 0.5;
@@ -592,12 +833,10 @@ function update() {
     p.x = Math.max(FIELD_X + PLAYER_RADIUS, Math.min(FIELD_X + FIELD_W - PLAYER_RADIUS, p.x));
     p.y = Math.max(FIELD_Y + PLAYER_RADIUS, Math.min(FIELD_Y + FIELD_H - PLAYER_RADIUS, p.y));
 
-    // AI auto-kick when close to ball
+    // Teammate auto-kick when close to ball
     if (toBallDist < PLAYER_RADIUS + BALL_RADIUS + 5) {
-      const ownGoalX = p.team === 'left' ? FIELD_X : FIELD_X + FIELD_W;
       const targetGoalX = p.team === 'left' ? FIELD_X + FIELD_W : FIELD_X;
       const targetGoalY = FIELD_Y + FIELD_H / 2;
-
       const kickAngle = Math.atan2(targetGoalY - p.y, targetGoalX - p.x);
       ball.vx += Math.cos(kickAngle) * 3;
       ball.vy += Math.sin(kickAngle) * 2;
@@ -618,14 +857,12 @@ function update() {
     const minDist = PLAYER_RADIUS + BALL_RADIUS;
 
     if (dist < minDist && dist > 0) {
-      // Push ball out
       const overlap = minDist - dist;
       const nx = dx / dist;
       const ny = dy / dist;
       ball.x += nx * overlap;
       ball.y += ny * overlap;
 
-      // Bounce
       const dot = ball.vx * nx + ball.vy * ny;
       ball.vx -= dot * nx;
       ball.vy -= dot * ny;
@@ -689,10 +926,8 @@ function update() {
     ball.vy = -Math.abs(ball.vy) * BOUNCE_FACTOR;
   }
 
-  // Update selected players (closest to ball)
   updateSelectedPlayers();
 
-  // Slow stop
   if (Math.abs(ball.vx) < 0.05) ball.vx = 0;
   if (Math.abs(ball.vy) < 0.05) ball.vy = 0;
 }
@@ -716,16 +951,30 @@ function showGoal(teamName) {
 function showWin() {
   gameState = 'finished';
   const winner = score.left >= WINNING_SCORE ? SCHALKE.name : FORTUNA.name;
-  document.getElementById('winnerText').textContent = '🏆 ' + winner + ' gewinnt! 🏆';
+  document.getElementById('winnerText').textContent = '\uD83C\uDFC6 ' + winner + ' gewinnt! \uD83C\uDFC6';
   document.getElementById('finalScore').textContent = score.left + ' : ' + score.right;
   document.getElementById('winScreen').style.display = 'flex';
+}
+
+function showMenu() {
+  gameState = 'menu';
+  document.getElementById('winScreen').style.display = 'none';
+  document.getElementById('teamSelectScreen').style.display = 'none';
+  document.getElementById('startScreen').style.display = 'flex';
+}
+
+function startGame() {
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('teamSelectScreen').style.display = 'none';
+  score = { left: 0, right: 0 };
+  resetPositions();
+  gameState = 'playing';
 }
 
 // ===== DRAWING =====
 function draw() {
   ctx.clearRect(0, 0, W, H);
 
-  // Background
   ctx.fillStyle = '#1a1a2e';
   ctx.fillRect(0, 0, W, H);
 
@@ -737,11 +986,9 @@ function draw() {
 }
 
 function drawField() {
-  // Green pitch
   ctx.fillStyle = '#2d8a4e';
   ctx.fillRect(FIELD_X, FIELD_Y, FIELD_W, FIELD_H);
 
-  // Stripes
   const stripeW = FIELD_W / 12;
   for (let i = 0; i < 12; i += 2) {
     ctx.fillStyle = 'rgba(255,255,255,0.04)';
@@ -750,59 +997,43 @@ function drawField() {
 
   ctx.strokeStyle = 'rgba(255,255,255,0.6)';
   ctx.lineWidth = 2;
-
-  // Outline
   ctx.strokeRect(FIELD_X, FIELD_Y, FIELD_W, FIELD_H);
 
-  // Center line
   ctx.beginPath();
   ctx.moveTo(FIELD_X + FIELD_W / 2, FIELD_Y);
   ctx.lineTo(FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H);
   ctx.stroke();
 
-  // Center circle
   ctx.beginPath();
   ctx.arc(FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H / 2, CENTER_RADIUS, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Center dot
   ctx.fillStyle = 'rgba(255,255,255,0.6)';
   ctx.beginPath();
   ctx.arc(FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H / 2, 4, 0, Math.PI * 2);
   ctx.fill();
 
-  // Penalty areas
   const penW = PENALTY_W;
   const penH = PENALTY_H;
-  // Left
   ctx.strokeRect(FIELD_X, FIELD_Y + FIELD_H / 2 - penH / 2, penW, penH);
-  // Right
   ctx.strokeRect(FIELD_X + FIELD_W - penW, FIELD_Y + FIELD_H / 2 - penH / 2, penW, penH);
 
-  // Goals
   const goalTop = FIELD_Y + FIELD_H / 2 - GOAL_H / 2;
   ctx.lineWidth = 4;
-
-  // Left goal
   ctx.strokeStyle = '#ffffff';
   ctx.fillStyle = 'rgba(255,255,255,0.15)';
   ctx.fillRect(FIELD_X - GOAL_DEPTH, goalTop, GOAL_DEPTH, GOAL_H);
   ctx.strokeRect(FIELD_X - GOAL_DEPTH, goalTop, GOAL_DEPTH, GOAL_H);
-
-  // Right goal
   ctx.fillRect(FIELD_X + FIELD_W, goalTop, GOAL_DEPTH, GOAL_H);
   ctx.strokeRect(FIELD_X + FIELD_W, goalTop, GOAL_DEPTH, GOAL_H);
 
-  // Goal net lines
   ctx.strokeStyle = 'rgba(255,255,255,0.3)';
   ctx.lineWidth = 1;
   for (let i = 0; i < GOAL_H; i += 8) {
-    // Left net
     ctx.beginPath();
     ctx.moveTo(FIELD_X - GOAL_DEPTH, goalTop + i);
     ctx.lineTo(FIELD_X, goalTop + i);
     ctx.stroke();
-    // Right net
     ctx.beginPath();
     ctx.moveTo(FIELD_X + FIELD_W, goalTop + i);
     ctx.lineTo(FIELD_X + FIELD_W + GOAL_DEPTH, goalTop + i);
@@ -813,30 +1044,32 @@ function drawField() {
 function drawPlayers() {
   players.forEach(p => {
     const isSelected = (p === selectedPlayer.left || p === selectedPlayer.right);
+    const isCPU = gameMode === '1p' && p === selectedPlayer[cpuTeamSide];
 
     // Selection indicator
     if (isSelected) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, PLAYER_RADIUS + 6, 0, Math.PI * 2);
-      ctx.strokeStyle = '#ffd700';
+      ctx.strokeStyle = isCPU ? '#ff4444' : '#ffd700';
       ctx.lineWidth = 2.5;
       ctx.setLineDash([4, 4]);
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Arrow pointing to ball
-      const dx = ball.x - p.x;
-      const dy = ball.y - p.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist > PLAYER_RADIUS + BALL_RADIUS + 15) {
-        const angle = Math.atan2(dy, dx);
-        const arrowDist = PLAYER_RADIUS + 10;
-        const ax = p.x + Math.cos(angle) * arrowDist;
-        const ay = p.y + Math.sin(angle) * arrowDist;
-        ctx.fillStyle = '#ffd700';
-        ctx.beginPath();
-        ctx.arc(ax, ay, 3, 0, Math.PI * 2);
-        ctx.fill();
+      if (!isCPU) {
+        const dx = ball.x - p.x;
+        const dy = ball.y - p.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > PLAYER_RADIUS + BALL_RADIUS + 15) {
+          const angle = Math.atan2(dy, dx);
+          const arrowDist = PLAYER_RADIUS + 10;
+          const ax = p.x + Math.cos(angle) * arrowDist;
+          const ay = p.y + Math.sin(angle) * arrowDist;
+          ctx.fillStyle = '#ffd700';
+          ctx.beginPath();
+          ctx.arc(ax, ay, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
 
@@ -853,18 +1086,15 @@ function drawPlayers() {
     ctx.arc(p.x, p.y, PLAYER_RADIUS, 0, Math.PI * 2);
     ctx.fill();
 
-    // Border
     ctx.strokeStyle = p.teamData.secondary;
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Inner shirt detail
     ctx.fillStyle = p.teamData.secondary;
     ctx.beginPath();
     ctx.arc(p.x, p.y, PLAYER_RADIUS * 0.35, 0, Math.PI * 2);
     ctx.fill();
 
-    // Team letter
     ctx.fillStyle = p.isGK ? '#000' : p.teamData.secondary;
     ctx.font = `bold ${PLAYER_RADIUS * 0.7}px Arial`;
     ctx.textAlign = 'center';
@@ -874,13 +1104,11 @@ function drawPlayers() {
 }
 
 function drawBall() {
-  // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
   ctx.beginPath();
   ctx.ellipse(ball.x + 2, ball.y + 3, BALL_RADIUS, BALL_RADIUS * 0.7, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Ball
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
@@ -889,13 +1117,11 @@ function drawBall() {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // Pentagon pattern
   ctx.fillStyle = '#333';
   ctx.beginPath();
   ctx.arc(ball.x, ball.y, BALL_RADIUS * 0.45, 0, Math.PI * 2);
   ctx.fill();
 
-  // Speed trail
   const speed = Math.hypot(ball.vx, ball.vy);
   if (speed > 3) {
     const alpha = Math.min(0.4, speed / 20);
@@ -909,36 +1135,41 @@ function drawBall() {
 }
 
 function drawUI() {
-  // Score bar
   const barH = 44;
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(0, 0, W, barH);
 
-  // Schalke side
   ctx.fillStyle = SCHALKE.primary;
   ctx.fillRect(0, 0, W / 2 - 30, barH);
-
-  // Fortuna side
   ctx.fillStyle = FORTUNA.primary;
   ctx.fillRect(W / 2 + 30, 0, W / 2 - 30, barH);
 
-  // Score display
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 22px Arial';
+
+  // Team names + mode indicator
+  ctx.font = 'bold 13px Arial';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // Team names
-  ctx.font = 'bold 13px Arial';
-  ctx.fillText(SCHALKE.short, W * 0.15, barH / 2 - 10);
-  ctx.fillText(FORTUNA.short, W * 0.85, barH / 2 - 10);
+  let leftLabel = SCHALKE.short;
+  let rightLabel = FORTUNA.short;
+  if (gameMode === '1p') {
+    if (playerTeamSide === 'left') {
+      leftLabel = SCHALKE.short + ' (DU)';
+      rightLabel = FORTUNA.short + ' (CPU)';
+    } else {
+      leftLabel = SCHALKE.short + ' (CPU)';
+      rightLabel = FORTUNA.short + ' (DU)';
+    }
+  }
 
-  // Scores
+  ctx.fillText(leftLabel, W * 0.15, barH / 2 - 10);
+  ctx.fillText(rightLabel, W * 0.85, barH / 2 - 10);
+
   ctx.font = 'bold 20px Arial';
   ctx.fillText(String(score.left), W * 0.15, barH / 2 + 10);
   ctx.fillText(String(score.right), W * 0.85, barH / 2 + 10);
 
-  // Center score
   ctx.fillStyle = '#ffd700';
   ctx.font = 'bold 24px Arial';
   ctx.fillText(score.left + ' : ' + score.right, W / 2, barH / 2);
@@ -947,10 +1178,11 @@ function drawUI() {
 function drawControls() {
   if (gameState !== 'playing') return;
 
-  // Draw joysticks
-  for (let side of ['left', 'right']) {
+  if (gameMode === '1p') {
+    // Single player controls
+    const side = playerTeamSide;
+
     if (joystick[side].active) {
-      // Outer ring
       ctx.beginPath();
       ctx.arc(joystick[side].startX, joystick[side].startY, 45, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255,255,255,0.1)';
@@ -959,7 +1191,6 @@ function drawControls() {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Inner thumb
       const dx = joystick[side].currX - joystick[side].startX;
       const dy = joystick[side].currY - joystick[side].startY;
       const dist = Math.min(Math.hypot(dx, dy), 45);
@@ -973,14 +1204,14 @@ function drawControls() {
       ctx.fill();
     }
 
-    // Shoot button
+    // Single shoot button
     const btn = getShootBtnPos(side);
-    const color = side === 'left' ? SCHALKE.primary : FORTUNA.primary;
+    const teamColor = side === 'left' ? SCHALKE.primary : FORTUNA.primary;
     const pressed = shootBtn[side].pressed;
 
     ctx.beginPath();
     ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2);
-    ctx.fillStyle = pressed ? '#ffd700' : color;
+    ctx.fillStyle = pressed ? '#ffd700' : teamColor;
     ctx.globalAlpha = pressed ? 0.9 : 0.7;
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -989,25 +1220,74 @@ function drawControls() {
     ctx.stroke();
 
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 11px Arial';
+    ctx.font = 'bold 13px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('SCHUSS', btn.x, btn.y);
+
+    // Hint
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '10px Arial';
+    ctx.fillText('Joystick: links tippen & ziehen', W * 0.3, H - 8);
+
+  } else {
+    // 2 Player controls
+    for (let side of ['left', 'right']) {
+      if (joystick[side].active) {
+        ctx.beginPath();
+        ctx.arc(joystick[side].startX, joystick[side].startY, 45, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const dx = joystick[side].currX - joystick[side].startX;
+        const dy = joystick[side].currY - joystick[side].startY;
+        const dist = Math.min(Math.hypot(dx, dy), 45);
+        const angle = Math.atan2(dy, dx);
+        const thumbX = joystick[side].startX + Math.cos(angle) * dist;
+        const thumbY = joystick[side].startY + Math.sin(angle) * dist;
+
+        ctx.beginPath();
+        ctx.arc(thumbX, thumbY, 20, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fill();
+      }
+
+      const btn = getShootBtnPos(side);
+      const color = side === 'left' ? SCHALKE.primary : FORTUNA.primary;
+      const pressed = shootBtn[side].pressed;
+
+      ctx.beginPath();
+      ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2);
+      ctx.fillStyle = pressed ? '#ffd700' : color;
+      ctx.globalAlpha = pressed ? 0.9 : 0.7;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('SCHUSS', btn.x, btn.y);
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    const lz = getJoystickZone('left');
+    ctx.fillRect(lz.x, lz.y, lz.w, lz.h);
+    const rz = getJoystickZone('right');
+    ctx.fillRect(rz.x, rz.y, rz.w, rz.h);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('\u2190 ' + SCHALKE.short + ' Joystick', W * 0.15, H - 8);
+    ctx.fillText(FORTUNA.short + ' Joystick \u2192', W * 0.85, H - 8);
   }
-
-  // Zone indicators (subtle)
-  ctx.fillStyle = 'rgba(255,255,255,0.03)';
-  const lz = getJoystickZone('left');
-  ctx.fillRect(lz.x, lz.y, lz.w, lz.h);
-  const rz = getJoystickZone('right');
-  ctx.fillRect(rz.x, rz.y, rz.w, rz.h);
-
-  // Control hints at bottom
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = '10px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('← ' + SCHALKE.short + ' Joystick', W * 0.15, H - 8);
-  ctx.fillText(FORTUNA.short + ' Joystick →', W * 0.85, H - 8);
 }
 
 // ===== GAME LOOP =====
@@ -1017,20 +1297,55 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
-// ===== START =====
-document.getElementById('startBtn').addEventListener('click', () => {
+// ===== EVENT LISTENERS =====
+
+// Mode: vs Computer
+document.getElementById('btnVsComputer').addEventListener('click', () => {
+  gameMode = '1p';
   document.getElementById('startScreen').style.display = 'none';
-  score = { left: 0, right: 0 };
-  resetPositions();
-  gameState = 'playing';
+  document.getElementById('teamSelectScreen').style.display = 'flex';
+  gameState = 'teamselect';
 });
 
+// Mode: 2 Player
+document.getElementById('btn2Player').addEventListener('click', () => {
+  gameMode = '2p';
+  playerTeamSide = 'left';
+  cpuTeamSide = 'right';
+  startGame();
+});
+
+// Team selection
+document.getElementById('selSchalke').addEventListener('click', () => {
+  playerTeamSide = 'left';
+  cpuTeamSide = 'right';
+  startGame();
+});
+document.getElementById('selFortuna').addEventListener('click', () => {
+  playerTeamSide = 'right';
+  cpuTeamSide = 'left';
+  startGame();
+});
+
+// Restart
 document.getElementById('restartBtn').addEventListener('click', () => {
   document.getElementById('winScreen').style.display = 'none';
   score = { left: 0, right: 0 };
   resetPositions();
   gameState = 'playing';
 });
+
+// Back to menu
+document.getElementById('menuBtn').addEventListener('click', () => {
+  showMenu();
+});
+
+// Set initial instructions
+document.getElementById('instructionsText').innerHTML =
+  'W\u00e4hle deinen Spielmodus!<br>' +
+  'Gegen Computer: Alleine gegen die KI.<br>' +
+  '2 Spieler: Zu zweit auf einem Ger\u00e4t.<br>' +
+  'Erstes Team mit 5 Toren gewinnt!';
 
 // Init
 resetPositions();
