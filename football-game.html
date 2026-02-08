@@ -34,6 +34,11 @@ html, body {
 canvas {
   display: block;
   touch-action: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /* Start Screen */
@@ -51,7 +56,7 @@ canvas {
 }
 #startScreen h1 {
   color: white;
-  font-size: 22px;
+  font-size: clamp(22px, 3.5vmin, 36px);
   text-align: center;
   text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
   line-height: 1.3;
@@ -63,14 +68,14 @@ canvas {
   text-shadow: 0 0 20px rgba(255,215,0,0.5);
 }
 .team-badge {
-  width: 90px;
-  height: 90px;
+  width: clamp(90px, 12vmin, 130px);
+  height: clamp(90px, 12vmin, 130px);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 14px;
+  font-size: clamp(14px, 2vmin, 20px);
   color: white;
   text-align: center;
   border: 3px solid white;
@@ -98,14 +103,14 @@ canvas {
   background: linear-gradient(to bottom, #ffd700, #e6b800);
   color: #1a1a2e;
   border: none;
-  padding: 16px 44px;
-  font-size: 18px;
+  padding: clamp(16px, 2.5vmin, 22px) clamp(44px, 6vmin, 60px);
+  font-size: clamp(18px, 2.8vmin, 26px);
   font-weight: bold;
   border-radius: 50px;
   cursor: pointer;
   box-shadow: 0 4px 20px rgba(255,215,0,0.4);
   letter-spacing: 1px;
-  min-width: 260px;
+  min-width: clamp(260px, 35vmin, 360px);
 }
 .mode-btn:active {
   transform: scale(0.95);
@@ -145,14 +150,14 @@ canvas {
   gap: 30px;
 }
 .team-select-btn {
-  width: 120px;
-  height: 120px;
+  width: clamp(120px, 15vmin, 170px);
+  height: clamp(120px, 15vmin, 170px);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 16px;
+  font-size: clamp(16px, 2.5vmin, 24px);
   color: white;
   text-align: center;
   border: 4px solid white;
@@ -183,14 +188,14 @@ canvas {
   background: rgba(0,0,0,0.6);
 }
 #goalOverlay .goal-text {
-  font-size: 64px;
+  font-size: clamp(64px, 10vmin, 96px);
   font-weight: bold;
   color: #ffd700;
   text-shadow: 0 0 30px rgba(255,215,0,0.8), 0 0 60px rgba(255,215,0,0.4);
   animation: goalPulse 0.5s ease-in-out infinite alternate;
 }
 #goalOverlay .scorer {
-  font-size: 24px;
+  font-size: clamp(24px, 3.5vmin, 36px);
   color: white;
   margin-top: 10px;
 }
@@ -265,12 +270,12 @@ canvas {
 }
 .diff-btn {
   border: none;
-  padding: 16px 40px;
-  font-size: 18px;
+  padding: clamp(16px, 2.5vmin, 22px) clamp(40px, 6vmin, 56px);
+  font-size: clamp(18px, 2.8vmin, 26px);
   font-weight: bold;
   border-radius: 50px;
   cursor: pointer;
-  min-width: 250px;
+  min-width: clamp(250px, 35vmin, 360px);
   letter-spacing: 1px;
   color: white;
   box-shadow: 0 4px 15px rgba(0,0,0,0.3);
@@ -355,14 +360,23 @@ canvas {
 <script>
 // ===== GAME CONFIG =====
 const WINNING_SCORE = 5;
-const PLAYER_RADIUS = 18;
-const BALL_RADIUS = 10;
-const PLAYER_SPEED = 4.5;
-const SHOOT_POWER = 12;
+
+// Scale factor based on screen size (iPad vs iPhone)
+function getScale() {
+  const diag = Math.hypot(window.innerWidth, window.innerHeight);
+  // iPhone ~740px diagonal, iPad 11" ~1450px diagonal
+  return Math.max(1, diag / 800);
+}
+let SCALE = getScale();
+
+let PLAYER_RADIUS = Math.round(18 * SCALE);
+let BALL_RADIUS = Math.round(10 * SCALE);
+let PLAYER_SPEED = 4.5 * SCALE;
+let SHOOT_POWER = 12 * SCALE;
 const BALL_FRICTION = 0.985;
 const BOUNCE_FACTOR = 0.7;
 const GOAL_WIDTH_RATIO = 0.30;
-const SHOOT_RANGE = 55;
+let SHOOT_RANGE = Math.round(55 * SCALE);
 const KICK_COOLDOWN = 300; // ms
 
 // Team Colors
@@ -384,24 +398,50 @@ const FORTUNA = {
 // ===== CANVAS SETUP =====
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+let DPR = window.devicePixelRatio || 1;
 
 let W, H, FIELD_X, FIELD_Y, FIELD_W, FIELD_H;
 let GOAL_H, GOAL_DEPTH, CENTER_RADIUS;
 let PENALTY_W, PENALTY_H;
 
+function getTouchPos(touch) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: touch.clientX - rect.left,
+    y: touch.clientY - rect.top
+  };
+}
+
+function updateScaledValues() {
+  SCALE = getScale();
+  PLAYER_RADIUS = Math.round(18 * SCALE);
+  BALL_RADIUS = Math.round(10 * SCALE);
+  PLAYER_SPEED = 4.5 * SCALE;
+  SHOOT_POWER = 12 * SCALE;
+  SHOOT_RANGE = Math.round(55 * SCALE);
+}
+
 function resizeCanvas() {
+  DPR = window.devicePixelRatio || 1;
   W = window.innerWidth;
   H = window.innerHeight;
-  canvas.width = W;
-  canvas.height = H;
 
-  const margin = 10;
+  // Set canvas internal resolution for sharp rendering
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+
+  // Scale context so we draw in CSS pixels
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  updateScaledValues();
+
+  const margin = Math.round(10 * SCALE);
   FIELD_X = margin;
-  FIELD_Y = 50;
+  FIELD_Y = Math.round(50 * SCALE);
   FIELD_W = W - margin * 2;
-  FIELD_H = H - 100;
+  FIELD_H = H - FIELD_Y - Math.round(50 * SCALE);
   GOAL_H = FIELD_H * GOAL_WIDTH_RATIO;
-  GOAL_DEPTH = 25;
+  GOAL_DEPTH = Math.round(25 * SCALE);
   CENTER_RADIUS = Math.min(FIELD_W, FIELD_H) * 0.12;
   PENALTY_W = FIELD_W * 0.18;
   PENALTY_H = GOAL_H * 1.6;
@@ -410,6 +450,13 @@ resizeCanvas();
 window.addEventListener('resize', () => {
   resizeCanvas();
   if (gameState === 'playing') resetPositions();
+});
+// Also handle orientation changes on iPad
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    resizeCanvas();
+    if (gameState === 'playing') resetPositions();
+  }, 200);
 });
 
 // ===== GAME STATE =====
@@ -641,14 +688,14 @@ let shootBtn = {
 };
 
 function getShootBtnPos(side) {
+  const btnR = Math.round(32 * SCALE);
   if (gameMode === '1p') {
-    // In 1P mode: single shoot button on the right side
-    return { x: W - 60, y: H - 80, r: 38 };
+    return { x: W - Math.round(60 * SCALE), y: H - Math.round(70 * SCALE), r: Math.round(38 * SCALE) };
   }
   if (side === 'left') {
-    return { x: W * 0.38, y: H - 45, r: 32 };
+    return { x: W * 0.38, y: H - Math.round(45 * SCALE), r: btnR };
   } else {
-    return { x: W * 0.62, y: H - 45, r: 32 };
+    return { x: W * 0.62, y: H - Math.round(45 * SCALE), r: btnR };
   }
 }
 
@@ -664,29 +711,38 @@ function getJoystickZone(side) {
   }
 }
 
-canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+// Touch listeners on both canvas and document for iPad compatibility
+function addTouchListeners(el) {
+  el.addEventListener('touchstart', handleTouchStart, { passive: false });
+  el.addEventListener('touchmove', handleTouchMove, { passive: false });
+  el.addEventListener('touchend', handleTouchEnd, { passive: false });
+  el.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+}
+addTouchListeners(canvas);
+addTouchListeners(document);
+
+let touchHandled = {}; // prevent double-firing from canvas+document listeners
 
 function handleTouchStart(e) {
   e.preventDefault();
   if (gameState !== 'playing') return;
 
   for (let t of e.changedTouches) {
-    const tx = t.clientX, ty = t.clientY;
     const id = t.identifier;
+    if (touchHandled[id]) continue;
+    touchHandled[id] = true;
+
+    const pos = getTouchPos(t);
+    const tx = pos.x, ty = pos.y;
 
     if (gameMode === '1p') {
-      // Single player: one shoot button
       const btn = getShootBtnPos(playerTeamSide);
-      if (Math.hypot(tx - btn.x, ty - btn.y) < btn.r + 10) {
+      if (Math.hypot(tx - btn.x, ty - btn.y) < btn.r + 15 * SCALE) {
         shootBtn[playerTeamSide].pressed = true;
         shootBtn[playerTeamSide].id = id;
         performShoot(playerTeamSide);
         return;
       }
-      // Single joystick zone
       const zone = getJoystickZone(playerTeamSide);
       if (!joystick[playerTeamSide].active &&
           tx >= zone.x && tx <= zone.x + zone.w &&
@@ -699,18 +755,15 @@ function handleTouchStart(e) {
         joystick[playerTeamSide].id = id;
       }
     } else {
-      // 2 Player mode
-      // Check shoot buttons first
       for (let side of ['left', 'right']) {
         const btn = getShootBtnPos(side);
-        if (Math.hypot(tx - btn.x, ty - btn.y) < btn.r + 10) {
+        if (Math.hypot(tx - btn.x, ty - btn.y) < btn.r + 15 * SCALE) {
           shootBtn[side].pressed = true;
           shootBtn[side].id = id;
           performShoot(side);
           return;
         }
       }
-      // Check joystick zones
       for (let side of ['left', 'right']) {
         const zone = getJoystickZone(side);
         if (!joystick[side].active &&
@@ -734,11 +787,12 @@ function handleTouchMove(e) {
   if (gameState !== 'playing') return;
 
   for (let t of e.changedTouches) {
+    const pos = getTouchPos(t);
     const sides = gameMode === '1p' ? [playerTeamSide] : ['left', 'right'];
     for (let side of sides) {
       if (joystick[side].active && joystick[side].id === t.identifier) {
-        joystick[side].currX = t.clientX;
-        joystick[side].currY = t.clientY;
+        joystick[side].currX = pos.x;
+        joystick[side].currY = pos.y;
       }
     }
   }
@@ -747,6 +801,7 @@ function handleTouchMove(e) {
 function handleTouchEnd(e) {
   e.preventDefault();
   for (let t of e.changedTouches) {
+    delete touchHandled[t.identifier];
     const sides = gameMode === '1p' ? [playerTeamSide] : ['left', 'right'];
     for (let side of sides) {
       if (joystick[side].id === t.identifier) {
@@ -930,7 +985,7 @@ function update() {
       dx = joystick[side].currX - joystick[side].startX;
       dy = joystick[side].currY - joystick[side].startY;
       const mag = Math.hypot(dx, dy);
-      const maxDist = 50;
+      const maxDist = 50 * SCALE;
       if (mag > maxDist) {
         dx = (dx / mag) * maxDist;
         dy = (dy / mag) * maxDist;
@@ -1213,7 +1268,7 @@ function drawField() {
   }
 
   const lineColor = 'rgba(255,255,255,0.75)';
-  const lineWidth = 2;
+  const lineWidth = 2 * SCALE;
   ctx.strokeStyle = lineColor;
   ctx.lineWidth = lineWidth;
   ctx.fillStyle = lineColor;
@@ -1294,7 +1349,7 @@ function drawField() {
   const goalTop = FIELD_Y + FIELD_H / 2 - GOAL_H / 2;
 
   // Goal frames
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 4 * SCALE;
   ctx.strokeStyle = '#ffffff';
   ctx.fillStyle = 'rgba(255,255,255,0.12)';
 
@@ -1307,8 +1362,8 @@ function drawField() {
 
   // Net pattern (horizontal + vertical lines)
   ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-  ctx.lineWidth = 0.5;
-  const netSpacing = 7;
+  ctx.lineWidth = 0.5 * SCALE;
+  const netSpacing = Math.round(7 * SCALE);
   // Left goal net
   for (let i = 0; i <= GOAL_H; i += netSpacing) {
     ctx.beginPath();
@@ -1431,19 +1486,18 @@ function drawBall() {
 }
 
 function drawUI() {
-  const barH = 44;
+  const barH = Math.round(44 * SCALE);
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(0, 0, W, barH);
 
   ctx.fillStyle = SCHALKE.primary;
-  ctx.fillRect(0, 0, W / 2 - 30, barH);
+  ctx.fillRect(0, 0, W / 2 - 30 * SCALE, barH);
   ctx.fillStyle = FORTUNA.primary;
-  ctx.fillRect(W / 2 + 30, 0, W / 2 - 30, barH);
+  ctx.fillRect(W / 2 + 30 * SCALE, 0, W / 2 - 30 * SCALE, barH);
 
   ctx.fillStyle = '#fff';
 
-  // Team names + mode indicator
-  ctx.font = 'bold 13px Arial';
+  ctx.font = `bold ${Math.round(13 * SCALE)}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -1461,117 +1515,84 @@ function drawUI() {
     }
   }
 
-  ctx.fillText(leftLabel, W * 0.15, barH / 2 - 10);
-  ctx.fillText(rightLabel, W * 0.85, barH / 2 - 10);
+  ctx.fillText(leftLabel, W * 0.15, barH / 2 - 10 * SCALE);
+  ctx.fillText(rightLabel, W * 0.85, barH / 2 - 10 * SCALE);
 
-  ctx.font = 'bold 20px Arial';
-  ctx.fillText(String(score.left), W * 0.15, barH / 2 + 10);
-  ctx.fillText(String(score.right), W * 0.85, barH / 2 + 10);
+  ctx.font = `bold ${Math.round(20 * SCALE)}px Arial`;
+  ctx.fillText(String(score.left), W * 0.15, barH / 2 + 10 * SCALE);
+  ctx.fillText(String(score.right), W * 0.85, barH / 2 + 10 * SCALE);
 
   ctx.fillStyle = '#ffd700';
-  ctx.font = 'bold 24px Arial';
+  ctx.font = `bold ${Math.round(24 * SCALE)}px Arial`;
   ctx.fillText(score.left + ' : ' + score.right, W / 2, barH / 2);
 }
 
 function drawControls() {
   if (gameState !== 'playing') return;
 
-  if (gameMode === '1p') {
-    // Single player controls
-    const side = playerTeamSide;
+  const joyR = Math.round(45 * SCALE);
+  const thumbR = Math.round(20 * SCALE);
+  const fontSize = Math.round(13 * SCALE);
+  const hintSize = Math.round(10 * SCALE);
 
-    if (joystick[side].active) {
-      ctx.beginPath();
-      ctx.arc(joystick[side].startX, joystick[side].startY, 45, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+  function drawJoystick(side) {
+    if (!joystick[side].active) return;
+    ctx.beginPath();
+    ctx.arc(joystick[side].startX, joystick[side].startY, joyR, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-      const dx = joystick[side].currX - joystick[side].startX;
-      const dy = joystick[side].currY - joystick[side].startY;
-      const dist = Math.min(Math.hypot(dx, dy), 45);
-      const angle = Math.atan2(dy, dx);
-      const thumbX = joystick[side].startX + Math.cos(angle) * dist;
-      const thumbY = joystick[side].startY + Math.sin(angle) * dist;
+    const dx = joystick[side].currX - joystick[side].startX;
+    const dy = joystick[side].currY - joystick[side].startY;
+    const dist = Math.min(Math.hypot(dx, dy), joyR);
+    const angle = Math.atan2(dy, dx);
+    const thumbX = joystick[side].startX + Math.cos(angle) * dist;
+    const thumbY = joystick[side].startY + Math.sin(angle) * dist;
 
-      ctx.beginPath();
-      ctx.arc(thumbX, thumbY, 20, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fill();
-    }
+    ctx.beginPath();
+    ctx.arc(thumbX, thumbY, thumbR, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fill();
+  }
 
-    // Single shoot button
+  function drawShootBtn(side) {
     const btn = getShootBtnPos(side);
-    const teamColor = side === 'left' ? SCHALKE.primary : FORTUNA.primary;
+    const color = side === 'left' ? SCHALKE.primary : FORTUNA.primary;
     const pressed = shootBtn[side].pressed;
 
     ctx.beginPath();
     ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2);
-    ctx.fillStyle = pressed ? '#ffd700' : teamColor;
+    ctx.fillStyle = pressed ? '#ffd700' : color;
     ctx.globalAlpha = pressed ? 0.9 : 0.7;
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 * SCALE;
     ctx.stroke();
 
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px Arial';
+    ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('SCHUSS', btn.x, btn.y);
+  }
 
-    // Hint
+  if (gameMode === '1p') {
+    const side = playerTeamSide;
+    drawJoystick(side);
+    drawShootBtn(side);
+
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.font = '10px Arial';
-    ctx.fillText('Joystick: links tippen & ziehen', W * 0.3, H - 8);
-
+    ctx.font = `${hintSize}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Joystick: links tippen & ziehen', W * 0.3, H - 8 * SCALE);
   } else {
-    // 2 Player controls
     for (let side of ['left', 'right']) {
-      if (joystick[side].active) {
-        ctx.beginPath();
-        ctx.arc(joystick[side].startX, joystick[side].startY, 45, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        const dx = joystick[side].currX - joystick[side].startX;
-        const dy = joystick[side].currY - joystick[side].startY;
-        const dist = Math.min(Math.hypot(dx, dy), 45);
-        const angle = Math.atan2(dy, dx);
-        const thumbX = joystick[side].startX + Math.cos(angle) * dist;
-        const thumbY = joystick[side].startY + Math.sin(angle) * dist;
-
-        ctx.beginPath();
-        ctx.arc(thumbX, thumbY, 20, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fill();
-      }
-
-      const btn = getShootBtnPos(side);
-      const color = side === 'left' ? SCHALKE.primary : FORTUNA.primary;
-      const pressed = shootBtn[side].pressed;
-
-      ctx.beginPath();
-      ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2);
-      ctx.fillStyle = pressed ? '#ffd700' : color;
-      ctx.globalAlpha = pressed ? 0.9 : 0.7;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 11px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('SCHUSS', btn.x, btn.y);
+      drawJoystick(side);
+      drawShootBtn(side);
     }
 
     ctx.fillStyle = 'rgba(255,255,255,0.03)';
@@ -1581,10 +1602,10 @@ function drawControls() {
     ctx.fillRect(rz.x, rz.y, rz.w, rz.h);
 
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.font = '10px Arial';
+    ctx.font = `${hintSize}px Arial`;
     ctx.textAlign = 'center';
-    ctx.fillText('\u2190 ' + SCHALKE.short + ' Joystick', W * 0.15, H - 8);
-    ctx.fillText(FORTUNA.short + ' Joystick \u2192', W * 0.85, H - 8);
+    ctx.fillText('\u2190 ' + SCHALKE.short + ' Joystick', W * 0.15, H - 8 * SCALE);
+    ctx.fillText(FORTUNA.short + ' Joystick \u2192', W * 0.85, H - 8 * SCALE);
   }
 }
 
