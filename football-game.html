@@ -14,7 +14,6 @@
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-  touch-action: none;
 }
 html, body {
   width: 100%;
@@ -22,6 +21,7 @@ html, body {
   overflow: hidden;
   background: #1a1a2e;
   font-family: 'Helvetica Neue', Arial, sans-serif;
+  touch-action: none;
 }
 #gameContainer {
   width: 100%;
@@ -40,6 +40,13 @@ canvas {
   width: 100%;
   height: 100%;
   z-index: 1;
+}
+/* Allow buttons/overlays to receive touches */
+button, .team-select-btn, .mode-btn, .diff-btn {
+  touch-action: manipulation;
+}
+#startScreen, #teamSelectScreen, #difficultyScreen, #winScreen, #goalOverlay {
+  touch-action: auto;
 }
 
 /* Start Screen */
@@ -1201,6 +1208,7 @@ function showGoal(teamName) {
 
 function showWin() {
   gameState = 'finished';
+  setCanvasInteractive(false);
   const winner = score.left >= WINNING_SCORE ? SCHALKE.name : FORTUNA.name;
   document.getElementById('winnerText').textContent = '\uD83C\uDFC6 ' + winner + ' gewinnt! \uD83C\uDFC6';
   document.getElementById('finalScore').textContent = score.left + ' : ' + score.right;
@@ -1209,10 +1217,15 @@ function showWin() {
 
 function showMenu() {
   gameState = 'menu';
+  setCanvasInteractive(false);
   document.getElementById('winScreen').style.display = 'none';
   document.getElementById('teamSelectScreen').style.display = 'none';
   document.getElementById('difficultyScreen').style.display = 'none';
   document.getElementById('startScreen').style.display = 'flex';
+}
+
+function setCanvasInteractive(active) {
+  canvas.style.pointerEvents = active ? 'auto' : 'none';
 }
 
 function startGame() {
@@ -1226,6 +1239,7 @@ function startGame() {
   cpuAI.thinkTimer = 0;
   resetPositions();
   gameState = 'playing';
+  setCanvasInteractive(true);
 }
 
 // ===== DRAWING =====
@@ -1679,6 +1693,7 @@ document.getElementById('instructionsText').innerHTML =
   'Erstes Team mit 5 Toren gewinnt!';
 
 // Init
+setCanvasInteractive(false); // start with menu visible
 resetPositions();
 gameLoop();
 </script>
