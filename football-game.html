@@ -39,6 +39,7 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: 1;
 }
 
 /* Start Screen */
@@ -711,27 +712,18 @@ function getJoystickZone(side) {
   }
 }
 
-// Touch listeners on both canvas and document for iPad compatibility
-function addTouchListeners(el) {
-  el.addEventListener('touchstart', handleTouchStart, { passive: false });
-  el.addEventListener('touchmove', handleTouchMove, { passive: false });
-  el.addEventListener('touchend', handleTouchEnd, { passive: false });
-  el.addEventListener('touchcancel', handleTouchEnd, { passive: false });
-}
-addTouchListeners(canvas);
-addTouchListeners(document);
-
-let touchHandled = {}; // prevent double-firing from canvas+document listeners
+// Touch listeners - only on canvas to avoid blocking UI buttons
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
 function handleTouchStart(e) {
-  e.preventDefault();
   if (gameState !== 'playing') return;
+  e.preventDefault();
 
   for (let t of e.changedTouches) {
     const id = t.identifier;
-    if (touchHandled[id]) continue;
-    touchHandled[id] = true;
-
     const pos = getTouchPos(t);
     const tx = pos.x, ty = pos.y;
 
@@ -783,8 +775,8 @@ function handleTouchStart(e) {
 }
 
 function handleTouchMove(e) {
-  e.preventDefault();
   if (gameState !== 'playing') return;
+  e.preventDefault();
 
   for (let t of e.changedTouches) {
     const pos = getTouchPos(t);
@@ -799,9 +791,9 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd(e) {
+  if (gameState !== 'playing') return;
   e.preventDefault();
   for (let t of e.changedTouches) {
-    delete touchHandled[t.identifier];
     const sides = gameMode === '1p' ? [playerTeamSide] : ['left', 'right'];
     for (let side of sides) {
       if (joystick[side].id === t.identifier) {
