@@ -370,8 +370,8 @@ function getScale() {
 }
 let SCALE = getScale();
 
-let PLAYER_RADIUS = Math.round(18 * SCALE);
-let BALL_RADIUS = Math.round(10 * SCALE);
+let PLAYER_RADIUS = Math.round(13 * SCALE);
+let BALL_RADIUS = Math.round(7 * SCALE);
 let PLAYER_SPEED = 4.5 * SCALE;
 let SHOOT_POWER = 12 * SCALE;
 const BALL_FRICTION = 0.985;
@@ -415,8 +415,8 @@ function getTouchPos(touch) {
 
 function updateScaledValues() {
   SCALE = getScale();
-  PLAYER_RADIUS = Math.round(18 * SCALE);
-  BALL_RADIUS = Math.round(10 * SCALE);
+  PLAYER_RADIUS = Math.round(13 * SCALE);
+  BALL_RADIUS = Math.round(7 * SCALE);
   PLAYER_SPEED = 4.5 * SCALE;
   SHOOT_POWER = 12 * SCALE;
   SHOOT_RANGE = Math.round(55 * SCALE);
@@ -436,11 +436,12 @@ function resizeCanvas() {
 
   updateScaledValues();
 
+  const borderPad = Math.round(20 * SCALE);
   const margin = Math.round(10 * SCALE);
-  FIELD_X = margin;
-  FIELD_Y = Math.round(50 * SCALE);
-  FIELD_W = W - margin * 2;
-  FIELD_H = H - FIELD_Y - Math.round(50 * SCALE);
+  FIELD_X = margin + borderPad;
+  FIELD_Y = Math.round(50 * SCALE) + borderPad;
+  FIELD_W = W - (margin + borderPad) * 2;
+  FIELD_H = H - FIELD_Y - Math.round(50 * SCALE) - borderPad;
   GOAL_H = FIELD_H * GOAL_WIDTH_RATIO;
   GOAL_DEPTH = Math.round(25 * SCALE);
   CENTER_RADIUS = Math.min(FIELD_W, FIELD_H) * 0.12;
@@ -522,6 +523,33 @@ let cpuAI = {
   lastKickTime: 0,
   pauseUntil: 0  // hesitation timer for easy mode
 };
+
+// ===== LINESMEN =====
+let linesmen = {
+  top: { x: 0, y: 0, flagUp: false },
+  bottom: { x: 0, y: 0, flagUp: false }
+};
+
+function updateLinesmen() {
+  const pad = Math.round(12 * SCALE);
+  // Top linesman: runs along top sideline, follows ball x
+  const targetX = Math.max(FIELD_X, Math.min(FIELD_X + FIELD_W, ball.x));
+  linesmen.top.x += (targetX - linesmen.top.x) * 0.06;
+  linesmen.top.y = FIELD_Y - pad;
+  // Bottom linesman: runs along bottom sideline
+  linesmen.bottom.x += (targetX - linesmen.bottom.x) * 0.05;
+  linesmen.bottom.y = FIELD_Y + FIELD_H + pad;
+  // Flag up when ball is near their sideline
+  linesmen.top.flagUp = ball.y < FIELD_Y + FIELD_H * 0.2;
+  linesmen.bottom.flagUp = ball.y > FIELD_Y + FIELD_H * 0.8;
+}
+
+function resetLinesmen() {
+  linesmen.top.x = FIELD_X + FIELD_W / 2;
+  linesmen.top.y = FIELD_Y - Math.round(12 * SCALE);
+  linesmen.bottom.x = FIELD_X + FIELD_W / 2;
+  linesmen.bottom.y = FIELD_Y + FIELD_H + Math.round(12 * SCALE);
+}
 
 // ===== FIREWORK PARTICLES =====
 let fireworks = [];
@@ -676,6 +704,7 @@ function resetPositions() {
   ball.y = FIELD_Y + FIELD_H / 2;
   ball.vx = 0;
   ball.vy = 0;
+  resetLinesmen();
 }
 
 // ===== PREVENT ZOOM/SCROLL DURING GAMEPLAY =====
@@ -1179,6 +1208,7 @@ function update() {
   }
 
   updateSelectedPlayers();
+  updateLinesmen();
 
   if (Math.abs(ball.vx) < 0.05) ball.vx = 0;
   if (Math.abs(ball.vy) < 0.05) ball.vy = 0;
@@ -1258,6 +1288,8 @@ function draw() {
   ctx.fillRect(0, 0, W, H);
 
   drawField();
+  drawCornerFlags();
+  drawLinesmen();
   drawPlayers();
   drawBall();
   // Fireworks on top of everything
@@ -1270,21 +1302,57 @@ function draw() {
 }
 
 function drawField() {
-  // Base grass
-  ctx.fillStyle = '#2d8a4e';
+  const bp = Math.round(20 * SCALE);
+  const borderR = Math.round(12 * SCALE);
+  const outerX = FIELD_X - bp;
+  const outerY = FIELD_Y - bp;
+  const outerW = FIELD_W + bp * 2;
+  const outerH = FIELD_H + bp * 2;
+
+  // --- Teal/cyan rounded border (Football Manager style) ---
+  ctx.fillStyle = '#3aafa9';
+  ctx.beginPath();
+  ctx.moveTo(outerX + borderR, outerY);
+  ctx.lineTo(outerX + outerW - borderR, outerY);
+  ctx.arcTo(outerX + outerW, outerY, outerX + outerW, outerY + borderR, borderR);
+  ctx.lineTo(outerX + outerW, outerY + outerH - borderR);
+  ctx.arcTo(outerX + outerW, outerY + outerH, outerX + outerW - borderR, outerY + outerH, borderR);
+  ctx.lineTo(outerX + borderR, outerY + outerH);
+  ctx.arcTo(outerX, outerY + outerH, outerX, outerY + outerH - borderR, borderR);
+  ctx.lineTo(outerX, outerY + borderR);
+  ctx.arcTo(outerX, outerY, outerX + borderR, outerY, borderR);
+  ctx.closePath();
+  ctx.fill();
+
+  // --- Grass with gradient ---
+  const grassGrad = ctx.createLinearGradient(FIELD_X, FIELD_Y, FIELD_X, FIELD_Y + FIELD_H);
+  grassGrad.addColorStop(0, '#328a3e');
+  grassGrad.addColorStop(0.5, '#2d7a36');
+  grassGrad.addColorStop(1, '#328a3e');
+  ctx.fillStyle = grassGrad;
   ctx.fillRect(FIELD_X, FIELD_Y, FIELD_W, FIELD_H);
 
-  // Mowing stripes (alternating lighter/darker grass)
-  const stripeW = FIELD_W / 14;
-  for (let i = 0; i < 14; i++) {
-    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.025)';
+  // Mowing stripes
+  const stripeW = FIELD_W / 16;
+  for (let i = 0; i < 16; i++) {
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
     ctx.fillRect(FIELD_X + i * stripeW, FIELD_Y, stripeW, FIELD_H);
   }
 
-  const lineColor = 'rgba(255,255,255,0.75)';
-  const lineWidth = 2 * SCALE;
+  // Subtle vignette on grass edges
+  const vignGrad = ctx.createRadialGradient(
+    FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H / 2, Math.min(FIELD_W, FIELD_H) * 0.3,
+    FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H / 2, Math.max(FIELD_W, FIELD_H) * 0.6
+  );
+  vignGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  vignGrad.addColorStop(1, 'rgba(0,0,0,0.12)');
+  ctx.fillStyle = vignGrad;
+  ctx.fillRect(FIELD_X, FIELD_Y, FIELD_W, FIELD_H);
+
+  const lineColor = 'rgba(255,255,255,0.85)';
+  const lw = 2 * SCALE;
   ctx.strokeStyle = lineColor;
-  ctx.lineWidth = lineWidth;
+  ctx.lineWidth = lw;
   ctx.fillStyle = lineColor;
 
   // --- Field boundary ---
@@ -1296,17 +1364,15 @@ function drawField() {
   ctx.lineTo(FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H);
   ctx.stroke();
 
-  // --- Center circle ---
+  // --- Center circle + spot ---
   ctx.beginPath();
   ctx.arc(FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H / 2, CENTER_RADIUS, 0, Math.PI * 2);
   ctx.stroke();
-
-  // --- Center spot ---
   ctx.beginPath();
-  ctx.arc(FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H / 2, 4, 0, Math.PI * 2);
+  ctx.arc(FIELD_X + FIELD_W / 2, FIELD_Y + FIELD_H / 2, 3 * SCALE, 0, Math.PI * 2);
   ctx.fill();
 
-  // --- Penalty areas (18-yard box) ---
+  // --- Penalty areas ---
   const penW = FIELD_W * 0.18;
   const penH = GOAL_H * 1.8;
   ctx.strokeRect(FIELD_X, FIELD_Y + FIELD_H / 2 - penH / 2, penW, penH);
@@ -1321,89 +1387,142 @@ function drawField() {
   // --- Penalty spots ---
   const penSpotX = FIELD_W * 0.12;
   ctx.beginPath();
-  ctx.arc(FIELD_X + penSpotX, FIELD_Y + FIELD_H / 2, 3, 0, Math.PI * 2);
+  ctx.arc(FIELD_X + penSpotX, FIELD_Y + FIELD_H / 2, 2.5 * SCALE, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(FIELD_X + FIELD_W - penSpotX, FIELD_Y + FIELD_H / 2, 3, 0, Math.PI * 2);
+  ctx.arc(FIELD_X + FIELD_W - penSpotX, FIELD_Y + FIELD_H / 2, 2.5 * SCALE, 0, Math.PI * 2);
   ctx.fill();
 
-  // --- Penalty arcs (D-shape outside penalty area) ---
+  // --- Penalty arcs ---
   const penArcR = CENTER_RADIUS * 0.85;
-  // Left penalty arc
-  ctx.beginPath();
-  const leftArcAngle = Math.acos((penW - penSpotX) / penArcR);
-  ctx.arc(FIELD_X + penSpotX, FIELD_Y + FIELD_H / 2, penArcR, -leftArcAngle, leftArcAngle);
-  ctx.stroke();
-  // Right penalty arc
-  ctx.beginPath();
-  const rightArcAngle = Math.acos((penW - penSpotX) / penArcR);
-  ctx.arc(FIELD_X + FIELD_W - penSpotX, FIELD_Y + FIELD_H / 2, penArcR, Math.PI - rightArcAngle, Math.PI + rightArcAngle);
-  ctx.stroke();
+  const ratioL = (penW - penSpotX) / penArcR;
+  if (Math.abs(ratioL) <= 1) {
+    const arcA = Math.acos(ratioL);
+    ctx.beginPath();
+    ctx.arc(FIELD_X + penSpotX, FIELD_Y + FIELD_H / 2, penArcR, -arcA, arcA);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(FIELD_X + FIELD_W - penSpotX, FIELD_Y + FIELD_H / 2, penArcR, Math.PI - arcA, Math.PI + arcA);
+    ctx.stroke();
+  }
 
   // --- Corner arcs ---
-  const cornerR = Math.min(FIELD_W, FIELD_H) * 0.03;
-  // Top-left
-  ctx.beginPath();
-  ctx.arc(FIELD_X, FIELD_Y, cornerR, 0, Math.PI / 2);
-  ctx.stroke();
-  // Top-right
-  ctx.beginPath();
-  ctx.arc(FIELD_X + FIELD_W, FIELD_Y, cornerR, Math.PI / 2, Math.PI);
-  ctx.stroke();
-  // Bottom-left
-  ctx.beginPath();
-  ctx.arc(FIELD_X, FIELD_Y + FIELD_H, cornerR, -Math.PI / 2, 0);
-  ctx.stroke();
-  // Bottom-right
-  ctx.beginPath();
-  ctx.arc(FIELD_X + FIELD_W, FIELD_Y + FIELD_H, cornerR, Math.PI, Math.PI * 1.5);
-  ctx.stroke();
+  const cornerR = Math.min(FIELD_W, FIELD_H) * 0.025;
+  ctx.beginPath(); ctx.arc(FIELD_X, FIELD_Y, cornerR, 0, Math.PI / 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(FIELD_X + FIELD_W, FIELD_Y, cornerR, Math.PI / 2, Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.arc(FIELD_X, FIELD_Y + FIELD_H, cornerR, -Math.PI / 2, 0); ctx.stroke();
+  ctx.beginPath(); ctx.arc(FIELD_X + FIELD_W, FIELD_Y + FIELD_H, cornerR, Math.PI, Math.PI * 1.5); ctx.stroke();
 
-  // --- Goals with net pattern ---
+  // --- Goals with net ---
   const goalTop = FIELD_Y + FIELD_H / 2 - GOAL_H / 2;
-
-  // Goal frames
-  ctx.lineWidth = 4 * SCALE;
+  ctx.lineWidth = 3 * SCALE;
   ctx.strokeStyle = '#ffffff';
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillStyle = 'rgba(200,200,200,0.15)';
 
-  // Left goal
   ctx.fillRect(FIELD_X - GOAL_DEPTH, goalTop, GOAL_DEPTH, GOAL_H);
   ctx.strokeRect(FIELD_X - GOAL_DEPTH, goalTop, GOAL_DEPTH, GOAL_H);
-  // Right goal
   ctx.fillRect(FIELD_X + FIELD_W, goalTop, GOAL_DEPTH, GOAL_H);
   ctx.strokeRect(FIELD_X + FIELD_W, goalTop, GOAL_DEPTH, GOAL_H);
 
-  // Net pattern (horizontal + vertical lines)
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  // Net grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth = 0.5 * SCALE;
-  const netSpacing = Math.round(7 * SCALE);
-  // Left goal net
-  for (let i = 0; i <= GOAL_H; i += netSpacing) {
-    ctx.beginPath();
-    ctx.moveTo(FIELD_X - GOAL_DEPTH, goalTop + i);
-    ctx.lineTo(FIELD_X, goalTop + i);
-    ctx.stroke();
+  const ns = Math.max(5, Math.round(6 * SCALE));
+  for (let g = 0; g < 2; g++) {
+    const gx = g === 0 ? FIELD_X - GOAL_DEPTH : FIELD_X + FIELD_W;
+    for (let i = 0; i <= GOAL_H; i += ns) {
+      ctx.beginPath(); ctx.moveTo(gx, goalTop + i); ctx.lineTo(gx + GOAL_DEPTH, goalTop + i); ctx.stroke();
+    }
+    for (let i = 0; i <= GOAL_DEPTH; i += ns) {
+      ctx.beginPath(); ctx.moveTo(gx + i, goalTop); ctx.lineTo(gx + i, goalTop + GOAL_H); ctx.stroke();
+    }
   }
-  for (let i = 0; i <= GOAL_DEPTH; i += netSpacing) {
+}
+
+function drawCornerFlags() {
+  const flagH = Math.round(14 * SCALE);
+  const flagW = Math.round(8 * SCALE);
+  const poleW = 1.5 * SCALE;
+  const corners = [
+    [FIELD_X, FIELD_Y],
+    [FIELD_X + FIELD_W, FIELD_Y],
+    [FIELD_X, FIELD_Y + FIELD_H],
+    [FIELD_X + FIELD_W, FIELD_Y + FIELD_H]
+  ];
+  corners.forEach(([cx, cy]) => {
+    // Pole
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = poleW;
     ctx.beginPath();
-    ctx.moveTo(FIELD_X - GOAL_DEPTH + i, goalTop);
-    ctx.lineTo(FIELD_X - GOAL_DEPTH + i, goalTop + GOAL_H);
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx, cy - flagH);
     ctx.stroke();
-  }
-  // Right goal net
-  for (let i = 0; i <= GOAL_H; i += netSpacing) {
+    // Flag triangle (yellow)
+    ctx.fillStyle = '#ffd700';
     ctx.beginPath();
-    ctx.moveTo(FIELD_X + FIELD_W, goalTop + i);
-    ctx.lineTo(FIELD_X + FIELD_W + GOAL_DEPTH, goalTop + i);
+    ctx.moveTo(cx, cy - flagH);
+    ctx.lineTo(cx + flagW, cy - flagH + flagW * 0.5);
+    ctx.lineTo(cx, cy - flagH + flagW);
+    ctx.closePath();
+    ctx.fill();
+    // Flag outline
+    ctx.strokeStyle = '#cc9900';
+    ctx.lineWidth = 0.5 * SCALE;
     ctx.stroke();
-  }
-  for (let i = 0; i <= GOAL_DEPTH; i += netSpacing) {
+  });
+}
+
+function drawLinesmen() {
+  if (gameState !== 'playing' && gameState !== 'goal') return;
+  const s = SCALE;
+  const bodyR = Math.round(7 * s);
+
+  [linesmen.top, linesmen.bottom].forEach((lm, idx) => {
+    const isTop = idx === 0;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath();
-    ctx.moveTo(FIELD_X + FIELD_W + i, goalTop);
-    ctx.lineTo(FIELD_X + FIELD_W + i, goalTop + GOAL_H);
+    ctx.ellipse(lm.x + 1, lm.y + 2, bodyR, bodyR * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body - black outfit
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(lm.x, lm.y, bodyR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 1.5 * s;
     ctx.stroke();
-  }
+
+    // "L" label
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = `bold ${Math.round(bodyR * 0.85)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('L', lm.x, lm.y + 1);
+
+    // Flag stick
+    const flagDir = isTop ? -1 : 1;
+    const stickLen = Math.round(12 * s);
+    const flagTipX = lm.x + (lm.flagUp ? 0 : stickLen * 0.7);
+    const flagTipY = lm.y + flagDir * (lm.flagUp ? stickLen : stickLen * 0.4);
+
+    ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 1.5 * s;
+    ctx.beginPath();
+    ctx.moveTo(lm.x, lm.y);
+    ctx.lineTo(flagTipX, flagTipY);
+    ctx.stroke();
+
+    // Small flag at tip
+    const fSize = Math.round(5 * s);
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(flagTipX, flagTipY - fSize / 2, fSize, fSize);
+    ctx.strokeStyle = '#cc0000';
+    ctx.lineWidth = 0.5 * s;
+    ctx.strokeRect(flagTipX, flagTipY - fSize / 2, fSize, fSize);
+  });
 }
 
 function drawPlayers() {
