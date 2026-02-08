@@ -11,9 +11,6 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
 }
 html, body {
   width: 100%;
@@ -21,7 +18,6 @@ html, body {
   overflow: hidden;
   background: #1a1a2e;
   font-family: 'Helvetica Neue', Arial, sans-serif;
-  touch-action: none;
 }
 #gameContainer {
   width: 100%;
@@ -40,13 +36,12 @@ canvas {
   width: 100%;
   height: 100%;
   z-index: 1;
+  pointer-events: none;
 }
-/* Allow buttons/overlays to receive touches */
-button, .team-select-btn, .mode-btn, .diff-btn {
-  touch-action: manipulation;
-}
-#startScreen, #teamSelectScreen, #difficultyScreen, #winScreen, #goalOverlay {
-  touch-action: auto;
+/* Buttons must be clickable on iPad */
+button, .team-select-btn {
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(255,255,255,0.2);
 }
 
 /* Start Screen */
@@ -684,6 +679,16 @@ function resetPositions() {
   ball.vx = 0;
   ball.vy = 0;
 }
+
+// ===== PREVENT ZOOM/SCROLL DURING GAMEPLAY =====
+// Block pinch-zoom and double-tap zoom on whole page
+document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+document.addEventListener('gestureend', e => e.preventDefault(), { passive: false });
+// Block scroll only during gameplay
+document.addEventListener('touchmove', function(e) {
+  if (gameState === 'playing') e.preventDefault();
+}, { passive: false });
 
 // ===== TOUCH CONTROLS =====
 let joystick = {
@@ -1678,6 +1683,7 @@ document.getElementById('restartBtn').addEventListener('click', () => {
   score = { left: 0, right: 0 };
   resetPositions();
   gameState = 'playing';
+  setCanvasInteractive(true);
 });
 
 // Back to menu
