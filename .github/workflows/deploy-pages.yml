@@ -1,4 +1,4 @@
-name: Deploy Ski Game to GitHub Pages
+name: Deploy Jack's Games to GitHub Pages
 
 on:
   push:

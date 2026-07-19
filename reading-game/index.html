@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#047857">
+<title>Jack's Words ⚽</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #065f46 0%, #047857 50%, #065f46 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 18px calc(12px);
+    background: rgba(0,0,0,.22);
+  }
+  header .home {
+    text-decoration: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.2rem, 3.5vw, 1.8rem); flex: 0 0 auto; }
+  #score {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    font-size: 1.5rem;
+    min-height: 1.8rem;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.4rem; margin-left: 6px; }
+  #settingsBtn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    opacity: .45;
+    cursor: pointer;
+    padding: 6px;
+  }
+
+  /* ---------- Main stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3.5vh;
+    padding: 3vh 4vw calc(3vh + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .hidden { display: none !important; }
+
+  .prompt { font-size: clamp(1.2rem, 3vmin, 1.7rem); opacity: .9; font-weight: 600; }
+
+  /* ---------- Intro: big clickable word ---------- */
+  #bigWord {
+    display: flex;
+    gap: .06em;
+    cursor: pointer;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #bigWord .letter {
+    font-size: clamp(4.5rem, 16vmin, 9rem);
+    font-weight: 900;
+    line-height: 1.1;
+    padding: 0 .04em;
+    border-radius: 16px;
+    text-shadow: 0 6px 18px rgba(0,0,0,.35);
+    transition: background .15s;
+  }
+  #bigWord .letter:hover { background: rgba(255,255,255,.14); }
+  #bigWord .letter.pop { animation: pop .35s ease; }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-weight: 800;
+    font-family: inherit;
+    border-radius: 999px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.3);
+    transition: transform .12s ease;
+  }
+  .btn:hover { transform: scale(1.05); }
+  .btn:active { transform: scale(.94); }
+  .btn.big {
+    font-size: clamp(1.6rem, 4.5vmin, 2.4rem);
+    padding: .6em 1.4em;
+    background: linear-gradient(145deg, #f59e0b, #d97706);
+  }
+  .btn.speak {
+    font-size: clamp(1.4rem, 4vmin, 2rem);
+    padding: .5em 1.1em;
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+
+  /* ---------- Build: slots + tiles ---------- */
+  #ghostWord {
+    font-size: clamp(1.4rem, 4vmin, 2rem);
+    font-weight: 800;
+    letter-spacing: .25em;
+    opacity: .45;
+  }
+  #slots, #tiles {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .slot {
+    width: clamp(64px, 11vmin, 92px);
+    height: clamp(64px, 11vmin, 92px);
+    border: 3px dashed rgba(255,255,255,.55);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(2.2rem, 6.5vmin, 3.4rem);
+    font-weight: 900;
+    background: rgba(0,0,0,.15);
+  }
+  .slot.filled {
+    border: 3px solid #fbbf24;
+    background: rgba(251,191,36,.22);
+    animation: pop .35s ease;
+  }
+  .tile {
+    width: clamp(72px, 12vmin, 100px);
+    height: clamp(72px, 12vmin, 100px);
+    border: none;
+    border-radius: 18px;
+    font-size: clamp(2.4rem, 7vmin, 3.6rem);
+    font-weight: 900;
+    color: #1e293b;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 6px 16px rgba(0,0,0,.3);
+    transition: transform .12s ease, opacity .3s ease;
+  }
+  .tile:hover { transform: scale(1.07); }
+  .tile:active { transform: scale(.92); }
+  .tile.used { opacity: .18; pointer-events: none; }
+  .tile.shake { animation: shake .35s ease; }
+
+  /* ---------- Celebrate: sentence + rainbow word ---------- */
+  #sentence {
+    font-size: clamp(1.9rem, 5.5vmin, 3.2rem);
+    font-weight: 800;
+    line-height: 1.5;
+    max-width: 900px;
+    cursor: pointer;
+    padding: .4em .6em;
+    border-radius: 20px;
+    transition: background .15s;
+  }
+  #sentence:hover { background: rgba(255,255,255,.1); }
+  .rainbow {
+    display: inline-block;
+    background: linear-gradient(90deg, #ff3b6b, #ff9f1a, #ffd60a, #2ecc71, #3b82f6, #8b5cf6, #ff3b6b);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 900;
+    animation: rainbowShift 2.5s linear infinite, pulseWord 1s ease-in-out infinite;
+  }
+  #cheer { font-size: clamp(1.6rem, 4.5vmin, 2.4rem); font-weight: 900; animation: pop .5s ease; }
+
+  /* ---------- Start overlay ---------- */
+  #startOverlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(160deg, #065f46, #047857);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5vh;
+    z-index: 50;
+  }
+  #startOverlay h2 { font-size: clamp(2rem, 7vmin, 3.5rem); text-shadow: 0 4px 14px rgba(0,0,0,.4); }
+  #playBtn {
+    width: clamp(140px, 28vmin, 220px);
+    height: clamp(140px, 28vmin, 220px);
+    border-radius: 50%;
+    font-size: clamp(3.5rem, 11vmin, 6rem);
+    background: linear-gradient(145deg, #f59e0b, #d97706);
+    animation: pulseWord 1.6s ease-in-out infinite;
+  }
+
+  /* ---------- Settings panel ---------- */
+  #settingsPanel {
+    position: fixed;
+    top: 60px;
+    right: 12px;
+    background: #fff;
+    color: #1e293b;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 60;
+    font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit;
+    font-size: .95rem;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    background: #f1f5f9;
+    cursor: pointer;
+  }
+
+  /* ---------- Feedback toast ---------- */
+  #feedback {
+    position: fixed;
+    left: 50%;
+    bottom: 9vh;
+    transform: translateX(-50%);
+    background: rgba(15,23,42,.92);
+    color: #fff;
+    font-size: clamp(1.1rem, 3vmin, 1.5rem);
+    font-weight: 700;
+    padding: .6em 1.2em;
+    border-radius: 999px;
+    z-index: 40;
+    animation: pop .3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* ---------- Confetti ---------- */
+  .confetti {
+    position: fixed;
+    top: -3vh;
+    font-size: 1.4rem;
+    z-index: 45;
+    animation: fall linear forwards;
+    pointer-events: none;
+  }
+
+  /* ---------- Keyframes ---------- */
+  @keyframes pop { 0% { transform: scale(.5); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+  @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+  @keyframes rainbowShift { to { background-position: 300% 0; } }
+  @keyframes pulseWord { 50% { transform: scale(1.14); } }
+  @keyframes bounceIn {
+    0% { transform: translateY(-60px) scale(.3); opacity: 0; }
+    55% { transform: translateY(8px) scale(1.15); opacity: 1; }
+    75% { transform: translateY(-6px) scale(.95); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  @keyframes fall { to { transform: translateY(110vh) rotate(540deg); opacity: .7; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Jack's Words</h1>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <!-- Intro -->
+  <section id="viewIntro" class="hidden">
+    <div class="prompt">👂 Listen and look!</div>
+  </section>
+  <div id="bigWord" class="hidden"></div>
+  <button id="speakWordBtn" class="btn speak hidden">🔊 Hear the word</button>
+  <button id="buildBtn" class="btn big hidden">⚽ Build it!</button>
+
+  <!-- Build -->
+  <div id="ghostWord" class="hidden"></div>
+  <div id="slots" class="hidden"></div>
+  <div id="tiles" class="hidden"></div>
+
+  <!-- Celebrate -->
+  <div id="cheer" class="hidden"></div>
+  <div id="sentence" class="hidden"></div>
+  <button id="speakSentenceBtn" class="btn speak hidden">🔊 Hear the sentence</button>
+  <button id="nextBtn" class="btn big hidden">Next ➜ ⚽</button>
+</main>
+
+<div id="startOverlay">
+  <h2>⚽ Jack's Words 📖</h2>
+  <button id="playBtn" class="btn">▶</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="phonicsToggle"> Letter sounds (phonics)</label>
+  <button id="resetBtn">Reset score</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Words ================= */
+  var WORDS = [
+    // Level 1: 2-3 letters
+    { w: 'cat',     s: 'The cat sat on the mat.' },
+    { w: 'dog',     s: 'The dog can run.' },
+    { w: 'sun',     s: 'The sun is hot.' },
+    { w: 'mum',     s: 'I love my mum.' },
+    { w: 'dad',     s: 'My dad is big.' },
+    { w: 'pen',     s: 'The pen is blue.' },
+    { w: 'red',     s: 'My hat is red.' },
+    { w: 'bag',     s: 'My bag is big.' },
+    { w: 'hat',     s: 'I have a hat.' },
+    { w: 'bus',     s: 'The bus is yellow.' },
+    // Level 2: 4 letters
+    { w: 'book',    s: 'I read a book.' },
+    { w: 'ball',    s: 'Jack kicks the ball.' },
+    { w: 'blue',    s: 'The sky is blue.' },
+    { w: 'play',    s: 'We play at school.' },
+    { w: 'milk',    s: 'I drink my milk.' },
+    { w: 'frog',    s: 'The frog can hop.' },
+    { w: 'fish',    s: 'The fish can swim.' },
+    { w: 'star',    s: 'I see a star.' },
+    { w: 'jump',    s: 'I can jump up high.' },
+    { w: 'cake',    s: 'The cake is yummy.' },
+    // Level 3: 5-7 letters
+    { w: 'green',   s: 'The grass is green.' },
+    { w: 'happy',   s: 'Jack is happy.' },
+    { w: 'water',   s: 'I drink water.' },
+    { w: 'lunch',   s: 'We eat lunch at school.' },
+    { w: 'apple',   s: 'The apple is red.' },
+    { w: 'school',  s: 'I go to school.' },
+    { w: 'friend',  s: 'You are my friend.' },
+    { w: 'teacher', s: 'My teacher is kind.' }
+  ];
+
+  var PHONICS = {
+    a: 'ah', b: 'buh', c: 'kuh', d: 'duh', e: 'eh', f: 'fff', g: 'guh',
+    h: 'huh', i: 'ih', j: 'juh', k: 'kuh', l: 'lll', m: 'mmm', n: 'nnn',
+    o: 'oh', p: 'puh', q: 'kwuh', r: 'rrr', s: 'sss', t: 'tuh', u: 'uh',
+    v: 'vvv', w: 'wuh', x: 'ks', y: 'yuh', z: 'zzz'
+  };
+
+  var TILE_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4', '#fdba74', '#c4b5fd', '#67e8f9'];
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💛', '💚', '💙'];
+
+  /* ================= State ================= */
+  var footballs = parseInt(localStorage.getItem('jackReadFootballs') || '0', 10) || 0;
+  var wordIndex = parseInt(localStorage.getItem('jackReadWordIndex') || '0', 10) || 0;
+  if (wordIndex >= WORDS.length) wordIndex = 0;
+  var phonics = localStorage.getItem('jackReadPhonics') === '1';
+  var nextSlot = 0;
+  var misses = 0;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), viewIntro: $('viewIntro'), bigWord: $('bigWord'),
+    speakWordBtn: $('speakWordBtn'), buildBtn: $('buildBtn'),
+    ghostWord: $('ghostWord'), slots: $('slots'), tiles: $('tiles'),
+    cheer: $('cheer'), sentence: $('sentence'),
+    speakSentenceBtn: $('speakSentenceBtn'), nextBtn: $('nextBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    phonicsToggle: $('phonicsToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem('jackReadFootballs', String(footballs));
+    localStorage.setItem('jackReadWordIndex', String(wordIndex));
+  }
+
+  /* ================= Speech ================= */
+  var hasTTS = 'speechSynthesis' in window;
+  var voice = null;
+
+  function pickVoice() {
+    if (!hasTTS) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var femaleNames = /(Samantha|Martha|Serena|Kate|Karen|Moira|Hazel|Zira|Libby|Sonia|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    voice =
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(en, /female|woman/i) ||
+      find(gb, femaleNames) || find(en, femaleNames) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  if (hasTTS) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  } else {
+    els.speakWordBtn.style.display = 'none';
+    els.speakSentenceBtn.style.display = 'none';
+  }
+
+  function speak(text, rate) {
+    if (!hasTTS) return;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = rate || 0.85;
+      u.pitch = 1.05;
+      speechSynthesis.speak(u);
+    } catch (e) { /* speech is a bonus, never break the game */ }
+  }
+
+  function speakLetter(letter) {
+    if (phonics && PHONICS[letter]) speak(PHONICS[letter], 0.75);
+    else speak(letter.toUpperCase(), 0.8);
+  }
+
+  /* ================= UI helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1800);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 15) {
+      for (var i = 0; i < footballs; i++) {
+        var isNew = justScored && i === footballs - 1;
+        html += '<span class="ball' + (isNew ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  var STATE_ELS = {
+    intro: ['viewIntro', 'bigWord', 'speakWordBtn', 'buildBtn'],
+    build: ['ghostWord', 'slots', 'tiles'],
+    celebrate: ['cheer', 'sentence', 'speakSentenceBtn', 'nextBtn']
+  };
+
+  function show(state) {
+    var all = [].concat(STATE_ELS.intro, STATE_ELS.build, STATE_ELS.celebrate);
+    all.forEach(function (id) { els[id].classList.add('hidden'); });
+    STATE_ELS[state].forEach(function (id) { els[id].classList.remove('hidden'); });
+  }
+
+  /* ================= States ================= */
+  function current() { return WORDS[wordIndex]; }
+
+  function enterIntro() {
+    var word = current().w;
+    els.bigWord.innerHTML = '';
+    word.split('').forEach(function (letter) {
+      var span = document.createElement('span');
+      span.className = 'letter';
+      span.textContent = letter;
+      span.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        speakLetter(letter);
+        span.classList.remove('pop');
+        void span.offsetWidth;
+        span.classList.add('pop');
+      });
+      els.bigWord.appendChild(span);
+    });
+    show('intro');
+    speak(word, 0.8);
+  }
+
+  function enterBuild() {
+    var word = current().w;
+    nextSlot = 0;
+    misses = 0;
+
+    els.ghostWord.textContent = word;
+    els.slots.innerHTML = '';
+    els.tiles.innerHTML = '';
+
+    word.split('').forEach(function () {
+      var slot = document.createElement('div');
+      slot.className = 'slot';
+      els.slots.appendChild(slot);
+    });
+
+    var indices = shuffle(word.split('').map(function (_, i) { return i; }));
+    // Never present tiles already in the right order (except 1-2 letter words)
+    if (word.length > 2) {
+      var attempts = 0;
+      while (attempts < 20 && indices.every(function (v, i) { return word[v] === word[i]; })) {
+        indices = shuffle(indices);
+        attempts++;
+      }
+    }
+
+    indices.forEach(function (origIdx, i) {
+      var letter = word[origIdx];
+      var tile = document.createElement('button');
+      tile.className = 'tile';
+      tile.textContent = letter;
+      tile.style.background = TILE_COLORS[i % TILE_COLORS.length];
+      tile.addEventListener('click', function () { onTile(tile, letter); });
+      els.tiles.appendChild(tile);
+    });
+
+    show('build');
+  }
+
+  function onTile(tile, letter) {
+    var word = current().w;
+    speakLetter(letter);
+    if (letter === word[nextSlot]) {
+      tile.classList.add('used');
+      var slot = els.slots.children[nextSlot];
+      slot.textContent = letter;
+      slot.classList.add('filled');
+      nextSlot++;
+      misses = 0;
+      if (nextSlot === word.length) {
+        footballs++;
+        save();
+        renderScore(true);
+        setTimeout(function () { enterCelebrate(); }, 350);
+      }
+    } else {
+      tile.classList.remove('shake');
+      void tile.offsetWidth;
+      tile.classList.add('shake');
+      misses++;
+      showFeedback('Try another one! 🙂');
+      if (misses >= 2) {
+        misses = 0;
+        setTimeout(function () { speak(word, 0.75); }, 700);
+      }
+    }
+  }
+
+  function enterCelebrate() {
+    var entry = current();
+    var word = entry.w;
+    var sentence = entry.s;
+
+    celebrate(30);
+
+    var idx = sentence.toLowerCase().indexOf(word.toLowerCase());
+    els.sentence.innerHTML = '';
+    if (idx >= 0) {
+      els.sentence.appendChild(document.createTextNode(sentence.slice(0, idx)));
+      var span = document.createElement('span');
+      span.className = 'rainbow';
+      span.textContent = sentence.slice(idx, idx + word.length);
+      els.sentence.appendChild(span);
+      els.sentence.appendChild(document.createTextNode(sentence.slice(idx + word.length)));
+    } else {
+      els.sentence.textContent = sentence;
+    }
+
+    var isLast = wordIndex === WORDS.length - 1;
+    els.cheer.textContent = isLast ? '🏆 CHAMPION! You read ALL the words! 🏆' : 'GOAL! ⚽ Well done, Jack!';
+    els.cheer.classList.remove('pop');
+    void els.cheer.offsetWidth;
+
+    show('celebrate');
+    speak(word + '! ... ' + sentence, 0.85);
+    if (isLast) celebrate(60);
+  }
+
+  function nextWord() {
+    wordIndex = (wordIndex + 1) % WORDS.length;
+    save();
+    enterIntro();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    if (hasTTS) {
+      pickVoice();
+      speak("Let's read!", 0.9);
+    }
+    els.startOverlay.remove();
+    enterIntro();
+  });
+
+  els.speakWordBtn.addEventListener('click', function () { speak(current().w, 0.8); });
+  els.bigWord.addEventListener('click', function () { speak(current().w, 0.8); });
+  els.buildBtn.addEventListener('click', enterBuild);
+  els.sentence.addEventListener('click', function () { speak(current().s, 0.85); });
+  els.speakSentenceBtn.addEventListener('click', function () { speak(current().s, 0.85); });
+  els.nextBtn.addEventListener('click', nextWord);
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.phonicsToggle.checked = phonics;
+  els.phonicsToggle.addEventListener('change', function () {
+    phonics = els.phonicsToggle.checked;
+    localStorage.setItem('jackReadPhonics', phonics ? '1' : '0');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs and start from the first word?')) {
+      footballs = 0;
+      wordIndex = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+      enterIntro();
+    }
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>
