@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#1f3a2c">
 <title>Jackies Schach</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Schach">
 <style>
 :root{
   --bg:#f4efe5;--card:#fffdf8;--ink:#172018;--green:#66845f;--cream:#e7dbc0;
@@ -53,11 +56,13 @@ h1{font-size:clamp(27px,7.5vw,42px);letter-spacing:-.04em;line-height:.95;margin
 .promo,.game-modal{position:fixed;inset:0;background:#0009;display:none;place-items:center;padding:20px;z-index:1200}.promo.open,.game-modal.open{display:grid}.promo>div,.game-modal>div{background:var(--card);padding:18px;border-radius:20px;text-align:center;max-width:360px;width:100%}.promo h3,.game-modal h3{margin:0 0 12px}.promo button{font-size:42px;border:0;background:#eee7d7;border-radius:12px;min-width:66px;min-height:66px}.game-modal button{border:0;border-radius:12px;padding:12px 16px;font-weight:900;background:var(--red);color:#fff}.game-modal p{line-height:1.4}
 .confetti{position:fixed;z-index:1500;width:8px;height:12px;border-radius:2px;pointer-events:none;animation:fall 900ms ease-out forwards}@keyframes fall{to{transform:translate(var(--dx),var(--dy)) rotate(540deg);opacity:0}}
 @media(max-width:500px){.prediction-grid{grid-template-columns:1fr}.prediction{min-height:0}.toolbar{grid-template-columns:1fr 1fr}.toolbar .new{grid-column:span 2}.settings{grid-template-columns:1fr}.player-stats{max-width:180px}.stat{font-size:10px}.legend .row{gap:7px 9px}}
+header .home{text-decoration:none;font-size:1.5rem;line-height:1;padding:4px 10px;border-radius:12px;background:rgba(23,32,24,.08);margin-right:8px}
 </style>
 </head>
 <body>
 <main class="app">
 <header>
+  <a class="home" href="../" title="Alle Spiele">🏠</a>
   <h1>Jackies Schach</h1>
   <div class="player-stats"><span class="stat" id="xpStat">⭐ 0 XP</span><span class="stat" id="streakStat">🔥 Serie 0</span><span class="stat" id="levelStat">Rang Anfänger</span></div>
 </header>

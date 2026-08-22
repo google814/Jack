@@ -10,7 +10,18 @@ Browser games for Jack. No build tools needed — every game is a single self-co
 | ⚽🔢 Jack's Numbers | [`math-game/`](math-game/) | English maths game for Year 1: counting, adding, and taking away up to 10. Every sum is shown with clickable footballs that count out loud; the answer is picked from number tiles and celebrated with a rainbow result and a football ⚽. |
 | ♟️ Jackies Schach | [`chess/`](chess/) | Chess with a coach, XP, and streaks (German UI). |
 
-The start page (`index.html`) links to both games.
+## Start page
+
+`index.html` is the launcher: the three games are laid out as a football line-up on a pitch, with a **bench** of empty slots for games we add later. Each card carries a 🔊 badge that reads its name out loud (Jack can't read the labels yet) and a progress badge fed from the game's own `localStorage` score.
+
+Adding a game: drop a self-contained `new-game/index.html` into the repo and replace one `.slot` in `index.html` with a `.card` (icon, name, one-word description, `data-say`).
+
+## Where it runs
+
+- <https://jackbenn.ing> — custom domain (INWX DNS -> GitHub Pages)
+- <https://google814.github.io/Jack/> — the Pages default URL
+
+On an iPad: open <https://jackbenn.ing>, then Share -> "Add to Home Screen". It opens full screen with the football icon.
 
 ## Run locally
 

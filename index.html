@@ -3,78 +3,401 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#1d2b53">
 <title>Jack's Games</title>
+<meta name="description" content="Jack's own games: reading, maths and chess. Tap one to play.">
+<meta name="theme-color" content="#0b3d28">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jack">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Bungee&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --night:      #06251a;
+    --pitch:      #0b3d28;
+    --pitch-mow:  #0e4a31;
+    --chalk:      #eaf7f0;
+    --chalk-dim:  rgba(234,247,240,.34);
+    --words:      #12b981;
+    --words-deep: #05704c;
+    --numbers:    #3b82f6;
+    --numbers-deep:#1740a8;
+    --chess:      #f4f1e8;
+    --chess-deep: #2b2a26;
+    --radius: 28px;
+    --display: "Bungee", "Impact", "Haettenschweiler", sans-serif;
+    --read: "Andika", "Comic Sans MS", "Segoe UI", system-ui, sans-serif;
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; }
+
+  html { height: 100%; }
   body {
-    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    background: linear-gradient(160deg, #1d2b53 0%, #2a3d7c 55%, #1d2b53 100%);
-    color: #fff;
+    min-height: 100%;
+    font-family: var(--read);
+    color: var(--chalk);
+    background: var(--night);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4vh;
-    padding: 4vh 4vw calc(4vh + env(safe-area-inset-bottom));
+    padding: clamp(14px, 3vh, 28px) clamp(14px, 3vw, 32px)
+             calc(clamp(14px, 3vh, 28px) + env(safe-area-inset-bottom));
+    padding-top: calc(clamp(14px, 3vh, 28px) + env(safe-area-inset-top));
+    overflow-x: hidden;
+  }
+
+  /* ---------- the pitch ---------- */
+  .pitch {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(14px, 2.6vh, 26px);
+    padding: clamp(16px, 3vh, 30px) clamp(16px, 3vw, 34px);
+    border-radius: var(--radius);
+    background:
+      repeating-linear-gradient(
+        90deg,
+        var(--pitch) 0 8%,
+        var(--pitch-mow) 8% 16%
+      );
+    box-shadow: inset 0 0 0 3px var(--chalk-dim), 0 24px 60px rgba(0,0,0,.5);
+    overflow: hidden;
+  }
+  /* halfway line + centre circle, drawn in chalk */
+  .pitch::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 3px;
+    background: var(--chalk-dim);
+  }
+  .pitch::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: min(30vmin, 220px); aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border: 3px solid var(--chalk-dim);
+    border-radius: 50%;
+  }
+  .pitch > * { position: relative; z-index: 1; }
+
+  /* ---------- scoreboard ---------- */
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
   }
   h1 {
-    font-size: clamp(2.2rem, 6vw, 4rem);
-    text-shadow: 0 4px 14px rgba(0,0,0,.4);
-    letter-spacing: .02em;
+    font-family: var(--display);
+    font-size: clamp(1.5rem, 4.2vmin, 2.6rem);
+    letter-spacing: .04em;
+    line-height: 1;
+    text-shadow: 0 3px 0 rgba(0,0,0,.35);
   }
-  .games {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4vmin;
-    justify-content: center;
-    width: 100%;
-    max-width: 1100px;
+  h1 .ball { font-family: var(--read); }
+  .prompt {
+    font-size: clamp(.95rem, 2.2vmin, 1.3rem);
+    color: var(--chalk-dim);
   }
-  a.game {
-    flex: 1 1 320px;
-    max-width: 480px;
-    min-height: 42vh;
+
+  /* ---------- line-up ---------- */
+  .lineup {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 1fr;
+    gap: clamp(12px, 2.2vmin, 24px);
+    align-content: stretch;
+  }
+
+  /* the bench: where the next games will sit */
+  .bench { display: flex; flex-direction: column; gap: 8px; }
+  .bench h2 {
+    font-family: var(--display);
+    font-size: clamp(.7rem, 1.6vmin, .9rem);
+    font-weight: 400;
+    letter-spacing: .12em;
+    color: var(--chalk-dim);
+  }
+  .bench-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(12px, 2.2vmin, 24px);
+  }
+
+  .card {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2.5vh;
+    gap: clamp(6px, 1.4vh, 14px);
+    min-height: 150px;
+    padding: clamp(12px, 2.4vh, 26px) 12px;
+    border-radius: var(--radius);
     text-decoration: none;
     color: #fff;
-    border-radius: 32px;
-    box-shadow: 0 12px 32px rgba(0,0,0,.35);
-    transition: transform .15s ease, box-shadow .15s ease;
+    border: 3px solid rgba(255,255,255,.85);
+    box-shadow: 0 12px 0 rgba(0,0,0,.28), 0 20px 40px rgba(0,0,0,.35);
+    transition: transform .14s ease, box-shadow .14s ease;
+    animation: run-on .5s cubic-bezier(.2,.9,.3,1.2) backwards;
   }
-  a.game:hover { transform: scale(1.04); box-shadow: 0 18px 44px rgba(0,0,0,.45); }
-  a.game:active { transform: scale(.97); }
-  .game .icon { font-size: clamp(5rem, 14vmin, 9rem); line-height: 1; }
-  .game .label {
-    font-size: clamp(1.5rem, 4vmin, 2.4rem);
-    font-weight: 800;
-    text-shadow: 0 2px 8px rgba(0,0,0,.35);
+  .card:nth-child(1) { animation-delay: .05s; }
+  .card:nth-child(2) { animation-delay: .13s; }
+  .card:nth-child(3) { animation-delay: .21s; }
+  .card:nth-child(4) { animation-delay: .29s; }
+  .card:nth-child(5) { animation-delay: .37s; }
+  @keyframes run-on {
+    from { opacity: 0; transform: translateY(26px) scale(.94); }
+    to   { opacity: 1; transform: none; }
   }
-  .chess { background: linear-gradient(145deg, #7c3aed, #4c1d95); }
-  .words { background: linear-gradient(145deg, #10b981, #047857); }
-  .numbers { background: linear-gradient(145deg, #f59e0b, #b45309); }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 16px 0 rgba(0,0,0,.28), 0 26px 50px rgba(0,0,0,.4); }
+  .card:active { transform: translateY(8px); box-shadow: 0 4px 0 rgba(0,0,0,.28), 0 10px 20px rgba(0,0,0,.3); }
+  .card:focus-visible { outline: 5px solid #ffd400; outline-offset: 5px; }
+
+  .card .icon { font-size: clamp(2.6rem, 9vmin, 5rem); line-height: 1; }
+  .card .name {
+    font-size: clamp(1.05rem, 2.9vmin, 1.9rem);
+    font-weight: 700;
+    text-align: center;
+    text-shadow: 0 2px 6px rgba(0,0,0,.35);
+  }
+  .card .what {
+    font-size: clamp(.8rem, 1.9vmin, 1.05rem);
+    opacity: .9;
+    text-align: center;
+  }
+
+  .words   { background: linear-gradient(160deg, var(--words), var(--words-deep)); }
+  .numbers { background: linear-gradient(160deg, var(--numbers), var(--numbers-deep)); }
+  .chess {
+    color: var(--chess-deep);
+    background:
+      conic-gradient(from 90deg at 50% 50%, #e3ded0 0 25%, transparent 0 50%, #e3ded0 0 75%, transparent 0)
+        0 0 / clamp(48px, 11vmin, 88px) clamp(48px, 11vmin, 88px),
+      var(--chess);
+  }
+  .chess .name, .chess .what { text-shadow: none; }
+
+  /* progress badge, filled from each game's own saved score */
+  .score {
+    position: absolute;
+    top: 10px; left: 12px;
+    font-size: clamp(.8rem, 1.9vmin, 1.05rem);
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.28);
+    color: #fff;
+  }
+  .chess .score { background: rgba(43,42,38,.14); color: var(--chess-deep); }
+  .score[hidden] { display: none; }
+
+  /* say-it-out-loud badge — Jack can't read the labels yet */
+  .say {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 46px; height: 46px;
+    display: grid;
+    place-items: center;
+    font-size: 1.4rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,.26);
+    color: inherit;
+    cursor: pointer;
+    transition: transform .12s ease, background .12s ease;
+  }
+  .chess .say { background: rgba(43,42,38,.12); }
+  .say:hover { background: rgba(0,0,0,.4); }
+  .say:active { transform: scale(.88); }
+  .say:focus-visible { outline: 4px solid #ffd400; outline-offset: 3px; }
+  .say.speaking { animation: pulse .7s ease infinite; }
+  @keyframes pulse { 50% { transform: scale(1.14); } }
+
+  /* ---------- open positions on the team sheet ---------- */
+  .slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: clamp(52px, 9vh, 76px);
+    padding: 10px 14px;
+    border-radius: 18px;
+    border: 2px dashed var(--chalk-dim);
+    background: rgba(255,255,255,.03);
+    color: var(--chalk-dim);
+    text-align: center;
+    animation: run-on .5s cubic-bezier(.2,.9,.3,1.2) backwards;
+    animation-delay: .3s;
+  }
+  .slot .plus { font-family: var(--display); font-size: clamp(1rem, 2.6vmin, 1.4rem); line-height: 1; }
+  .slot .what { font-size: clamp(.75rem, 1.7vmin, .95rem); }
+
+  footer {
+    padding-top: clamp(10px, 1.6vh, 16px);
+    text-align: center;
+    font-size: clamp(.75rem, 1.7vmin, .95rem);
+    color: var(--chalk-dim);
+    letter-spacing: .06em;
+  }
+
+  /* ---------- iPad mini portrait & phones ---------- */
+  @media (max-width: 860px) {
+    .lineup { grid-template-columns: repeat(2, 1fr); }
+    .card:nth-child(3) { grid-column: span 2; }
+    .bench-row { grid-template-columns: repeat(2, 1fr); }
+    .bench-row .slot:nth-child(3) { display: none; }
+  }
+  @media (max-width: 460px) {
+    .lineup { grid-template-columns: 1fr; }
+    .card:nth-child(3) { grid-column: auto; }
+    .pitch::after { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
-  <h1>⭐ Jack's Games ⭐</h1>
-  <div class="games">
-    <a class="game words" href="reading-game/">
-      <span class="icon">⚽📖</span>
-      <span class="label">Jack's Words</span>
+
+<main class="pitch">
+  <header>
+    <h1>JACK'S GAMES <span class="ball">⚽</span></h1>
+    <p class="prompt">Tap a game to play. Tap <span aria-hidden="true">🔊</span> to hear its name.</p>
+  </header>
+
+  <div class="lineup">
+
+    <a class="card words" href="reading-game/" data-say="Jack's Words. Reading.">
+      <span class="score" id="score-words" hidden></span>
+      <button class="say" type="button" aria-label="Say: Jack's Words">🔊</button>
+      <span class="icon" aria-hidden="true">📖</span>
+      <span class="name">Jack's Words</span>
+      <span class="what">Reading</span>
     </a>
-    <a class="game numbers" href="math-game/">
-      <span class="icon">⚽🔢</span>
-      <span class="label">Jack's Numbers</span>
+
+    <a class="card numbers" href="math-game/" data-say="Jack's Numbers. Maths.">
+      <span class="score" id="score-numbers" hidden></span>
+      <button class="say" type="button" aria-label="Say: Jack's Numbers">🔊</button>
+      <span class="icon" aria-hidden="true">🔢</span>
+      <span class="name">Jack's Numbers</span>
+      <span class="what">Maths</span>
     </a>
-    <a class="game chess" href="chess/">
-      <span class="icon">♟️</span>
-      <span class="label">Jackies Schach</span>
+
+    <a class="card chess" href="chess/" data-say="Chess.">
+      <span class="score" id="score-chess" hidden></span>
+      <button class="say" type="button" aria-label="Say: Chess">🔊</button>
+      <span class="icon" aria-hidden="true">♟️</span>
+      <span class="name">Jackies Schach</span>
+      <span class="what">Chess</span>
     </a>
+
   </div>
+
+  <section class="bench">
+    <h2>BENCH</h2>
+    <div class="bench-row">
+      <div class="slot"><span class="plus" aria-hidden="true">+</span><span class="what">Free spot</span></div>
+      <div class="slot"><span class="plus" aria-hidden="true">+</span><span class="what">Free spot</span></div>
+      <div class="slot"><span class="plus" aria-hidden="true">+</span><span class="what">Free spot</span></div>
+    </div>
+  </section>
+</main>
+
+<footer>jackbenn.ing</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---- progress badges: read each game's own saved score ---- */
+  function num(key) {
+    var v = parseInt(localStorage.getItem(key) || '0', 10);
+    return isNaN(v) ? 0 : v;
+  }
+  function badge(id, value, text) {
+    var el = document.getElementById(id);
+    if (!el || value <= 0) return;
+    el.textContent = text;
+    el.hidden = false;
+  }
+  try {
+    var read = num('jackReadFootballs');
+    var math = num('jackMathFootballs');
+    var xp   = num('jackChessXp');
+    badge('score-words',   read, '⚽ ' + read);
+    badge('score-numbers', math, '⚽ ' + math);
+    badge('score-chess',   xp,   '⭐ ' + xp);
+  } catch (e) { /* private mode — badges are a bonus */ }
+
+  /* ---- speak the card name, same voice as the games ---- */
+  var hasTTS = 'speechSynthesis' in window;
+  var voice = null;
+
+  function pickVoice() {
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Samantha|Martha|Serena|Kate|Karen|Moira|Hazel|Zira|Libby|Sonia|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    voice =
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(en, /female|woman/i) ||
+      find(gb, female) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  if (hasTTS) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function speak(text, btn) {
+    if (!hasTTS) return;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = 0.85;
+      u.pitch = 1.05;
+      if (btn) {
+        btn.classList.add('speaking');
+        u.onend = u.onerror = function () { btn.classList.remove('speaking'); };
+      }
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { speechSynthesis.speak(u); }, 40);
+    } catch (e) { /* speech is a bonus, never block the link */ }
+  }
+
+  var buttons = document.querySelectorAll('.say');
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      var card = this.closest('.card');
+      speak(card.getAttribute('data-say'), this);
+    });
+  }
+
+  if (!hasTTS) {
+    for (var j = 0; j < buttons.length; j++) buttons[j].style.display = 'none';
+    var prompt = document.querySelector('.prompt');
+    if (prompt) prompt.textContent = 'Tap a game to play.';
+  }
+})();
+</script>
 </body>
 </html>
