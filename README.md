@@ -18,6 +18,20 @@ Browser games for Jack. No build tools needed — every game is a single self-co
 
 Adding a game: drop a self-contained `new-game/index.html` into the repo and replace one `.slot` in `index.html` with a `.card` (icon, name, one-word description, `data-say`).
 
+## Each game also has its own repo
+
+Every game is mirrored into its own public repo under **[github.com/jacks-games](https://github.com/jacks-games)**,
+with its own README, screenshot and GitHub Pages URL. This repo stays the source of truth —
+edit a game here, then run `./tools/sync-game-repos.sh` to push the copies.
+
+| Game | Repo | Own page |
+|------|------|----------|
+| 📖 Jack's Words | [jacks-games/words](https://github.com/jacks-games/words) | [play](https://jacks-games.github.io/words/) |
+| 🥅 Jack's Match | [jacks-games/match](https://github.com/jacks-games/match) | [play](https://jacks-games.github.io/match/) |
+| ✏️ Jack's Letters | [jacks-games/letters](https://github.com/jacks-games/letters) | [play](https://jacks-games.github.io/letters/) |
+| 🔢 Jack's Numbers | [jacks-games/numbers](https://github.com/jacks-games/numbers) | [play](https://jacks-games.github.io/numbers/) |
+| ♟️ Jackies Schach | [jacks-games/chess](https://github.com/jacks-games/chess) | [play](https://jacks-games.github.io/chess/) |
+
 ## Where it runs
 
 - <https://jackbenn.ing> — custom domain (INWX DNS -> GitHub Pages)
