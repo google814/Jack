@@ -38,7 +38,9 @@
     border-radius: 12px;
     background: rgba(255,255,255,.15);
   }
-  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.7rem); flex: 0 0 auto; }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.7rem); flex: 0 1 auto; min-width: 0; }
+  /* on a phone the half/score pills matter more than the title */
+  @media (max-width: 560px) { header h1 { display: none; } }
   #half {
     font-size: clamp(.75rem, 2vw, .95rem);
     padding: 4px 10px;
@@ -48,6 +50,8 @@
   }
   #score {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
     display: flex;
     align-items: center;
     flex-wrap: wrap;

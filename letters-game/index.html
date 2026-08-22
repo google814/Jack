@@ -82,7 +82,10 @@
 
   #board {
     position: relative;
-    height: min(60vh, 76vw);
+    /* fill whatever height is left over, width follows from the aspect ratio */
+    flex: 1 1 auto;
+    min-height: 0;
+    max-width: 100%;
     aspect-ratio: 100 / 140;
     background: #1b232c;
     border: 3px solid rgba(255,255,255,.18);

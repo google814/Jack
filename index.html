@@ -37,7 +37,6 @@
 
   html { height: 100%; }
   body {
-    height: 100%;
     min-height: 100%;
     font-family: var(--read);
     color: var(--chalk);
@@ -53,8 +52,7 @@
   /* ---------- the pitch ---------- */
   .pitch {
     position: relative;
-    flex: 1;
-    min-height: 0;
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
     gap: clamp(14px, 2.6vh, 26px);
@@ -112,8 +110,7 @@
   /* ---------- line-up ---------- */
   /* six columns so five cards fill both rows: three across, then two wide */
   .lineup {
-    flex: 1;
-    min-height: 0;
+    flex: 1 0 auto;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     grid-auto-rows: 1fr;
