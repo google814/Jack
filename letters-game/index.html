@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2b3440">
+<title>Jack's Letters ✍️</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Letters">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #222a33 0%, #2b3440 55%, #222a33 100%);
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(0,0,0,.28);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none; color: #f1f5f9;
+    font-size: 1.6rem; line-height: 1;
+    padding: 6px 10px; border-radius: 12px;
+    background: rgba(255,255,255,.13);
+  }
+  header h1 { font-size: clamp(1.05rem, 3vw, 1.6rem); }
+  #score { flex: 1; text-align: right; font-size: 1.3rem; white-space: nowrap; }
+  #settingsBtn { background: none; border: none; color: #f1f5f9; font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px; }
+
+  /* ---------- alphabet strip ---------- */
+  #strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    padding: 8px 12px;
+    background: rgba(0,0,0,.16);
+    flex: 0 0 auto;
+  }
+  .chip {
+    width: clamp(25px, 3.1vw, 33px);
+    height: clamp(25px, 3.1vw, 33px);
+    display: grid;
+    place-items: center;
+    font-family: inherit;
+    font-size: clamp(.85rem, 2vw, 1.1rem);
+    font-weight: 700;
+    color: #cbd5e1;
+    background: rgba(255,255,255,.08);
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  .chip.done { background: #16a34a; color: #fff; }
+  .chip.current { outline: 3px solid #fde047; outline-offset: 1px; }
+
+  /* ---------- board ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(6px, 1.4vh, 14px);
+    padding: clamp(8px, 2vh, 18px) 16px calc(clamp(8px, 2vh, 18px) + env(safe-area-inset-bottom));
+    min-height: 0;
+  }
+  .lead { font-size: clamp(.9rem, 2.4vmin, 1.25rem); opacity: .85; text-align: center; }
+
+  #board {
+    position: relative;
+    height: min(60vh, 76vw);
+    aspect-ratio: 100 / 140;
+    background: #1b232c;
+    border: 3px solid rgba(255,255,255,.18);
+    border-radius: 20px;
+    touch-action: none;
+    overflow: hidden;
+  }
+  #board svg, #board canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #board canvas { z-index: 2; }
+
+  .guide { stroke: rgba(255,255,255,.16); stroke-width: 1; }
+  .guide.base { stroke: rgba(253,224,71,.45); stroke-width: 1.6; }
+  .trace {
+    fill: none;
+    stroke: rgba(255,255,255,.20);
+    stroke-width: 15;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .trace.active { stroke: rgba(255,255,255,.34); }
+  .trace.done   { stroke: rgba(34,197,94,.55); }
+  .startdot { fill: #22c55e; }
+  .startdot.pulse { animation: pulse 1.2s ease infinite; transform-origin: center; transform-box: fill-box; }
+  @keyframes pulse { 50% { transform: scale(1.35); } }
+  .arrow { fill: #22c55e; }
+
+  #letterLabel { font-size: clamp(1.1rem, 3vmin, 1.6rem); font-weight: 800; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit; font-weight: 800; color: #0f172a;
+    border: none; border-radius: 999px; cursor: pointer;
+    padding: clamp(9px, 1.8vh, 14px) clamp(18px, 4vw, 30px);
+    font-size: clamp(.9rem, 2.4vmin, 1.2rem);
+    background: #fde047;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .btn.ghost { background: rgba(255,255,255,.14); color: #f1f5f9; box-shadow: none; }
+
+  #startOverlay {
+    position: fixed; inset: 0; z-index: 70;
+    background: linear-gradient(160deg, #222a33 0%, #2b3440 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: clamp(16px, 4vh, 32px); text-align: center; padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 5.5vmin, 2.8rem); }
+  #startOverlay p { max-width: 28ch; opacity: .85; font-size: clamp(.95rem, 2.4vmin, 1.2rem); }
+  #playBtn { font-size: clamp(1.4rem, 4.5vmin, 2.2rem); padding: clamp(14px, 3vh, 22px) clamp(30px, 7vw, 56px); }
+
+  #settingsPanel {
+    position: fixed; top: 56px; right: 12px; z-index: 60;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+  .hidden { display: none !important; }
+
+  #feedback {
+    position: fixed; left: 50%; bottom: 10vh; transform: translateX(-50%);
+    background: rgba(0,0,0,.78); padding: 10px 20px; border-radius: 999px;
+    font-size: clamp(.9rem, 2.4vmin, 1.2rem); z-index: 50; pointer-events: none;
+  }
+  .confetti { position: fixed; top: -6vh; font-size: 2rem; animation: fall linear forwards; pointer-events: none; z-index: 40; }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Jack's Letters</h1>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<div id="strip"></div>
+
+<main>
+  <p class="lead" id="lead">Start at the green dot and follow the line.</p>
+  <div id="board">
+    <svg id="svg" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid meet"></svg>
+    <canvas id="ink"></canvas>
+  </div>
+  <div class="row">
+    <button class="btn ghost" id="sayBtn">🔊 Hear it</button>
+    <button class="btn ghost" id="againBtn">↺ Try again</button>
+    <button class="btn" id="nextBtn">Next letter ➜</button>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>✍️ Jack's Letters</h2>
+  <p>Follow the line with your finger and write the letter.</p>
+  <button id="playBtn" class="btn">▶ Start writing</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <button id="resetBtn">Start the alphabet again</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================================
+     Letter shapes. Each letter is a list of strokes in writing order, drawn in
+     a 100 x 140 box: ascender top 20, x-height 50, baseline 110, descender 140.
+     ========================================================================= */
+  var LETTERS = {
+    /* round family — all start top right and go anticlockwise */
+    c: ['M 72 62 A 26 26 0 1 0 72 100'],
+    a: ['M 72 66 A 25 25 0 1 0 72 94', 'M 72 50 L 72 110'],
+    d: ['M 72 66 A 25 25 0 1 0 72 94', 'M 72 20 L 72 110'],
+    g: ['M 72 66 A 25 25 0 1 0 72 94', 'M 72 50 L 72 126 A 20 16 0 0 1 40 132'],
+    o: ['M 50 50 A 30 30 0 1 0 50 110 A 30 30 0 1 0 50 50'],
+    q: ['M 72 66 A 25 25 0 1 0 72 94', 'M 72 50 L 72 140'],
+    s: ['M 70 60 C 58 48, 34 52, 34 68 C 34 82, 66 82, 66 96 C 66 112, 40 112, 30 100'],
+    e: ['M 26 84 L 74 84 A 26 26 0 1 0 66 106'],
+    f: ['M 64 40 A 14 13 0 0 0 42 48 L 42 110', 'M 26 56 L 62 56'],
+
+    /* straight family */
+    i: ['M 50 50 L 50 110', 'M 50 30 L 50 36'],
+    l: ['M 50 20 L 50 110'],
+    t: ['M 50 30 L 50 110', 'M 32 54 L 68 54'],
+    u: ['M 30 50 L 30 90 A 21 20 0 0 0 72 90 L 72 50', 'M 72 78 L 72 110'],
+    j: ['M 56 50 L 56 126 A 18 16 0 0 1 26 132', 'M 56 30 L 56 36'],
+    y: ['M 28 50 L 50 104', 'M 72 50 L 42 140'],
+
+    /* down and over family */
+    r: ['M 34 50 L 34 110', 'M 34 70 A 22 20 0 0 1 70 64'],
+    n: ['M 30 50 L 30 110', 'M 30 70 A 22 22 0 0 1 72 80 L 72 110'],
+    m: ['M 18 50 L 18 110', 'M 18 70 A 17 17 0 0 1 50 79 L 50 110', 'M 50 70 A 17 17 0 0 1 82 79 L 82 110'],
+    h: ['M 30 20 L 30 110', 'M 30 70 A 22 22 0 0 1 72 80 L 72 110'],
+    b: ['M 30 20 L 30 110', 'M 30 66 A 25 25 0 1 1 30 94'],
+    p: ['M 30 50 L 30 140', 'M 30 66 A 25 25 0 1 1 30 94'],
+    k: ['M 30 20 L 30 110', 'M 70 60 L 36 86 L 72 110'],
+
+    /* zig-zag family */
+    v: ['M 28 50 L 50 110 L 72 50'],
+    w: ['M 22 50 L 36 110 L 50 64 L 64 110 L 78 50'],
+    x: ['M 28 50 L 72 110', 'M 72 50 L 28 110'],
+    z: ['M 28 54 L 72 54 L 28 106 L 72 106']
+  };
+
+  /* Taught in movement families, not alphabetically — the hand learns the shape. */
+  var ORDER = ('c a d g o q s e f i l t u j y r n m h b p k v w x z').split(' ');
+
+  var NAMES = {
+    a:'ay', b:'bee', c:'see', d:'dee', e:'ee', f:'eff', g:'gee', h:'aitch', i:'eye',
+    j:'jay', k:'kay', l:'ell', m:'em', n:'en', o:'oh', p:'pee', q:'cue', r:'ar',
+    s:'ess', t:'tee', u:'you', v:'vee', w:'double you', x:'ex', y:'why', z:'zed'
+  };
+  var SOUNDS = {
+    a:'ah', b:'buh', c:'kuh', d:'duh', e:'eh', f:'fff', g:'guh', h:'huh', i:'ih',
+    j:'juh', k:'kuh', l:'lll', m:'mmm', n:'nnn', o:'oh', p:'puh', q:'kwuh', r:'rrr',
+    s:'sss', t:'tuh', u:'uh', v:'vvv', w:'wuh', x:'ks', y:'yuh', z:'zzz'
+  };
+
+  var TOL = 17;          /* how far off the line a finger may be, in board units */
+  var START_TOL = 22;    /* a bit kinder when starting a stroke */
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💛'];
+
+  /* ================= State ================= */
+  var done = (localStorage.getItem('jackLettersDone') || '').split('').filter(function (c) { return LETTERS[c]; });
+  var footballs = parseInt(localStorage.getItem('jackLettersFootballs') || '0', 10) || 0;
+  var idx = 0;                     /* index into ORDER */
+  var strokeIdx = 0;               /* which stroke of the letter */
+  var checkpoints = [];            /* per stroke: [{x,y}, ...] */
+  var hit = 0;                     /* next checkpoint to reach */
+  var drawing = false;
+  var letterDone = false;
+  var started = false;            /* speech needs a tap first, in every browser */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    strip: $('strip'), svg: $('svg'), ink: $('ink'), board: $('board'), lead: $('lead'),
+    score: $('score'), sayBtn: $('sayBtn'), againBtn: $('againBtn'), nextBtn: $('nextBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'), resetBtn: $('resetBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn')
+  };
+  var ctx = els.ink.getContext('2d');
+
+  function save() {
+    localStorage.setItem('jackLettersDone', done.join(''));
+    localStorage.setItem('jackLettersFootballs', String(footballs));
+  }
+
+  /* ================= Speech ================= */
+  var hasTTS = 'speechSynthesis' in window;
+  var voice = null;
+
+  function pickVoice() {
+    if (!hasTTS) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Samantha|Martha|Serena|Kate|Karen|Moira|Hazel|Zira|Libby|Sonia|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    voice =
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(en, /female|woman/i) ||
+      find(gb, female) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+  if (hasTTS) { pickVoice(); speechSynthesis.addEventListener('voiceschanged', pickVoice); }
+
+  function speak(text, rate) {
+    if (!hasTTS) return;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = rate || 0.8;
+      u.pitch = 1.05;
+      setTimeout(function () { speechSynthesis.speak(u); }, 40);
+    } catch (e) { /* speech is a bonus */ }
+  }
+
+  /* ================= Helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1500);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+      c.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4000);
+    }
+  }
+
+  function letter() { return ORDER[idx]; }
+
+  function renderScore() {
+    els.score.textContent = '⚽ ' + footballs + '  ·  ' + done.length + '/26';
+  }
+
+  function renderStrip() {
+    els.strip.innerHTML = '';
+    ORDER.forEach(function (ch, i) {
+      var b = document.createElement('button');
+      b.className = 'chip' + (done.indexOf(ch) > -1 ? ' done' : '') + (i === idx ? ' current' : '');
+      b.type = 'button';
+      b.textContent = ch;
+      b.addEventListener('click', function () { idx = i; loadLetter(); });
+      els.strip.appendChild(b);
+    });
+  }
+
+  /* ================= Board ================= */
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+
+  function el(name, attrs) {
+    var n = document.createElementNS(SVG_NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  function sizeCanvas() {
+    var r = els.board.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    els.ink.width = Math.round(r.width * dpr);
+    els.ink.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineWidth = Math.max(6, r.width * 0.055);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#fde047';
+  }
+
+  /* board pixels -> the 100x140 coordinate system the letters are drawn in */
+  function toBoard(ev) {
+    var r = els.board.getBoundingClientRect();
+    return {
+      x: (ev.clientX - r.left) / r.width * 100,
+      y: (ev.clientY - r.top) / r.height * 140,
+      px: ev.clientX - r.left,
+      py: ev.clientY - r.top
+    };
+  }
+
+  function loadLetter() {
+    var ch = letter();
+    strokeIdx = 0;
+    hit = 0;
+    letterDone = false;
+    drawing = false;
+
+    els.svg.innerHTML = '';
+    /* writing guides, like the lines in a school book */
+    [[20, 'guide'], [50, 'guide'], [110, 'guide base'], [140, 'guide']].forEach(function (g) {
+      els.svg.appendChild(el('line', { x1: 4, x2: 96, y1: g[0], y2: g[0], class: g[1] }));
+    });
+
+    checkpoints = [];
+    LETTERS[ch].forEach(function (d, i) {
+      var path = el('path', { d: d, class: 'trace' + (i === 0 ? ' active' : '') });
+      path.dataset.stroke = i;
+      els.svg.appendChild(path);
+
+      var len = path.getTotalLength();
+      var steps = Math.max(8, Math.round(len / 6));
+      var pts = [];
+      for (var s = 0; s <= steps; s++) {
+        var p = path.getPointAtLength(len * s / steps);
+        pts.push({ x: p.x, y: p.y });
+      }
+      checkpoints.push(pts);
+    });
+
+    drawStartMarker();
+    sizeCanvas();
+    ctx.clearRect(0, 0, els.ink.width, els.ink.height);
+
+    els.lead.textContent = 'Start at the green dot and follow the line.';
+    renderStrip();
+    renderScore();
+    if (started) speak(NAMES[ch] + '. ' + SOUNDS[ch], 0.75);
+  }
+
+  function drawStartMarker() {
+    var old = els.svg.querySelectorAll('.startdot, .arrow');
+    for (var i = 0; i < old.length; i++) old[i].remove();
+    if (strokeIdx >= checkpoints.length) return;
+    var pts = checkpoints[strokeIdx];
+    var a = pts[0], b = pts[Math.min(3, pts.length - 1)];
+    els.svg.appendChild(el('circle', { cx: a.x, cy: a.y, r: 7, class: 'startdot pulse' }));
+    /* a small triangle showing which way to go */
+    var ang = Math.atan2(b.y - a.y, b.x - a.x);
+    var tipX = a.x + Math.cos(ang) * 15, tipY = a.y + Math.sin(ang) * 15;
+    var p1x = a.x + Math.cos(ang + 2.5) * 8, p1y = a.y + Math.sin(ang + 2.5) * 8;
+    var p2x = a.x + Math.cos(ang - 2.5) * 8, p2y = a.y + Math.sin(ang - 2.5) * 8;
+    els.svg.appendChild(el('polygon', {
+      points: tipX + ',' + tipY + ' ' + p1x + ',' + p1y + ' ' + p2x + ',' + p2y,
+      class: 'arrow'
+    }));
+  }
+
+  function clearInkForStroke() {
+    /* strokes already finished stay on the board, so redraw them all */
+    ctx.clearRect(0, 0, els.ink.width, els.ink.height);
+    var r = els.board.getBoundingClientRect();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(253,224,71,.8)';
+    for (var s = 0; s < strokeIdx; s++) {
+      var pts = checkpoints[s];
+      ctx.beginPath();
+      for (var i = 0; i < pts.length; i++) {
+        var x = pts[i].x / 100 * r.width, y = pts[i].y / 140 * r.height;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function markStrokeDone() {
+    var path = els.svg.querySelector('path[data-stroke="' + strokeIdx + '"]');
+    if (path) path.setAttribute('class', 'trace done');
+    strokeIdx++;
+    hit = 0;
+    var next = els.svg.querySelector('path[data-stroke="' + strokeIdx + '"]');
+    if (next) next.setAttribute('class', 'trace active');
+    clearInkForStroke();
+
+    if (strokeIdx >= checkpoints.length) finishLetter();
+    else { drawStartMarker(); showFeedback('Good! Next line.'); }
+  }
+
+  function finishLetter() {
+    letterDone = true;
+    var ch = letter();
+    if (done.indexOf(ch) === -1) done.push(ch);
+    footballs++;
+    save();
+    renderScore();
+    renderStrip();
+    var old = els.svg.querySelectorAll('.startdot, .arrow');
+    for (var i = 0; i < old.length; i++) old[i].remove();
+    els.svg.querySelectorAll('.trace').forEach(function (p) { p.setAttribute('class', 'trace done'); });
+    els.lead.textContent = 'You wrote ' + ch + '! ⚽';
+    celebrate(20);
+    speak('You wrote ' + NAMES[ch] + '!', 0.85);
+  }
+
+  /* ================= Tracing ================= */
+  function onDown(ev) {
+    if (letterDone) return;
+    var p = toBoard(ev);
+    var target = checkpoints[strokeIdx][hit];
+    var tol = hit === 0 ? START_TOL : TOL;
+    if (Math.hypot(p.x - target.x, p.y - target.y) > tol) {
+      showFeedback(hit === 0 ? 'Start at the green dot 🟢' : 'Carry on from the line');
+      return;
+    }
+    drawing = true;
+    try { els.board.setPointerCapture(ev.pointerId); } catch (e) { /* no capture, no problem */ }
+    ctx.beginPath();
+    ctx.moveTo(p.px, p.py);
+    advance(p);
+    ev.preventDefault();
+  }
+
+  function onMove(ev) {
+    if (!drawing || letterDone) return;
+    var p = toBoard(ev);
+    ctx.lineTo(p.px, p.py);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(p.px, p.py);
+    advance(p);
+    ev.preventDefault();
+  }
+
+  /* let the finger tick off every checkpoint it passes close to, in order */
+  function advance(p) {
+    var pts = checkpoints[strokeIdx];
+    while (hit < pts.length && Math.hypot(p.x - pts[hit].x, p.y - pts[hit].y) <= TOL) hit++;
+    if (hit >= pts.length) {
+      drawing = false;
+      markStrokeDone();
+    }
+  }
+
+  function onUp() {
+    if (!drawing) return;
+    drawing = false;
+    if (letterDone) return;
+    /* lifted the finger half way — that line starts again */
+    hit = 0;
+    clearInkForStroke();
+    showFeedback('Keep your finger down — try that line again.');
+  }
+
+  els.board.addEventListener('pointerdown', onDown);
+  els.board.addEventListener('pointermove', onMove);
+  els.board.addEventListener('pointerup', onUp);
+  els.board.addEventListener('pointercancel', onUp);
+  els.board.addEventListener('pointerleave', onUp);
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    started = true;
+    if (hasTTS) pickVoice();
+    els.startOverlay.remove();
+    var ch = letter();
+    speak(NAMES[ch] + '. ' + SOUNDS[ch], 0.75);
+  });
+
+  els.sayBtn.addEventListener('click', function () {
+    var ch = letter();
+    speak(NAMES[ch] + '. ' + SOUNDS[ch], 0.75);
+  });
+  els.againBtn.addEventListener('click', loadLetter);
+  els.nextBtn.addEventListener('click', function () {
+    idx = (idx + 1) % ORDER.length;
+    loadLetter();
+  });
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Clear all the green letters and start again?')) {
+      done = [];
+      footballs = 0;
+      idx = 0;
+      save();
+      els.settingsPanel.classList.add('hidden');
+      loadLetter();
+    }
+  });
+  window.addEventListener('resize', function () { sizeCanvas(); clearInkForStroke(); });
+
+  /* carry on where he left off */
+  for (var i = 0; i < ORDER.length; i++) {
+    if (done.indexOf(ORDER[i]) === -1) { idx = i; break; }
+  }
+  loadLetter();
+})();
+</script>
+</body>
+</html>

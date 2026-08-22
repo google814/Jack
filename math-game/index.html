@@ -102,6 +102,13 @@
     border-radius: 22px;
     background: rgba(255,255,255,.10);
   }
+  .ball-group.frame {
+    display: grid;
+    grid-template-columns: repeat(5, auto);
+    justify-items: center;
+  }
+  /* break after the first ten so twelve reads as "ten and two" */
+  .ball-group.frame .cball:nth-child(n+11) { margin-top: clamp(8px, 2vmin, 18px); }
   .ball-group.second { background: rgba(255,214,10,.16); }
   .ball-op {
     font-size: clamp(2.2rem, 6vmin, 3.4rem);
@@ -339,6 +346,7 @@
 </div>
 
 <div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="max20Toggle"> Numbers to 20</label>
   <button id="resetBtn">Reset score</button>
 </div>
 
@@ -383,7 +391,36 @@
     { type: 'sub', a: 10, b: 5 }
   ];
 
-  var NUM_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  /* Only played when "Numbers to 20" is on. Counting first, then bridging ten. */
+  var PROBLEMS_20 = [
+    // Level 4: counting 11-20 (shown as two ten frames)
+    { type: 'count', a: 12 },
+    { type: 'count', a: 15 },
+    { type: 'count', a: 18 },
+    { type: 'count', a: 20 },
+    // Level 5: addition over ten
+    { type: 'add', a: 10, b: 5 },
+    { type: 'add', a: 8,  b: 5 },
+    { type: 'add', a: 9,  b: 4 },
+    { type: 'add', a: 7,  b: 6 },
+    { type: 'add', a: 8,  b: 8 },
+    { type: 'add', a: 9,  b: 7 },
+    { type: 'add', a: 6,  b: 7 },
+    { type: 'add', a: 9,  b: 9 },
+    // Level 6: subtraction inside twenty
+    { type: 'sub', a: 15, b: 3 },
+    { type: 'sub', a: 12, b: 4 },
+    { type: 'sub', a: 17, b: 5 },
+    { type: 'sub', a: 14, b: 6 },
+    { type: 'sub', a: 18, b: 9 },
+    { type: 'sub', a: 16, b: 7 },
+    { type: 'sub', a: 20, b: 8 },
+    { type: 'sub', a: 20, b: 10 }
+  ];
+
+  var NUM_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+                   'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
+                   'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
   var TILE_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4', '#fdba74', '#c4b5fd', '#67e8f9'];
   var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💛', '💙', '🧡'];
 
@@ -407,7 +444,12 @@
   /* ================= State ================= */
   var footballs = parseInt(localStorage.getItem('jackMathFootballs') || '0', 10) || 0;
   var probIndex = parseInt(localStorage.getItem('jackMathIndex') || '0', 10) || 0;
-  if (probIndex >= PROBLEMS.length) probIndex = 0;
+  var maxNum = parseInt(localStorage.getItem('jackMathMax') || '10', 10) === 20 ? 20 : 10;
+
+  /* The sums up to ten always come first, so turning "to 20" on never makes an
+     earlier sum harder — it only adds more after them. */
+  function problems() { return maxNum === 20 ? PROBLEMS.concat(PROBLEMS_20) : PROBLEMS; }
+  if (probIndex >= problems().length) probIndex = 0;
   var misses = 0;
   var countStep = 0;
 
@@ -419,12 +461,13 @@
     speakAnswerBtn: $('speakAnswerBtn'), nextBtn: $('nextBtn'),
     startOverlay: $('startOverlay'), playBtn: $('playBtn'),
     settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
-    resetBtn: $('resetBtn')
+    resetBtn: $('resetBtn'), max20Toggle: $('max20Toggle')
   };
 
   function save() {
     localStorage.setItem('jackMathFootballs', String(footballs));
     localStorage.setItem('jackMathIndex', String(probIndex));
+    localStorage.setItem('jackMathMax', String(maxNum));
   }
 
   /* ================= Speech ================= */
@@ -526,7 +569,7 @@
   }
 
   /* ================= Play state ================= */
-  function current() { return PROBLEMS[probIndex]; }
+  function current() { return problems()[probIndex]; }
 
   function makeBall(countable) {
     var b = document.createElement('button');
@@ -542,7 +585,9 @@
 
   function ballGroup(count, countable, extraClass) {
     var g = document.createElement('div');
-    g.className = 'ball-group' + (extraClass ? ' ' + extraClass : '');
+    /* more than six balls are laid out five to a row — the ten frame they use at
+       school, so twelve reads as "ten and two" instead of a random heap */
+    g.className = 'ball-group' + (count > 6 ? ' frame' : '') + (extraClass ? ' ' + extraClass : '');
     for (var i = 0; i < count; i++) g.appendChild(makeBall(countable));
     return g;
   }
@@ -592,7 +637,7 @@
     } else {
       // subtraction: one group of a balls, the last b crossed out
       var g = document.createElement('div');
-      g.className = 'ball-group';
+      g.className = 'ball-group' + (p.a > 6 ? ' frame' : '');
       for (var i = 0; i < p.a; i++) g.appendChild(makeBall(i < p.a - p.b));
       els.balls.appendChild(g);
     }
@@ -601,7 +646,7 @@
     var options = [answer];
     var candidates = shuffle([answer - 3, answer - 2, answer - 1, answer + 1, answer + 2, answer + 3]);
     candidates.forEach(function (c) {
-      if (options.length < 4 && c >= 0 && c <= 10 && options.indexOf(c) === -1) options.push(c);
+      if (options.length < 4 && c >= 0 && c <= maxNum && options.indexOf(c) === -1) options.push(c);
     });
     // tiny answers near 0 can run out of candidates in range; top up upwards
     for (var extra = answer + 4; options.length < 4; extra++) options.push(extra);
@@ -671,7 +716,7 @@
   }
 
   function nextProblem() {
-    probIndex = (probIndex + 1) % PROBLEMS.length;
+    probIndex = (probIndex + 1) % problems().length;
     save();
     enterPlay();
   }
@@ -691,6 +736,15 @@
   els.equation.addEventListener('click', function () { speak(answerText(current()), 0.85); });
   els.speakAnswerBtn.addEventListener('click', function () { speak(answerText(current()), 0.85); });
   els.nextBtn.addEventListener('click', nextProblem);
+
+  els.max20Toggle.checked = maxNum === 20;
+  els.max20Toggle.addEventListener('change', function () {
+    maxNum = this.checked ? 20 : 10;
+    if (probIndex >= problems().length) probIndex = 0;
+    save();
+    els.settingsPanel.classList.add('hidden');
+    enterPlay();
+  });
 
   els.settingsBtn.addEventListener('click', function () {
     els.settingsPanel.classList.toggle('hidden');
