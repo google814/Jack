@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Jack's Games</title>
-<meta name="description" content="Jack's own games: reading, maths and chess. Tap one to play.">
+<meta name="description" content="Jack's own games: reading, writing, maths and chess.">
 <meta name="theme-color" content="#0b3d28">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -108,7 +108,7 @@
   }
 
   /* ---------- line-up ---------- */
-  /* six columns so five cards fill both rows: three across, then two wide */
+  /* six columns: game cards sit three across, chess spans the whole last row */
   .lineup {
     flex: 1 0 auto;
     display: grid;
@@ -118,8 +118,16 @@
     align-content: stretch;
   }
   .lineup .card { grid-column: span 2; }
-  .lineup .card:nth-child(4),
-  .lineup .card:nth-child(5) { grid-column: span 3; }
+  /* chess is the last card and always spans the whole bottom row —
+     homework games are added at the TOP, so Jack meets those first */
+  .lineup .card.chess { grid-column: 1 / -1; order: 999; }
+  /* homework games: this week's school work, always first */
+  .homework {
+    background:
+      radial-gradient(120% 80% at 50% 0%, rgba(255,255,255,.28), transparent 60%),
+      linear-gradient(160deg, #ff9f1c, #e0641a);
+  }
+  .homework .what::before { content: "📚 "; }
 
   /* the bench: where the next games will sit */
   .bench { display: flex; flex-direction: column; gap: 8px; }
@@ -132,7 +140,7 @@
   }
   .bench-row {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: clamp(12px, 2.2vmin, 24px);
   }
 
@@ -158,6 +166,7 @@
   .card:nth-child(3) { animation-delay: .21s; }
   .card:nth-child(4) { animation-delay: .29s; }
   .card:nth-child(5) { animation-delay: .37s; }
+  .card:nth-child(6) { animation-delay: .45s; }
   @keyframes run-on {
     from { opacity: 0; transform: translateY(26px) scale(.94); }
     to   { opacity: 1; transform: none; }
@@ -183,6 +192,7 @@
   .numbers { background: linear-gradient(160deg, var(--numbers), var(--numbers-deep)); }
   .match   { background: linear-gradient(160deg, #f59e0b, #b45309); }
   .letters { background: linear-gradient(160deg, #64748b, #2b3440); }
+  .apples  { background: linear-gradient(160deg, #ef4444, #991b1b); }
   .chess {
     color: var(--chess-deep);
     background:
@@ -258,15 +268,13 @@
   /* ---------- iPad mini portrait & phones ---------- */
   @media (max-width: 860px) {
     .lineup { grid-template-columns: repeat(4, 1fr); }
-    .lineup .card,
-    .lineup .card:nth-child(4) { grid-column: span 2; }
-    .lineup .card:nth-child(5) { grid-column: span 4; }
+    .lineup .card { grid-column: span 2; }
+    .lineup .card.chess { grid-column: 1 / -1; }
   }
   @media (max-width: 460px) {
     .lineup { grid-template-columns: 1fr; }
     .lineup .card,
-    .lineup .card:nth-child(4),
-    .lineup .card:nth-child(5) { grid-column: span 1; }
+    .lineup .card.chess { grid-column: span 1; }
     .bench-row { grid-template-columns: 1fr; }
     .pitch::after { display: none; }
   }
@@ -285,6 +293,22 @@
   </header>
 
   <div class="lineup">
+
+    <a class="card homework" href="hw-20260906-phonics-ai-ee-words/" data-say="Ai / Ee Words. Homework." data-hw="jackHw_hw20260906phonicsaieewords">
+      <span class="score" id="score-hw-20260906-phonics-ai-ee-words" hidden></span>
+      <button class="say" type="button" aria-label="Say: Ai / Ee Words">🔊</button>
+      <span class="icon" aria-hidden="true">🔤</span>
+      <span class="name">Ai / Ee Words</span>
+      <span class="what">Homework</span>
+    </a>
+
+    <a class="card homework" href="hw-20260906-maths-number-bonds-to-10-1/" data-say="Number Bonds To 10. Homework." data-hw="jackHw_hw20260906mathsnumberbondsto101">
+      <span class="score" id="score-hw-20260906-maths-number-bonds-to-10-1" hidden></span>
+      <button class="say" type="button" aria-label="Say: Number Bonds To 10">🔊</button>
+      <span class="icon" aria-hidden="true">🔢</span>
+      <span class="name">Number Bonds To 10</span>
+      <span class="what">Homework</span>
+    </a>
 
     <a class="card words" href="reading-game/" data-say="Jack's Words. Reading.">
       <span class="score" id="score-words" hidden></span>
@@ -318,6 +342,15 @@
       <span class="what">Maths</span>
     </a>
 
+    <!-- Order: homework/practice games first. Chess stays LAST — it is the treat. -->
+    <a class="card apples" href="apples-game/" data-say="Jack's Apples. Numbers to twenty.">
+      <span class="score" id="score-apples" hidden></span>
+      <button class="say" type="button" aria-label="Say: Jack's Apples">🔊</button>
+      <span class="icon" aria-hidden="true">🍎</span>
+      <span class="name">Jack's Apples</span>
+      <span class="what">Numbers 1–20</span>
+    </a>
+
     <a class="card chess" href="chess/" data-say="Chess.">
       <span class="score" id="score-chess" hidden></span>
       <button class="say" type="button" aria-label="Say: Chess">🔊</button>
@@ -331,7 +364,6 @@
   <section class="bench">
     <h2>BENCH</h2>
     <div class="bench-row">
-      <div class="slot"><span class="plus" aria-hidden="true">+</span><span class="what">Free spot</span></div>
       <div class="slot"><span class="plus" aria-hidden="true">+</span><span class="what">Free spot</span></div>
     </div>
   </section>
@@ -359,12 +391,22 @@
     var math    = num('jackMathFootballs');
     var xp      = num('jackChessXp');
     var match   = num('jackMatchFootballs');
+    var apples  = num('jackApplesFootballs');
     var letters = (localStorage.getItem('jackLettersDone') || '').length;
     badge('score-words',   read,    '⚽ ' + read);
     badge('score-match',   match,   '⚽ ' + match);
     badge('score-letters', letters, letters + '/26');
     badge('score-numbers', math,    '⚽ ' + math);
+    badge('score-apples',  apples,  '⚽ ' + apples);
     badge('score-chess',   xp,      '⭐ ' + xp);
+    document.querySelectorAll('.card[data-hw]').forEach(function (c) {
+      var v = num(c.getAttribute('data-hw'));
+      badge(c.querySelector('.score').id, v, '⚽ ' + v);
+    });
+
+    /* chess is the treat and always stays the last card in the line-up */
+    var lineup = document.querySelector('.lineup'), chess = lineup.querySelector('.card.chess');
+    if (chess && chess !== lineup.lastElementChild) lineup.appendChild(chess);
   } catch (e) { /* private mode — badges are a bonus */ }
 
   /* ---- speak the card name, same voice as the games ---- */

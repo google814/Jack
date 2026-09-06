@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#047857">
+<title>ai / ee Homework ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="ai ee">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #064e3b 0%, #047857 52%, #065f46 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(0,0,0,.22);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.7rem); flex: 0 1 auto; min-width: 0; }
+  /* on a phone the round/score pills matter more than the title */
+  @media (max-width: 560px) { header h1 { display: none; } }
+  #phase {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.28);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    font-size: 1.5rem;
+    min-height: 1.8rem;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.4rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* a tall round (build the word) must not get its top cut off on a phone */
+    justify-content: safe center;
+    gap: clamp(12px, 2.6vh, 26px);
+    padding: clamp(12px, 3vh, 26px) 14px calc(clamp(12px, 3vh, 26px) + env(safe-area-inset-bottom));
+    text-align: center;
+    overflow-y: auto;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1rem, 2.6vmin, 1.4rem); opacity: .92; max-width: 26ch; }
+
+  /* ---------- The word, sound by sound ---------- */
+  .wordline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(4px, 1.2vmin, 12px);
+    flex-wrap: wrap;
+  }
+  .gr {
+    font-size: clamp(2.8rem, 13vmin, 7rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: .02em;
+    text-shadow: 0 6px 0 rgba(0,0,0,.28);
+    transition: color .15s ease, transform .15s ease;
+  }
+  .gr.vowel { color: #fde047; }
+  .gr.lit { color: #fff7ae; transform: translateY(-8px) scale(1.12); }
+  .gr.gap {
+    color: rgba(255,255,255,.55);
+    border-bottom: 8px dashed rgba(255,255,255,.55);
+    min-width: clamp(64px, 18vmin, 140px);
+  }
+  .gr.pop { animation: pop .5s ease; }
+  @keyframes pop {
+    0% { transform: scale(.4) rotate(-12deg); }
+    60% { transform: scale(1.25) rotate(6deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+
+  /* ---------- Round 1: ai or ee ---------- */
+  #vowelChoices { display: flex; gap: clamp(14px, 4vmin, 34px); flex-wrap: wrap; justify-content: center; }
+  .vowel-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: clamp(140px, 32vmin, 230px);
+    padding: clamp(12px, 2.6vh, 22px) clamp(16px, 4vw, 32px);
+    border: 4px solid rgba(255,255,255,.85);
+    border-radius: 28px;
+    font-family: inherit;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 10px 0 rgba(0,0,0,.28);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .vowel-btn .big { font-size: clamp(2.4rem, 9vmin, 4.2rem); font-weight: 800; line-height: 1.05; }
+  .vowel-btn .cue { font-size: clamp(1rem, 3vmin, 1.5rem); font-weight: 800; opacity: .95; }
+  .vowel-btn:active { transform: translateY(7px); box-shadow: 0 3px 0 rgba(0,0,0,.28); }
+  .vowel-btn.ai { background: linear-gradient(160deg, #38bdf8, #0369a1); }
+  .vowel-btn.ee { background: linear-gradient(160deg, #a3e635, #4d7c0f); }
+  .shake { animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* ---------- Round 2: which word did you hear? ---------- */
+  #wordChoices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(10px, 2.4vmin, 20px);
+    justify-content: center;
+    width: 100%;
+    max-width: 760px;
+  }
+  .word-btn {
+    flex: 1 1 clamp(180px, 28vw, 240px);
+    padding: clamp(14px, 3vh, 26px) 10px;
+    font-family: inherit;
+    font-size: clamp(2rem, 8vmin, 3.4rem);
+    font-weight: 800;
+    letter-spacing: .04em;
+    color: #14532d;
+    background: #f0fdf4;
+    border: none;
+    border-bottom: 8px solid rgba(0,0,0,.25);
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .word-btn .v { color: #b45309; }
+  .word-btn:active { transform: translateY(4px); border-bottom-width: 4px; }
+  .word-btn.right { background: #86efac; }
+  .word-btn.wrong { background: #fecaca; }
+
+  /* ---------- Round 3: build it ---------- */
+  #slots { display: flex; gap: clamp(6px, 1.6vmin, 14px); justify-content: center; flex-wrap: wrap; }
+  .slot {
+    min-width: clamp(56px, 15vmin, 108px);
+    height: clamp(62px, 15vmin, 110px);
+    padding: 0 6px;
+    display: grid;
+    place-items: center;
+    font-size: clamp(1.8rem, 7vmin, 3.2rem);
+    font-weight: 800;
+    border-radius: 14px;
+    border: 4px dashed rgba(255,255,255,.5);
+    background: rgba(0,0,0,.16);
+  }
+  .slot.filled { border-style: solid; border-color: #fff; background: rgba(255,255,255,.18); }
+  .slot.right { border-color: #86efac; background: rgba(16,185,129,.45); }
+  .slot.wrong { border-color: #fca5a5; background: rgba(239,68,68,.4); }
+
+  #tiles { display: flex; gap: clamp(6px, 1.8vmin, 14px); justify-content: center; flex-wrap: wrap; }
+  .tile {
+    min-width: clamp(60px, 15vmin, 104px);
+    height: clamp(58px, 13vmin, 96px);
+    padding: 0 10px;
+    font-family: inherit;
+    font-size: clamp(1.5rem, 6vmin, 2.8rem);
+    font-weight: 800;
+    color: #14532d;
+    background: #f0fdf4;
+    border: none;
+    border-bottom: 7px solid rgba(0,0,0,.25);
+    border-radius: 14px;
+    cursor: pointer;
+  }
+  .tile.vowel { background: #fde68a; color: #78350f; }
+  .tile:active { transform: translateY(4px); border-bottom-width: 3px; }
+  .tile.used { opacity: .28; pointer-events: none; }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(12px, 2.2vh, 18px) clamp(22px, 5vw, 42px);
+    font-size: clamp(1rem, 2.8vmin, 1.5rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.quiet { background: rgba(0,0,0,.3); box-shadow: none; font-size: clamp(.9rem, 2.2vmin, 1.1rem); }
+
+  #cheer { font-size: clamp(1.6rem, 5vmin, 3rem); font-weight: 800; }
+  #cheer .v { color: #fde047; }
+  #sentence { font-size: clamp(1.1rem, 3.4vmin, 2rem); line-height: 1.4; max-width: 22ch; }
+  #sentence .lit { color: #fde047; }
+  #cheerPic { font-size: clamp(2.6rem, 10vmin, 5rem); line-height: 1; }
+
+  /* ---------- Write-it-in-your-book finish ---------- */
+  #bookBox { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2.4vh, 20px); }
+  #bookBox h2 { font-size: clamp(1.5rem, 5.4vmin, 2.6rem); }
+  #bookWords { display: flex; flex-direction: column; gap: clamp(6px, 1.6vh, 14px); align-items: center; }
+  .book-word {
+    background: #fffbeb;
+    color: #1f2937;
+    font-size: clamp(1.8rem, 7vmin, 3rem);
+    font-weight: 800;
+    letter-spacing: .06em;
+    padding: clamp(6px, 1.4vh, 12px) clamp(22px, 7vw, 54px);
+    border-radius: 14px;
+    border-bottom: 6px solid rgba(0,0,0,.2);
+    cursor: pointer;
+  }
+  .book-word .v { color: #b45309; }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #064e3b 0%, #047857 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); }
+  #startOverlay .words { font-size: clamp(1.1rem, 4vmin, 2rem); font-weight: 800; max-width: 20ch; line-height: 1.5; }
+  #startOverlay .words .v { color: #fde047; }
+  #startOverlay p { max-width: 30ch; opacity: .9; font-size: clamp(.95rem, 2.4vmin, 1.15rem); }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 60px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  #feedback {
+    position: fixed;
+    left: 50%; bottom: 10vh;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,.75);
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-size: clamp(1rem, 2.6vmin, 1.3rem);
+    z-index: 50;
+    pointer-events: none;
+    max-width: 90vw;
+  }
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>ai / ee Homework</h1>
+  <span id="phase">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead hidden" id="lead"></p>
+
+  <!-- round 1: which sound is missing? -->
+  <div class="wordline hidden" id="gapWord"></div>
+  <div id="vowelChoices" class="hidden">
+    <button class="vowel-btn ai" type="button" id="aiBtn">
+      <span class="big">ai</span><span class="cue">🌧️ r-ai-n</span>
+    </button>
+    <button class="vowel-btn ee" type="button" id="eeBtn">
+      <span class="big">ee</span><span class="cue">🌳 t-r-ee</span>
+    </button>
+  </div>
+
+  <!-- round 2: which word did you hear? -->
+  <div id="wordChoices" class="hidden"></div>
+
+  <!-- round 3: build the word from its sounds -->
+  <div id="slots" class="hidden"></div>
+  <div id="tiles" class="hidden"></div>
+
+  <button class="btn quiet hidden" id="againBtn">🔊 Sound it out again</button>
+
+  <!-- after a goal -->
+  <div id="cheerPic" class="hidden"></div>
+  <div id="cheer" class="hidden"></div>
+  <div id="sentence" class="hidden"></div>
+  <button class="btn big hidden" id="nextBtn">Next ➜ ⚽</button>
+
+  <!-- half time / full time -->
+  <div id="breakBox" class="hidden">
+    <div id="breakTitle" style="font-size:clamp(1.6rem,6vmin,3rem);font-weight:800"></div>
+    <p id="breakText" class="lead" style="margin:12px auto 20px"></p>
+    <button class="btn big" id="breakBtn"></button>
+  </div>
+
+  <!-- the homework: write three of them in your book -->
+  <div id="bookBox" class="hidden">
+    <h2>✏️ Now write these three in your book</h2>
+    <div id="bookWords"></div>
+    <button class="btn quiet" id="readBookBtn">🔊 Read them to me</button>
+    <button class="btn big" id="playAgainBtn">Play again ⚽</button>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>⚽ r-<span style="color:#fde047">ai</span>-n &amp; t-r-<span style="color:#fde047">ee</span> ⚽</h2>
+  <div class="words">
+    r<span class="v">ai</span>n · t<span class="v">ai</span>l · p<span class="v">ai</span>n · w<span class="v">ai</span>t<br>
+    f<span class="v">ee</span>t · tr<span class="v">ee</span> · s<span class="v">ee</span>d · gr<span class="v">ee</span>n
+  </div>
+  <p>Monday's homework. Find the sound, hear the word, build the word.</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower sounds</label>
+  <button id="resetBtn">Reset footballs</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Today's homework =================
+     Phonics: ai / ee. The eight words are exactly the ones on the Seesaw
+     sheet — nothing else is drilled here. Each word is stored already
+     sound-talked (r-ai-n), because that is what the teacher asked for. */
+  var WORDS = [
+    { w: 'rain',  v: 'ai', parts: ['r', 'ai', 'n'],       pic: '🌧️', s: 'The rain falls on the grass.' },
+    { w: 'tail',  v: 'ai', parts: ['t', 'ai', 'l'],       pic: '🐕', s: 'The dog wags his tail.' },
+    { w: 'pain',  v: 'ai', parts: ['p', 'ai', 'n'],       pic: '🤕', s: 'Ouch! That is a pain.' },
+    { w: 'wait',  v: 'ai', parts: ['w', 'ai', 't'],       pic: '⏳', s: 'We wait for the bus.' },
+    { w: 'feet',  v: 'ee', parts: ['f', 'ee', 't'],       pic: '🦶', s: 'I kick the ball with my feet.' },
+    { w: 'tree',  v: 'ee', parts: ['t', 'r', 'ee'],       pic: '🌳', s: 'The tree is very tall.' },
+    { w: 'seed',  v: 'ee', parts: ['s', 'ee', 'd'],       pic: '🌱', s: 'I put a seed in the pot.' },
+    { w: 'green', v: 'ee', parts: ['g', 'r', 'ee', 'n'],  pic: '💚', s: 'The grass is green.' }
+  ];
+
+  var ROUNDS_1 = 6;   /* which sound is missing: ai or ee?  */
+  var ROUNDS_2 = 5;   /* hear it sound-talked, read the word */
+  var ROUNDS_3 = 3;   /* build three words — the three he writes in his book */
+
+  /* How each sound is said out loud. Only the sounds these words need. */
+  var SOUNDS = {
+    ai: 'ay', ee: 'ee',
+    d: 'duh', f: 'fff', g: 'guh', l: 'lll', n: 'nnn',
+    p: 'puh', r: 'rrr', s: 'sss', t: 'tuh', w: 'wuh'
+  };
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💚', '🌈'];
+
+  var SCORE_KEY = 'jackHw_hw20260906phonicsaieewords';
+  var BEST_KEY  = 'jackHw_hw20260906phonicsaieewords_best';
+  var SLOW_KEY  = 'jackHw_hw20260906phonicsaieewords_slow';
+
+  /* ================= State ================= */
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var best      = parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var phase = 1;
+  var round = 0;
+  var goals = 0;
+  var queue = [];        /* the words for the current phase */
+  var choices = [];      /* phase 2: the three word buttons */
+  var built = [];        /* phase 3: the sounds tapped so far */
+  var bookList = [];     /* phase 3: the words he finished, for the book screen */
+  var busy = false;      /* ignore taps while an answer plays back */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    phase: $('phase'), score: $('score'), lead: $('lead'),
+    gapWord: $('gapWord'), vowelChoices: $('vowelChoices'), aiBtn: $('aiBtn'), eeBtn: $('eeBtn'),
+    wordChoices: $('wordChoices'),
+    slots: $('slots'), tiles: $('tiles'),
+    againBtn: $('againBtn'),
+    cheerPic: $('cheerPic'), cheer: $('cheer'), sentence: $('sentence'), nextBtn: $('nextBtn'),
+    breakBox: $('breakBox'), breakTitle: $('breakTitle'), breakText: $('breakText'), breakBtn: $('breakBtn'),
+    bookBox: $('bookBox'), bookWords: $('bookWords'), readBookBtn: $('readBookBtn'), playAgainBtn: $('playAgainBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(BEST_KEY, String(best));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Speech =================
+     Jack cannot read yet, so every instruction is spoken. Nothing speaks
+     before the ▶ button — iOS only allows speech after a real tap. */
+  var hasTTS = 'speechSynthesis' in window;
+  var voice = null;
+
+  function pickVoice() {
+    if (!hasTTS) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Samantha|Martha|Serena|Kate|Karen|Moira|Hazel|Zira|Libby|Sonia|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    voice =
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(en, /female|woman/i) ||
+      find(gb, female) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  if (hasTTS) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function speak(text, rate, pitch) {
+    if (!hasTTS) return;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = (rate || 0.85) * (slow ? 0.8 : 1);
+      u.pitch = pitch || 1.05;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { speechSynthesis.speak(u); }, 40);
+    } catch (e) { /* speech is a bonus, never break the game */ }
+  }
+
+  /* Sound-talk a word: r ... ai ... n ... rain.
+     `onPart` lights the matching letters up while they are said.
+     A token cancels a sequence that is still running when the round moves on. */
+  var talkToken = 0;
+  function soundTalk(item, opts) {
+    opts = opts || {};
+    var my = ++talkToken;
+    var gap = (slow ? 1000 : 800);
+    var i = 0;
+    (function tick() {
+      if (my !== talkToken) return;
+      if (i < item.parts.length) {
+        var p = item.parts[i];
+        if (opts.onPart) opts.onPart(i);
+        speak(SOUNDS[p] || p, 0.6);
+        i++;
+        setTimeout(tick, gap);
+      } else {
+        if (opts.onPart) opts.onPart(-1);
+        if (opts.whole !== false) speak(item.w, 0.7);
+        if (opts.done) setTimeout(function () { if (my === talkToken) opts.done(); }, 900);
+      }
+    })();
+  }
+
+  function stopTalking() { talkToken++; }
+
+  /* ================= Small helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1900);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function scored() {
+    footballs++;
+    goals++;
+    if (goals > best) best = goals;
+    save();
+    renderScore(true);
+  }
+
+  /* Word with its ai / ee coloured, as safe markup (the words are ours). */
+  function coloured(item) {
+    return item.parts.map(function (p) {
+      return (p === 'ai' || p === 'ee') ? '<span class="v">' + p + '</span>' : p;
+    }).join('');
+  }
+
+  /* ================= Screens ================= */
+  var SCREENS = {
+    pick:   ['lead', 'gapWord', 'vowelChoices', 'againBtn'],
+    listen: ['lead', 'wordChoices', 'againBtn'],
+    build:  ['lead', 'slots', 'tiles', 'againBtn'],
+    cheer:  ['cheerPic', 'cheer', 'sentence', 'nextBtn'],
+    pause:  ['breakBox'],
+    book:   ['bookBox']
+  };
+  var ALL = ['lead', 'gapWord', 'vowelChoices', 'wordChoices', 'slots', 'tiles',
+             'againBtn', 'cheerPic', 'cheer', 'sentence', 'nextBtn', 'breakBox', 'bookBox'];
+
+  function show(name) {
+    ALL.forEach(function (id) { els[id].classList.add('hidden'); });
+    SCREENS[name].forEach(function (id) { els[id].classList.remove('hidden'); });
+  }
+
+  /* ================= Phase 1: which sound is missing? ================= */
+  function renderGap(item, reveal) {
+    els.gapWord.innerHTML = '';
+    item.parts.forEach(function (p) {
+      var isVowel = (p === 'ai' || p === 'ee');
+      var sp = document.createElement('span');
+      sp.className = 'gr' + (isVowel ? (reveal ? ' vowel pop' : ' gap') : '');
+      sp.textContent = (isVowel && !reveal) ? '?' : p;
+      els.gapWord.appendChild(sp);
+    });
+  }
+
+  function litPart(container, index) {
+    var kids = container.children;
+    for (var i = 0; i < kids.length; i++) {
+      kids[i].classList.toggle('lit', i === index);
+    }
+  }
+
+  function enterPick() {
+    busy = false;
+    stopTalking();
+    var item = queue[round];
+    els.phase.textContent = '1st half · ' + (round + 1) + '/' + queue.length;
+    els.lead.textContent = 'Which sound fits? Listen first.';
+    renderGap(item, false);
+    show('pick');
+    setTimeout(function () { soundTalk(item, {}); }, 350);
+  }
+
+  function answerPick(said) {
+    if (busy) return;
+    var item = queue[round];
+    speak(SOUNDS[said], 0.6);
+
+    if (said === item.v) {
+      busy = true;
+      scored();
+      celebrate(16);
+      renderGap(item, true);
+      showFeedback('Goal! ' + item.w + ' ⚽');
+      setTimeout(function () {
+        soundTalk(item, {
+          onPart: function (i) { litPart(els.gapWord, i); },
+          done: nextRound
+        });
+      }, 700);
+    } else {
+      var btn = (said === 'ai') ? els.aiBtn : els.eeBtn;
+      btn.classList.remove('shake');
+      void btn.offsetWidth;
+      btn.classList.add('shake');
+      showFeedback('Not that one — listen again.');
+      setTimeout(function () { soundTalk(item, {}); }, 500);
+    }
+  }
+
+  /* ================= Phase 2: hear it, read it ================= */
+  function pickChoices(item) {
+    var sameSound = WORDS.filter(function (o) { return o.w !== item.w && o.v === item.v; });
+    var other     = WORDS.filter(function (o) { return o.w !== item.w && o.v !== item.v; });
+    /* one word with the same vowel sound (so the consonants must be read)
+       plus one from the other sound (so ai and ee must be told apart) */
+    return shuffle([item, shuffle(sameSound)[0], shuffle(other)[0]]);
+  }
+
+  function enterListen() {
+    busy = false;
+    stopTalking();
+    var item = queue[round];
+    choices = pickChoices(item);
+    els.phase.textContent = '2nd half · ' + (round + 1) + '/' + queue.length;
+    els.lead.textContent = 'I sound it out. Which word is it?';
+    els.wordChoices.innerHTML = '';
+    choices.forEach(function (o) {
+      var b = document.createElement('button');
+      b.className = 'word-btn';
+      b.type = 'button';
+      b.innerHTML = coloured(o);
+      b.addEventListener('click', function () { answerListen(o, b); });
+      els.wordChoices.appendChild(b);
+    });
+    show('listen');
+    setTimeout(function () { soundTalk(item, { whole: false }); }, 400);
+  }
+
+  function answerListen(picked, btn) {
+    if (busy) return;
+    var item = queue[round];
+    if (picked.w === item.w) {
+      busy = true;
+      btn.classList.add('right');
+      scored();
+      celebrate(20);
+      speak(item.w, 0.75);
+      setTimeout(enterCheer, 900);
+    } else {
+      btn.classList.add('wrong');
+      btn.classList.remove('shake');
+      void btn.offsetWidth;
+      btn.classList.add('shake');
+      showFeedback('That says ' + picked.w + '. Listen again.');
+      speak('That says ' + picked.w, 0.8);
+      setTimeout(function () {
+        btn.classList.remove('wrong');
+        soundTalk(item, { whole: false });
+      }, 1600);
+    }
+  }
+
+  /* ================= Phase 3: build the word ================= */
+  function renderSlots(marks) {
+    var item = queue[round];
+    els.slots.innerHTML = '';
+    for (var i = 0; i < item.parts.length; i++) {
+      var s = document.createElement('div');
+      s.className = 'slot' + (built[i] ? ' filled' : '');
+      if (marks && marks[i]) s.className += ' ' + marks[i];
+      s.textContent = built[i] || '';
+      els.slots.appendChild(s);
+    }
+  }
+
+  function renderTiles() {
+    var item = queue[round];
+    /* his own sounds, shuffled, plus the other vowel sound as a decoy */
+    var bank = item.parts.concat([item.v === 'ai' ? 'ee' : 'ai']);
+    bank = shuffle(bank);
+    els.tiles.innerHTML = '';
+    bank.forEach(function (p) {
+      var t = document.createElement('button');
+      t.className = 'tile' + ((p === 'ai' || p === 'ee') ? ' vowel' : '');
+      t.type = 'button';
+      t.textContent = p;
+      t.addEventListener('click', function () { tapTile(p, t); });
+      els.tiles.appendChild(t);
+    });
+  }
+
+  function enterBuild() {
+    busy = false;
+    built = [];
+    stopTalking();
+    var item = queue[round];
+    els.phase.textContent = 'Extra time · ' + (round + 1) + '/' + queue.length;
+    els.lead.textContent = 'Build the word, sound by sound.';
+    renderSlots(null);
+    renderTiles();
+    show('build');
+    setTimeout(function () { soundTalk(item, {}); }, 400);
+  }
+
+  function tapTile(part, tile) {
+    if (busy) return;
+    var item = queue[round];
+    if (built.length >= item.parts.length) return;
+
+    speak(SOUNDS[part] || part, 0.6);
+
+    if (part === item.parts[built.length]) {
+      built.push(part);
+      tile.classList.add('used');
+      renderSlots(null);
+      if (built.length === item.parts.length) {
+        busy = true;
+        renderSlots(item.parts.map(function () { return 'right'; }));
+        scored();
+        celebrate(24);
+        setTimeout(function () { speak(item.w, 0.7); }, 500);
+        setTimeout(function () {
+          if (bookList.indexOf(item.w) === -1) bookList.push(item.w);
+          enterCheer();
+        }, 1500);
+      }
+    } else {
+      var marks = [];
+      for (var i = 0; i < item.parts.length; i++) marks.push(i === built.length ? 'wrong' : '');
+      renderSlots(marks);
+      showFeedback('The next sound is ' + (SOUNDS[item.parts[built.length]] || item.parts[built.length]));
+      setTimeout(function () {
+        if (busy) return;
+        renderSlots(null);
+        speak(SOUNDS[item.parts[built.length]] || item.parts[built.length], 0.55);
+      }, 900);
+    }
+  }
+
+  /* ================= After a goal ================= */
+  function enterCheer() {
+    var item = queue[round];
+    els.cheerPic.textContent = item.pic;
+    els.cheer.innerHTML = 'GOAL! ' + coloured(item) + ' ⚽';
+    /* highlight the word inside its sentence without a regex over user text */
+    var bits = item.s.split(item.w);
+    els.sentence.innerHTML = bits.length > 1
+      ? bits[0] + '<span class="lit">' + item.w + '</span>' + bits.slice(1).join(item.w)
+      : item.s;
+    show('cheer');
+    setTimeout(function () { speak(item.s, 0.8); }, 400);
+  }
+
+  /* ================= Flow ================= */
+  function buildQueue() {
+    if (phase === 1) queue = shuffle(WORDS).slice(0, ROUNDS_1);
+    else if (phase === 2) queue = shuffle(WORDS).slice(0, ROUNDS_2);
+    else queue = shuffle(WORDS).slice(0, ROUNDS_3);
+  }
+
+  function enterRound() {
+    if (phase === 1) enterPick();
+    else if (phase === 2) enterListen();
+    else enterBuild();
+  }
+
+  function nextRound() {
+    stopTalking();
+    round++;
+    if (round >= queue.length) {
+      if (phase === 1) { halfTime(2); return; }
+      if (phase === 2) { halfTime(3); return; }
+      fullTime();
+      return;
+    }
+    enterRound();
+  }
+
+  function halfTime(next) {
+    phase = next;
+    round = 0;
+    buildQueue();
+    var title, text, btn, say;
+    if (next === 2) {
+      els.phase.textContent = 'Half time';
+      title = '📣 Half time!';
+      text = goals + ' ' + (goals === 1 ? 'goal' : 'goals') + ' so far. Now I sound a word out and you find it.';
+      btn = 'Second half ➜';
+      say = 'Half time! ' + goals + ' goals. Now listen, and find the word.';
+    } else {
+      els.phase.textContent = 'Extra time';
+      title = '⏱️ Extra time!';
+      text = goals + ' ' + (goals === 1 ? 'goal' : 'goals') + '. Build three words — then write them in your book.';
+      btn = 'Extra time ➜';
+      say = 'Extra time! Build three words for your book.';
+    }
+    els.breakTitle.textContent = title;
+    els.breakText.textContent = text;
+    els.breakBtn.textContent = btn;
+    show('pause');
+    speak(say, 0.85);
+  }
+
+  function fullTime() {
+    els.phase.textContent = 'Full time';
+    els.bookWords.innerHTML = '';
+    var list = bookList.length ? bookList : queue.map(function (o) { return o.w; });
+    list.forEach(function (w) {
+      var item = null;
+      for (var i = 0; i < WORDS.length; i++) if (WORDS[i].w === w) item = WORDS[i];
+      var d = document.createElement('div');
+      d.className = 'book-word';
+      d.innerHTML = coloured(item);
+      d.addEventListener('click', function () { soundTalk(item, {}); });
+      els.bookWords.appendChild(d);
+    });
+    show('book');
+    celebrate(45);
+    speak('Full time! ' + goals + ' goals. Now write these three words in your book: ' +
+          list.join(', ') + '.', 0.85);
+  }
+
+  function startMatch() {
+    phase = 1;
+    round = 0;
+    goals = 0;
+    bookList = [];
+    buildQueue();
+    enterRound();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    if (hasTTS) { pickVoice(); speak('Kick off! ai and ee words.', 0.9); }
+    els.startOverlay.remove();
+    startMatch();
+  });
+
+  els.aiBtn.addEventListener('click', function () { answerPick('ai'); });
+  els.eeBtn.addEventListener('click', function () { answerPick('ee'); });
+
+  els.againBtn.addEventListener('click', function () {
+    var item = queue[round];
+    if (!item) return;
+    soundTalk(item, phase === 2 ? { whole: false } : {});
+  });
+
+  els.nextBtn.addEventListener('click', nextRound);
+  els.breakBtn.addEventListener('click', enterRound);
+  els.playAgainBtn.addEventListener('click', startMatch);
+  els.readBookBtn.addEventListener('click', function () {
+    var list = bookList.length ? bookList : [];
+    speak(list.length ? list.join(', ') : 'rain, feet, tree', 0.7);
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      best = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>

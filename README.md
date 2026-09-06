@@ -46,3 +46,7 @@ python3 -m http.server 8000
 ```
 
 Then open <http://localhost:8000/> in a desktop browser (Chrome recommended for the best text-to-speech voices).
+
+## Homework games (automatic)
+
+Every Friday at 07:00 `~/second-brain/scripts/jack_homework.py` reads Jack's Seesaw class (Y1, Frau Tigges), mails the homework to Robert and Maria, and turns each new task into a small self-contained game `hw-YYYYMMDD-<topic>/index.html`. Those cards are inserted at the **top** of the line-up (orange, 📚). **Chess is always the last card, full width at the bottom**, so Jack meets the homework games first. Score key per game: `jackHw_<slug>` in `localStorage`.

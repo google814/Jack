@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1d4ed8">
+<title>Number Bonds to 10 ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Bonds to 10">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #172554 0%, #1d4ed8 52%, #172554 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(0,0,0,.24);
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.6rem); flex: 0 1 auto; min-width: 0; }
+  @media (max-width: 620px) { header h1 { display: none; } }
+  #half {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    font-size: 1.4rem;
+    min-height: 1.8rem;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.3rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 2.2vh, 22px);
+    padding: clamp(10px, 2.4vh, 24px) 12px calc(clamp(10px, 2.4vh, 24px) + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1rem, 2.6vmin, 1.4rem); opacity: .9; }
+
+  /* ---------- The sum: 4 + ? = 10 ---------- */
+  #sum {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(6px, 1.8vmin, 16px);
+    font-size: clamp(2.2rem, 9vmin, 4.6rem);
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0 5px 0 rgba(0,0,0,.28);
+  }
+  #sum .box {
+    display: grid;
+    place-items: center;
+    min-width: clamp(2ch, 12vmin, 2.2ch);
+    padding: clamp(4px, 1vmin, 10px) clamp(8px, 2vmin, 16px);
+    border: 5px dashed rgba(255,255,255,.65);
+    border-radius: 18px;
+    background: rgba(0,0,0,.2);
+    text-shadow: none;
+  }
+  #sum .box.pulse { animation: pulse 1s ease 2; }
+  #sum .box.done {
+    border-style: solid;
+    border-color: #fde047;
+    color: #fde047;
+    background: rgba(253,224,71,.16);
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.14); }
+  }
+
+  /* ---------- Ten frame (the goal net) ---------- */
+  #tenFrame {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: clamp(4px, 1vmin, 8px);
+    padding: clamp(5px, 1.2vmin, 10px);
+    border-radius: 18px;
+    background: rgba(0,0,0,.25);
+    box-shadow: inset 0 0 0 4px rgba(255,255,255,.25);
+  }
+  .cell {
+    width: clamp(38px, 10.5vmin, 78px);
+    height: clamp(38px, 10.5vmin, 78px);
+    display: grid;
+    place-items: center;
+    font-size: clamp(1.5rem, 6.4vmin, 2.8rem);
+    line-height: 1;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .cell.full  { background: rgba(255,255,255,.2); }
+  .cell.empty { background: rgba(255,255,255,.06); border: 3px dashed rgba(255,255,255,.35); }
+  .cell.lit   { background: #fde047; color: #1e3a8a; font-weight: 800; border-style: solid; }
+  .cell.pop   { animation: bounceIn .5s ease; }
+
+  /* ---------- Hands (use your fingers) ---------- */
+  #handsRow {
+    display: flex;
+    gap: clamp(14px, 5vmin, 46px);
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .hand { display: flex; flex-direction: column; align-items: center; }
+  .fingers { display: flex; align-items: flex-end; gap: clamp(3px, .9vmin, 8px); }
+  .finger {
+    width: clamp(17px, 4.6vmin, 34px);
+    height: clamp(48px, 13vmin, 96px);
+    border-radius: 999px 999px 6px 6px;
+    background: rgba(255,255,255,.14);
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.22);
+    transform-origin: bottom center;
+    transition: transform .25s ease, background .25s ease;
+    cursor: pointer;
+  }
+  .hand:first-child .finger:first-child,
+  .hand:last-child  .finger:last-child { height: clamp(34px, 9vmin, 68px); }
+  .finger.up {
+    background: linear-gradient(180deg, #fde047, #f59e0b);
+    box-shadow: inset 0 0 0 3px rgba(0,0,0,.15);
+  }
+  .finger.down { transform: scaleY(.34); opacity: .55; }
+  .finger.lit { background: linear-gradient(180deg, #86efac, #10b981); transform: scaleY(1); opacity: 1; }
+  .palm {
+    width: clamp(96px, 26vmin, 190px);
+    height: clamp(26px, 7vmin, 52px);
+    margin-top: -4px;
+    border-radius: 10px 10px 26px 26px;
+    background: rgba(255,255,255,.14);
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.22);
+  }
+
+  /* ---------- Number tiles 0-10 ---------- */
+  #tiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(5px, 1.4vmin, 12px);
+    justify-content: center;
+    max-width: 780px;
+  }
+  .tile {
+    width: clamp(50px, 12vmin, 82px);
+    height: clamp(50px, 12vmin, 82px);
+    font-family: inherit;
+    font-size: clamp(1.3rem, 5vmin, 2.2rem);
+    font-weight: 800;
+    color: #1e3a8a;
+    background: #eff6ff;
+    border: none;
+    border-bottom: 6px solid rgba(0,0,0,.28);
+    border-radius: 16px;
+    cursor: pointer;
+  }
+  .tile:active { transform: translateY(4px); border-bottom-width: 2px; }
+  .tile.wrong { background: #fecaca; animation: shake .4s ease; }
+  .tile.right { background: #86efac; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(11px, 2vh, 17px) clamp(20px, 5vw, 40px);
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.quiet {
+    background: rgba(0,0,0,.32);
+    box-shadow: none;
+    font-size: clamp(.9rem, 2.2vmin, 1.15rem);
+    padding: clamp(9px, 1.6vh, 14px) clamp(16px, 4vw, 30px);
+  }
+
+  #cheer { font-size: clamp(1.6rem, 6vmin, 3rem); font-weight: 800; }
+  #fact {
+    font-size: clamp(1.5rem, 6.4vmin, 3.2rem);
+    font-weight: 800;
+    color: #fde047;
+    text-shadow: 0 5px 0 rgba(0,0,0,.28);
+  }
+  #sayLead { font-size: clamp(1rem, 3vmin, 1.5rem); }
+
+  /* ---------- Bond board ---------- */
+  #boardBox { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
+  #boardTitle { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); font-weight: 800; }
+  #board {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(5px, 1.2vmin, 10px);
+    justify-content: center;
+    max-width: 720px;
+  }
+  .bond {
+    font-family: inherit;
+    font-size: clamp(.95rem, 2.8vmin, 1.4rem);
+    font-weight: 800;
+    padding: clamp(8px, 1.6vh, 14px) clamp(10px, 2.4vw, 18px);
+    min-width: clamp(96px, 24vw, 150px);
+    border-radius: 14px;
+    border: 3px solid rgba(255,255,255,.3);
+    background: rgba(0,0,0,.24);
+    color: rgba(255,255,255,.5);
+    cursor: pointer;
+  }
+  .bond.found {
+    background: linear-gradient(160deg, #fbbf24, #d97706);
+    border-color: #fde047;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0,0,0,.3);
+  }
+  .bond.saying { outline: 4px solid #fff; }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #172554 0%, #1d4ed8 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 6vmin, 2.8rem); }
+  #startOverlay p { max-width: 26ch; opacity: .92; font-size: clamp(.95rem, 2.4vmin, 1.2rem); line-height: 1.5; }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 58px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  #feedback {
+    position: fixed;
+    left: 50%; bottom: 10vh;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,.78);
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-size: clamp(1rem, 2.6vmin, 1.3rem);
+    z-index: 50;
+    pointer-events: none;
+    max-width: 90vw;
+  }
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Number bonds to 10</h1>
+  <span id="half">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <!-- question (both halves share the sum, the tiles and the count button) -->
+  <p class="lead hidden" id="lead"></p>
+  <div id="sum" class="hidden"></div>
+  <div id="tenFrame" class="hidden"></div>
+  <div id="handsRow" class="hidden"></div>
+  <button class="btn quiet hidden" id="countBtn">🔊 Count them with me</button>
+  <div id="tiles" class="hidden"></div>
+
+  <!-- after a correct answer: say it out loud -->
+  <div id="cheer" class="hidden"></div>
+  <div id="fact" class="hidden"></div>
+  <p class="lead hidden" id="sayLead">Now say it out loud! 🗣️</p>
+  <button class="btn quiet hidden" id="sayBtn">🔊 Say it again</button>
+  <button class="btn big hidden" id="nextBtn">I said it ➜ ⚽</button>
+
+  <!-- half time / full time: all the pairs that make 10 -->
+  <div id="boardBox" class="hidden">
+    <div id="boardTitle"></div>
+    <p id="boardText" class="lead"></p>
+    <div id="board"></div>
+    <button class="btn quiet" id="boardSayBtn">🔊 Say them all</button>
+    <button class="btn big" id="boardBtn"></button>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>⚽ Number bonds to 10 ⚽</h2>
+  <p>Find all the pairs that make 10.<br>0 + 10, 1 + 9 …<br>Use your fingers. Say them out loud.</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower talking</label>
+  <button id="resetBtn">Reset score</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Homework =================
+     Maths: number bonds to 10.
+     "Find all the pairs that make 10 (0+10, 1+9 ...). Use your fingers.
+      Say them out loud."
+
+     One match = all eleven pairs, 0+10 up to 10+0, each one exactly once.
+     First half he fills the goal net (a ten frame), second half he uses
+     fingers — because the teacher asked for fingers. Every pair he solves
+     lights up on the bond board, and every pair is said out loud. */
+
+  var TOTAL = 10;                 /* the bond we are making */
+  var ROUNDS_HALF1 = 6;           /* 6 pairs with the net, 5 with the fingers */
+
+  /* index 11 is only ever used for "eleven goals" at full time */
+  var WORDS = ['zero', 'one', 'two', 'three', 'four', 'five',
+               'six', 'seven', 'eight', 'nine', 'ten', 'eleven'];
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💛', '🧡'];
+
+  /* ================= State ================= */
+  var SCORE_KEY = 'jackHw_hw20260906mathsnumberbondsto101';
+  var BEST_KEY  = 'jackHw_hw20260906mathsnumberbondsto101_best';
+  var SLOW_KEY  = 'jackHw_hw20260906mathsnumberbondsto101_slow';
+
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var best      = parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var half = 1;
+  var round = 0;
+  var queue1 = [];        /* first numbers for half 1 */
+  var queue2 = [];        /* first numbers for half 2 */
+  var found = [];         /* first numbers already solved this match */
+  var firstTry = 0;
+  var goalsThisMatch = 0;
+  var attempts = 0;
+  var busy = false;       /* ignore taps while an answer plays back */
+  var countToken = 0;     /* cancels a counting-out-loud run */
+  var introDelay = 0;     /* lets the kick-off line finish before round one */
+  var roundToken = 0;     /* stops a queued question talking over the next screen */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), half: $('half'),
+    lead: $('lead'), sum: $('sum'), tenFrame: $('tenFrame'), handsRow: $('handsRow'),
+    countBtn: $('countBtn'), tiles: $('tiles'),
+    cheer: $('cheer'), fact: $('fact'), sayLead: $('sayLead'),
+    sayBtn: $('sayBtn'), nextBtn: $('nextBtn'),
+    boardBox: $('boardBox'), boardTitle: $('boardTitle'), boardText: $('boardText'),
+    board: $('board'), boardSayBtn: $('boardSayBtn'), boardBtn: $('boardBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(BEST_KEY, String(best));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Speech =================
+     Jack cannot read yet, so every screen says itself out loud. */
+  var hasTTS = 'speechSynthesis' in window;
+  var voice = null;
+
+  function pickVoice() {
+    if (!hasTTS) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Samantha|Martha|Serena|Kate|Karen|Moira|Hazel|Zira|Libby|Sonia|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    voice =
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(en, /female|woman/i) ||
+      find(gb, female) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  if (hasTTS) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function speak(text, rate, pitch) {
+    if (!hasTTS) return;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = (rate || 0.9) * (slow ? 0.75 : 1);
+      u.pitch = pitch || 1.05;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { speechSynthesis.speak(u); }, 40);
+    } catch (e) { /* speech is a bonus, never break the game */ }
+  }
+
+  function stopSpeech() {
+    countToken++;
+    roundToken++;
+    if (hasTTS) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  /* "4 plus 6 equals 10" — the sentence the homework asks him to say. */
+  function bondSentence(a) {
+    return WORDS[a] + ' plus ' + WORDS[TOTAL - a] + ' equals ten';
+  }
+
+  /* ================= Small helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1800);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function scored() {
+    footballs++;
+    goalsThisMatch++;
+    if (goalsThisMatch > best) best = goalsThisMatch;
+    save();
+    renderScore(true);
+  }
+
+  /* ================= Screens ================= */
+  var SCREENS = {
+    net:   ['lead', 'sum', 'tenFrame', 'countBtn', 'tiles'],
+    hands: ['lead', 'sum', 'handsRow', 'countBtn', 'tiles'],
+    cheer: ['cheer', 'fact', 'sayLead', 'sayBtn', 'nextBtn'],
+    board: ['boardBox']
+  };
+  var ALL = ['lead', 'sum', 'tenFrame', 'handsRow', 'countBtn', 'tiles',
+             'cheer', 'fact', 'sayLead', 'sayBtn', 'nextBtn', 'boardBox'];
+
+  function show(name) {
+    ALL.forEach(function (id) { els[id].classList.add('hidden'); });
+    SCREENS[name].forEach(function (id) { els[id].classList.remove('hidden'); });
+  }
+
+  /* ================= The sum: 4 + ? = 10 ================= */
+  function renderSum(a, value) {
+    els.sum.innerHTML = '';
+    var add = function (text, cls) {
+      var s = document.createElement('span');
+      if (cls) s.className = cls;
+      s.textContent = text;
+      els.sum.appendChild(s);
+      return s;
+    };
+    add(String(a));
+    add('+');
+    var box = add(value === null ? '?' : String(value), 'box' + (value === null ? '' : ' done'));
+    box.id = 'answerBox';
+    add('=');
+    add(String(TOTAL));
+  }
+
+  function pulseBox() {
+    var box = $('answerBox');
+    if (!box) return;
+    box.classList.remove('pulse');
+    void box.offsetWidth;
+    box.classList.add('pulse');
+  }
+
+  /* ================= Ten frame (half 1) ================= */
+  function renderFrame(a) {
+    els.tenFrame.innerHTML = '';
+    for (var i = 0; i < TOTAL; i++) {
+      var cell = document.createElement('div');
+      cell.className = 'cell ' + (i < a ? 'full' : 'empty');
+      cell.textContent = i < a ? '⚽' : '';
+      cell.addEventListener('click', sayPosition.bind(null, i));
+      els.tenFrame.appendChild(cell);
+    }
+  }
+
+  /* ================= Hands (half 2 — "use your fingers") ================= */
+  function renderHands(a) {
+    els.handsRow.innerHTML = '';
+    for (var h = 0; h < 2; h++) {
+      var hand = document.createElement('div');
+      hand.className = 'hand';
+      var fingers = document.createElement('div');
+      fingers.className = 'fingers';
+      for (var f = 0; f < 5; f++) {
+        var i = h * 5 + f;
+        var fin = document.createElement('div');
+        fin.className = 'finger ' + (i < a ? 'up' : 'down');
+        fin.addEventListener('click', sayPosition.bind(null, i));
+        fingers.appendChild(fin);
+      }
+      var palm = document.createElement('div');
+      palm.className = 'palm';
+      hand.appendChild(fingers);
+      hand.appendChild(palm);
+      els.handsRow.appendChild(hand);
+    }
+  }
+
+  /* Tapping a ball or a finger counts it — one, two, three ... ten. */
+  function sayPosition(i) {
+    if (busy) return;
+    speak(WORDS[i + 1], 0.8);
+  }
+
+  /* ================= Counting the missing ones out loud ================= */
+  function missingNodes() {
+    return half === 1
+      ? els.tenFrame.querySelectorAll('.cell.empty')
+      : els.handsRow.querySelectorAll('.finger.down');
+  }
+
+  function countMissing() {
+    if (busy) return;
+    var token = ++countToken;
+    var nodes = missingNodes();
+    var i = 0;
+
+    if (!nodes.length) {
+      speak(half === 1
+        ? 'The net is full already. You need zero more.'
+        : 'All ten fingers are up already. You need zero more.', 0.85);
+      pulseBox();
+      return;
+    }
+
+    (function tick() {
+      if (token !== countToken) return;
+      if (i >= nodes.length) {
+        pulseBox();
+        return;
+      }
+      nodes[i].classList.add('lit');
+      if (half === 1) nodes[i].textContent = String(i + 1);
+      speak(WORDS[i + 1], 0.75);
+      i++;
+      setTimeout(tick, slow ? 1100 : 820);
+    })();
+  }
+
+  function clearCount() {
+    countToken++;
+    var lit = document.querySelectorAll('.lit');
+    for (var i = 0; i < lit.length; i++) {
+      lit[i].classList.remove('lit');
+      if (lit[i].classList.contains('cell')) lit[i].textContent = '';
+    }
+  }
+
+  /* ================= Number tiles 0-10 ================= */
+  function buildTiles() {
+    els.tiles.innerHTML = '';
+    for (var n = 0; n <= TOTAL; n++) {
+      var t = document.createElement('button');
+      t.className = 'tile';
+      t.type = 'button';
+      t.textContent = String(n);
+      t.setAttribute('data-n', String(n));
+      t.addEventListener('click', answer.bind(null, n));
+      els.tiles.appendChild(t);
+    }
+  }
+
+  function tileFor(n) {
+    return els.tiles.querySelector('.tile[data-n="' + n + '"]');
+  }
+
+  function resetTiles() {
+    var ts = els.tiles.querySelectorAll('.tile');
+    for (var i = 0; i < ts.length; i++) ts[i].className = 'tile';
+  }
+
+  /* ================= A round ================= */
+  function current() {
+    return half === 1 ? queue1[round] : queue2[round];
+  }
+
+  function enterRound() {
+    var a = current();
+    var total = half === 1 ? queue1.length : queue2.length;
+    busy = false;
+    attempts = 0;
+    clearCount();
+    resetTiles();
+    renderSum(a, null);
+    els.half.textContent = (half === 1 ? 'First half · ' : 'Second half · ') + (round + 1) + '/' + total;
+
+    var wait = introDelay || 250;
+    introDelay = 0;
+    var token = ++roundToken;
+    var question;
+
+    if (half === 1) {
+      els.lead.textContent = 'Fill the net! How many more make 10?';
+      renderFrame(a);
+      els.countBtn.textContent = '🔊 Count the empty ones';
+      show('net');
+      question = WORDS[a] + ' in the net. How many more make ten?';
+    } else {
+      els.lead.textContent = 'Use your fingers! How many more make 10?';
+      renderHands(a);
+      els.countBtn.textContent = '🔊 Count the fingers down';
+      show('hands');
+      question = WORDS[a] + ' fingers up. How many more make ten?';
+    }
+
+    /* if he has already answered by the time this fires, stay quiet */
+    setTimeout(function () {
+      if (token !== roundToken || busy) return;
+      speak(question, 0.85);
+    }, wait);
+  }
+
+  function answer(n) {
+    if (busy) return;
+    roundToken++;              /* he has answered — drop any pending question */
+    var a = current();
+    var right = TOTAL - a;
+    var tile = tileFor(n);
+
+    if (n !== right) {
+      attempts++;
+      if (tile) {
+        tile.classList.remove('wrong');
+        void tile.offsetWidth;
+        tile.classList.add('wrong');
+      }
+      speak(WORDS[a] + ' plus ' + WORDS[n] + ' is not ten. Try again.', 0.85);
+      showFeedback('Not ten yet — count the missing ones.');
+      if (attempts >= 2) setTimeout(countMissing, 1900);
+      return;
+    }
+
+    busy = true;
+    clearCount();
+    if (tile) tile.classList.add('right');
+    renderSum(a, right);
+
+    /* fill the net / put the fingers up, so he sees the ten */
+    if (half === 1) {
+      var cells = els.tenFrame.querySelectorAll('.cell.empty');
+      for (var i = 0; i < cells.length; i++) {
+        cells[i].textContent = '⚽';
+        cells[i].className = 'cell full pop';
+      }
+    } else {
+      var fs = els.handsRow.querySelectorAll('.finger.down');
+      for (var j = 0; j < fs.length; j++) fs[j].className = 'finger up';
+    }
+
+    if (attempts === 0) firstTry++;
+    if (found.indexOf(a) === -1) found.push(a);
+    scored();
+    celebrate(20);
+    speak('Yes! ' + bondSentence(a) + '.', 0.85);
+    setTimeout(enterCheer, 2300);
+  }
+
+  /* ================= Say it out loud ================= */
+  function enterCheer() {
+    var a = current();
+    els.cheer.textContent = 'GOAL! ⚽';
+    els.fact.textContent = a + ' + ' + (TOTAL - a) + ' = ' + TOTAL;
+    show('cheer');
+  }
+
+  /* ================= The bond board ================= */
+  function renderBoard() {
+    els.board.innerHTML = '';
+    for (var a = 0; a <= TOTAL; a++) {
+      var b = document.createElement('button');
+      b.className = 'bond' + (found.indexOf(a) !== -1 ? ' found' : '');
+      b.type = 'button';
+      b.textContent = a + ' + ' + (TOTAL - a) + ' = ' + TOTAL;
+      b.setAttribute('data-a', String(a));
+      b.addEventListener('click', sayBond.bind(null, a));
+      els.board.appendChild(b);
+    }
+  }
+
+  function bondChip(a) {
+    return els.board.querySelector('.bond[data-a="' + a + '"]');
+  }
+
+  function sayBond(a) {
+    stopSpeech();
+    var chips = els.board.querySelectorAll('.bond');
+    for (var i = 0; i < chips.length; i++) chips[i].classList.remove('saying');
+    var chip = bondChip(a);
+    if (chip) chip.classList.add('saying');
+    speak(bondSentence(a), 0.8);
+    setTimeout(function () { if (chip) chip.classList.remove('saying'); }, 2200);
+  }
+
+  /* Read every pair he has found, one after another — "say them out loud". */
+  function sayAllFound() {
+    var list = found.slice().sort(function (x, y) { return x - y; });
+    if (!list.length) return;
+    var token = ++countToken;
+    var i = 0;
+    (function tick() {
+      if (token !== countToken) return;
+      var chips = els.board.querySelectorAll('.bond');
+      for (var c = 0; c < chips.length; c++) chips[c].classList.remove('saying');
+      if (i >= list.length) return;
+      var a = list[i++];
+      var chip = bondChip(a);
+      if (chip) chip.classList.add('saying');
+      speak(bondSentence(a), 0.8);
+      setTimeout(tick, slow ? 3000 : 2400);
+    })();
+  }
+
+  /* ================= Flow ================= */
+  function nextRound() {
+    stopSpeech();
+    round++;
+    if (half === 1) {
+      if (round >= queue1.length) { enterHalfTime(); return; }
+    } else {
+      if (round >= queue2.length) { enterFullTime(); return; }
+    }
+    enterRound();
+  }
+
+  function enterHalfTime() {
+    half = 2;
+    round = 0;
+    els.half.textContent = 'Half time';
+    els.boardTitle.textContent = '📣 Half time!';
+    els.boardText.textContent = found.length + ' of 11 pairs found. Tap one to hear it. ' +
+                                'Next: use your fingers.';
+    els.boardBtn.textContent = 'Second half ➜ 🖐️';
+    renderBoard();
+    show('board');
+    speak('Half time! You found ' + WORDS[found.length] + ' pairs that make ten. ' +
+          'Now use your fingers.', 0.85);
+  }
+
+  function enterFullTime() {
+    var all = found.length === TOTAL + 1;
+    els.half.textContent = 'Full time';
+    els.boardTitle.textContent = all ? '🏆 All the pairs!' : '🏆 Full time!';
+    els.boardText.textContent = (all
+        ? 'You found ALL the pairs that make 10! '
+        : found.length + ' of 11 pairs found. ') +
+      goalsThisMatch + ' ' + (goalsThisMatch === 1 ? 'goal' : 'goals') +
+      ' · ' + firstTry + ' first time · best ' + best + '.';
+    els.boardBtn.textContent = 'Play again ⚽';
+    renderBoard();
+    show('board');
+    celebrate(45);
+    speak((all ? 'Full time! You found all the pairs that make ten! ' : 'Full time! ') +
+          'You scored ' + WORDS[goalsThisMatch] + ' goals.', 0.85);
+  }
+
+  function startMatch() {
+    stopSpeech();
+    var order = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    queue1 = order.slice(0, ROUNDS_HALF1);
+    queue2 = order.slice(ROUNDS_HALF1);
+    found = [];
+    firstTry = 0;
+    goalsThisMatch = 0;
+    half = 1;
+    round = 0;
+    enterRound();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    els.startOverlay.remove();
+    /* the board is up straight away, but round one waits for the kick-off line */
+    introDelay = hasTTS ? 2900 : 250;
+    startMatch();
+    if (hasTTS) { pickVoice(); speak('Kick off! Find all the pairs that make ten.', 0.9); }
+  });
+
+  els.countBtn.addEventListener('click', countMissing);
+  els.sayBtn.addEventListener('click', function () { speak(bondSentence(current()), 0.8); });
+  els.nextBtn.addEventListener('click', nextRound);
+
+  els.boardSayBtn.addEventListener('click', sayAllFound);
+  els.boardBtn.addEventListener('click', function () {
+    stopSpeech();
+    if (half === 2 && round === 0) enterRound();
+    else startMatch();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      best = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  buildTiles();
+  renderScore(false);
+})();
+</script>
+</body>
+</html>
