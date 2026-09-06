@@ -120,7 +120,11 @@
     padding: calc(var(--bs) * .18);
     border-radius: 14px;
   }
-  .group.second { background: rgba(253,224,71,.16); }
+  /* the second number is the one being added on — yellow, so it never reads
+     as part of the first number */
+  .group.second { background: rgba(253,224,71,.3); box-shadow: inset 0 0 0 2px rgba(253,224,71,.55); }
+  .group.second .net { background: rgba(253,224,71,.18); box-shadow: inset 0 0 0 2px rgba(253,224,71,.5); }
+  .group.second .ones { background: rgba(253,224,71,.14); }
   .net, .ones {
     display: grid;
     grid-template-columns: repeat(5, var(--bs));
