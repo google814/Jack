@@ -490,14 +490,34 @@
   }
 
   /* board pixels -> the 200x140 coordinate system the digits are drawn in */
+  /* The SVG keeps its 200 x 140 shape inside the board (xMidYMid meet). On a
+     phone the board is taller than that, so the drawing is letterboxed and a
+     plain rect-based scale would put the checkpoints somewhere else than the
+     line the child sees. Go through the SVG's own screen matrix instead. */
+  function svgToPx(x, y) {
+    var r = els.board.getBoundingClientRect();
+    var m = els.svg.getScreenCTM && els.svg.getScreenCTM();
+    if (!m) return { x: x / 200 * r.width, y: y / 140 * r.height };
+    var pt = els.svg.createSVGPoint();
+    pt.x = x; pt.y = y;
+    var q = pt.matrixTransform(m);
+    return { x: q.x - r.left, y: q.y - r.top };
+  }
+
   function toBoard(ev) {
     var r = els.board.getBoundingClientRect();
-    return {
-      x: (ev.clientX - r.left) / r.width * 200,
-      y: (ev.clientY - r.top) / r.height * 140,
-      px: ev.clientX - r.left,
-      py: ev.clientY - r.top
-    };
+    var m = els.svg.getScreenCTM && els.svg.getScreenCTM();
+    var bx, by;
+    if (m) {
+      var pt = els.svg.createSVGPoint();
+      pt.x = ev.clientX; pt.y = ev.clientY;
+      var q = pt.matrixTransform(m.inverse());
+      bx = q.x; by = q.y;
+    } else {
+      bx = (ev.clientX - r.left) / r.width * 200;
+      by = (ev.clientY - r.top) / r.height * 140;
+    }
+    return { x: bx, y: by, px: ev.clientX - r.left, py: ev.clientY - r.top };
   }
 
   /* every stroke of the number, in writing order, with its cell offset */
@@ -572,15 +592,14 @@
   function clearInkForStroke() {
     /* strokes already finished stay on the board, so redraw them all */
     ctx.clearRect(0, 0, els.ink.width, els.ink.height);
-    var r = els.board.getBoundingClientRect();
     ctx.save();
     ctx.strokeStyle = 'rgba(253,224,71,.8)';
     for (var s = 0; s < strokeIdx; s++) {
       var pts = checkpoints[s];
       ctx.beginPath();
       for (var i = 0; i < pts.length; i++) {
-        var x = pts[i].x / 200 * r.width, y = pts[i].y / 140 * r.height;
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        var q = svgToPx(pts[i].x, pts[i].y);
+        if (i === 0) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y);
       }
       ctx.stroke();
     }
