@@ -1,0 +1,81 @@
+# letters-game — every line the game speaks, already split into the
+# segments the runtime plays one after another.
+# letter name + sound for A-Z, and the 'You wrote ...' cheer
+
+ay.
+ah
+You wrote ay!
+bee.
+buh
+You wrote bee!
+see.
+kuh
+You wrote see!
+dee.
+duh
+You wrote dee!
+ee.
+eh
+You wrote ee!
+eff.
+fff
+You wrote eff!
+gee.
+guh
+You wrote gee!
+aitch.
+huh
+You wrote aitch!
+eye.
+ih
+You wrote eye!
+jay.
+juh
+You wrote jay!
+kay.
+You wrote kay!
+ell.
+lll
+You wrote ell!
+em.
+mmm
+You wrote em!
+en.
+nnn
+You wrote en!
+oh.
+oh
+You wrote oh!
+pee.
+puh
+You wrote pee!
+cue.
+kwuh
+You wrote cue!
+ar.
+rrr
+You wrote ar!
+ess.
+sss
+You wrote ess!
+tee.
+tuh
+You wrote tee!
+you.
+uh
+You wrote you!
+vee.
+vvv
+You wrote vee!
+double you.
+wuh
+You wrote double you!
+ex.
+ks
+You wrote ex!
+why.
+yuh
+You wrote why!
+zed.
+zzz
+You wrote zed!

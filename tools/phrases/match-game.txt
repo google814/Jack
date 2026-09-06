@@ -1,0 +1,122 @@
+# match-game — every line the game speaks, already split into the
+# segments the runtime plays one after another.
+# real and silly words, every grapheme sound, the spelling sentences, half/full time with 0-14 goals
+
+Kick off!
+cat
+dog
+sun
+hat
+bus
+ship
+chin
+fish
+duck
+rain
+boat
+thin
+chip
+sock
+milk
+zat
+fod
+bep
+vum
+shob
+chid
+thog
+keeb
+narp
+jub
+quog
+sprot
+glim
+vosh
+dree
+pen
+ball
+frog
+jump
+star
+The cat sat on the mat.
+The sun is hot.
+The dog can run.
+The bus is yellow.
+I have a hat.
+The pen is blue.
+Jack kicks the ball.
+The fish can swim.
+I drink my milk.
+The frog can hop.
+I can jump up high.
+I see a star.
+ah
+buh
+kuh
+duh
+eh
+fff
+guh
+huh
+ih
+juh
+lll
+mmm
+nnn
+oh
+puh
+kwuh
+rrr
+sss
+tuh
+uh
+vvv
+wuh
+ks
+yuh
+zzz
+shh
+ch
+th
+ng
+kw
+k
+ay
+ee
+oo
+ar
+or
+er
+ow
+oy
+you
+eye
+eer
+air
+Half time!
+0 goals.
+Now write the words.
+1 goals.
+2 goals.
+3 goals.
+4 goals.
+5 goals.
+6 goals.
+7 goals.
+8 goals.
+Full time!
+You scored 0 goals!
+You scored 1 goals!
+You scored 2 goals!
+You scored 3 goals!
+You scored 4 goals!
+You scored 5 goals!
+You scored 6 goals!
+You scored 7 goals!
+You scored 8 goals!
+You scored 9 goals!
+You scored 10 goals!
+You scored 11 goals!
+You scored 12 goals!
+You scored 13 goals!
+You scored 14 goals!

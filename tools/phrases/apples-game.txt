@@ -1,0 +1,92 @@
+# apples-game — every line the game speaks, already split into the
+# segments the runtime plays one after another.
+# trace prompts, the numbers one to twenty, the apple questions
+
+Jack's Apples.
+Let's trace the numbers!
+Let's fill the apples!
+What comes after one?
+Try again
+All twenty apples!
+Well done.
+Full time!
+Well done, Jack!
+Trace one
+You wrote one!
+one
+What is the first number?
+Trace two
+You wrote two!
+two
+Trace three
+You wrote three!
+three
+What comes after two?
+Trace four
+You wrote four!
+four
+What comes after three?
+Trace five
+You wrote five!
+five
+What comes after four?
+Trace six
+You wrote six!
+six
+What comes after five?
+Trace seven
+You wrote seven!
+seven
+What comes after six?
+Trace eight
+You wrote eight!
+eight
+What comes after seven?
+Trace nine
+You wrote nine!
+nine
+What comes after eight?
+Trace ten
+You wrote ten!
+ten
+What comes after nine?
+Trace eleven
+You wrote eleven!
+eleven
+What comes after ten?
+Trace twelve
+You wrote twelve!
+twelve
+What comes after eleven?
+Trace thirteen
+You wrote thirteen!
+thirteen
+What comes after twelve?
+Trace fourteen
+You wrote fourteen!
+fourteen
+What comes after thirteen?
+Trace fifteen
+You wrote fifteen!
+fifteen
+What comes after fourteen?
+Trace sixteen
+You wrote sixteen!
+sixteen
+What comes after fifteen?
+Trace seventeen
+You wrote seventeen!
+seventeen
+What comes after sixteen?
+Trace eighteen
+You wrote eighteen!
+eighteen
+What comes after seventeen?
+Trace nineteen
+You wrote nineteen!
+nineteen
+What comes after eighteen?
+Trace twenty
+You wrote twenty!
+twenty
+What comes after nineteen?

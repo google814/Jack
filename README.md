@@ -6,7 +6,7 @@ Browser games for Jack. No build tools needed — every game is a single self-co
 
 | Game | Path | What it is |
 |------|------|------------|
-| ⚽📖 Jack's Words | [`reading-game/`](reading-game/) | English reading game for Year 1: hear a word, click letters to hear them, build the word from scrambled tiles, then see it rainbow-highlighted in a simple sentence. Every finished word earns a football ⚽. Spoken with a female English voice (Web Speech API). |
+| ⚽📖 Jack's Words | [`reading-game/`](reading-game/) | English reading game for Year 1: hear a word, click letters to hear them, build the word from scrambled tiles, then see it rainbow-highlighted in a simple sentence. Every finished word earns a football ⚽. Spoken with a pre-rendered neural English voice (see “Voice” below). |
 | ⚽🔢 Jack's Numbers | [`math-game/`](math-game/) | English maths game for Year 1: counting, adding, and taking away up to 10. Every sum is shown with clickable footballs that count out loud; the answer is picked from number tiles and celebrated with a rainbow result and a football ⚽. |
 | 🥅✍️ Jack's Match | [`match-game/`](match-game/) | Two halves. First half is the phonics screening check idea: a word appears and he decides GOAL (real word) or ALIEN (made-up but decodable — `zat`, `shob`). Nothing is read out first, so he has to sound it out. Second half he hears a word and writes it on an ABC keyboard with no letters given. |
 | ✏️ Jack's Letters | [`letters-game/`](letters-game/) | Trace lowercase letters with a finger. Each letter is SVG stroke paths; the checker samples points along each stroke with `getPointAtLength()` and requires them to be hit in order, so the letter has to be formed the way it is written. Taught in movement families (`c a d g o q`, `i l t u`, …), not a–z. |
@@ -42,6 +42,28 @@ edit a game here, then run `./tools/sync-game-repos.sh` to push the copies.
 - <https://google814.github.io/Jack/> — the Pages default URL
 
 On an iPad: open <https://jackbenn.ing>, then Share -> "Add to Home Screen". It opens full screen with the football icon.
+
+## Voice
+
+Jack found the browser's own voice too robotic on an iPhone, so **every line the
+games say is pre-rendered** as a small MP3 with Microsoft's neural
+`en-GB-SoniaNeural` voice (rate `-5%`) and played back through Web Audio. The
+Web Speech API is only the fallback for a line that has no clip.
+
+```bash
+# once: python3 -m venv tts-venv && tts-venv/bin/pip install edge-tts
+tts-venv/bin/python tools/build-audio.py --game all      # render what is missing
+tts-venv/bin/python tools/build-audio.py --check all     # every phrase has a clip?
+```
+
+- `tools/phrases/<game>.txt` — every line a game can say, one per line, already
+  split into the segments the games play one after another. Add a new line to a
+  game, add it here, re-run the build.
+- `audio/<game>/<sha1>.mp3` plus `audio/<game>/manifest.json` (`text -> file`).
+  The games fetch that manifest at load and look each segment up in it; anything
+  missing falls back to `speechSynthesis`, so nothing ever goes silent.
+- The `AudioContext` is created inside the ▶ tap — iOS refuses to start audio
+  any other way.
 
 ## Run locally
 

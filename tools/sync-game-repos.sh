@@ -29,9 +29,18 @@ for pair in $GAMES; do
   mkdir -p "$dest/icons"
   cp "$SRC"/icons/*.png "$dest/icons/"
 
+  # the pre-rendered voice clips travel with the game
+  if [ -d "$SRC/audio/$from" ]; then
+    rm -rf "$dest/audio"
+    mkdir -p "$dest/audio"
+    cp "$SRC/audio/$from"/* "$dest/audio/"
+  fi
+
   # standalone copies sit at the root of their own site, and the home button
   # goes to the family start page instead of a parent folder
   sed -i 's#"\.\./icons/#"icons/#g; s#href="\.\./"#href="https://jackbenn.ing"#g' "$dest/index.html"
+  # ../audio/<game>/ only exists in the source repo; here the clips sit in audio/
+  sed -i "s#'\.\./audio/$from/'#'audio/'#g" "$dest/index.html"
 
   if [ -n "$DRY" ]; then
     ( cd "$dest" && git --no-pager diff --stat || true )

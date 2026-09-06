@@ -470,12 +470,135 @@
     localStorage.setItem('jackMathMax', String(maxNum));
   }
 
-  /* ================= Speech ================= */
-  var hasTTS = 'speechSynthesis' in window;
+  /* ================= Voice =================
+     The browser's own voice sounds like a computer, so every line these
+     games say is pre-rendered with a neural en-GB voice (tools/build-audio.py)
+     and played back through Web Audio. speechSynthesis is only the fallback
+     for a line that has no clip. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
   var voice = null;
 
+  var CLIP_DIR = '../audio/math-game/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment: "cat! ... The cat sat on the mat."
+     is the word clip followed by the sentence clip. Written out by hand
+     because a lookbehind regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    var BREAK = /^\s*(?:!\s*\.\.\.\s*|\.\.\.\s*)/;
+    while (i < t.length) {
+      var m = BREAK.exec(t.slice(i));
+      if (m && m[0].length) {
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+        i += m[0].length;
+        continue;
+      }
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?' || ch === ':') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips for the screen he is about to tap on, so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var f = clipFor(list[i]);
+        if (f && !buffers[f]) loadClip(f).catch(function () {});
+      }
+    });
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
   function pickVoice() {
-    if (!hasTTS) return;
+    if (!hasSpeech) return;
     var vs = speechSynthesis.getVoices();
     var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
     var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
@@ -483,33 +606,74 @@
       for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
       return null;
     };
-    var femaleNames = /(Samantha|Martha|Serena|Kate|Karen|Moira|Hazel|Zira|Libby|Sonia|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    var female = /(Sonia|Libby|Hazel|Samantha|Martha|Serena|Kate|Karen|Moira|Zira|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
     voice =
+      find(gb, good) || find(en, good) ||
       find(en, /Google UK English Female/i) ||
-      find(gb, /female|woman/i) || find(en, /female|woman/i) ||
-      find(gb, femaleNames) || find(en, femaleNames) ||
+      find(gb, /female|woman/i) || find(gb, female) ||
+      find(en, /female|woman/i) || find(en, female) ||
       gb[0] || en[0] || vs[0] || null;
   }
 
-  if (hasTTS) {
-    pickVoice();
-    speechSynthesis.addEventListener('voiceschanged', pickVoice);
-  } else {
-    els.speakProblemBtn.style.display = 'none';
-    els.speakAnswerBtn.style.display = 'none';
-  }
-
-  function speak(text, rate) {
-    if (!hasTTS) return;
+  /* the fallback: only used for a line that has no clip */
+  function say(text, rate, pitch, my, done) {
+    if (!hasSpeech) { if (done) done(); return; }
     try {
-      speechSynthesis.cancel();
       var u = new SpeechSynthesisUtterance(text);
       if (voice) u.voice = voice;
       u.lang = voice ? voice.lang : 'en-GB';
-      u.rate = rate || 0.85;
-      u.pitch = 1.05;
-      speechSynthesis.speak(u);
-    } catch (e) { /* speech is a bonus, never break the game */ }
+      u.rate = (rate || 0.95);
+      u.pitch = pitch || 1;
+      u.onend = function () { if (my === speakToken && done) done(); };
+      u.onerror = u.onend;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { if (done) done(); }
+  }
+
+  function speak(text, rate, pitch) {
+    if (!hasTTS) return;
+    stopSpeaking();
+    var my = speakToken;
+    var parts = segments(text);
+    if (!parts.length) return;
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken || i >= parts.length) return;
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) onward();
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            src.start(0);
+          }, function () { say(parts[i], rate, pitch, my, onward); });
+        } else {
+          say(parts[i], rate, pitch, my, onward);
+        }
+      })(0);
+    });
+  }
+
+  if (hasSpeech) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+  if (!hasTTS) {
+    els.speakProblemBtn.style.display = 'none';
+    els.speakAnswerBtn.style.display = 'none';
   }
 
   /* ================= UI helpers ================= */
@@ -662,6 +826,12 @@
     });
 
     show('play');
+    /* warm every clip this screen can need: the question, the tiles, the
+       counting numbers and the cheer that follows */
+    var warm = [questionText(p), answerText(p), NUM_WORDS[answer]];
+    options.forEach(function (n) { warm.push(String(n)); });
+    for (var w = 1; w <= (p.type === 'add' ? p.a + p.b : p.a); w++) warm.push(String(w));
+    preload(warm);
     speak(questionText(p), 0.85);
   }
 
@@ -723,6 +893,7 @@
 
   /* ================= Wiring ================= */
   els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
     if (hasTTS) {
       pickVoice();
       speak("Let's count!", 0.9);

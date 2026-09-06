@@ -1,0 +1,133 @@
+# math-game — every line the game speaks, already split into the
+# segments the runtime plays one after another.
+# every question and answer sentence, plus the numbers 0-24 for the tiles and for counting the balls
+
+Let's count!
+How many footballs?
+one footballs!
+one
+two footballs!
+two
+three footballs!
+three
+four footballs!
+four
+five footballs!
+five
+six footballs!
+six
+seven footballs!
+seven
+eight footballs!
+eight
+nine footballs!
+nine
+ten footballs!
+ten
+What is one plus one?
+one plus one makes two!
+What is two plus one?
+two plus one makes three!
+What is two plus two?
+two plus two makes four!
+What is three plus one?
+three plus one makes four!
+What is three plus two?
+three plus two makes five!
+What is four plus two?
+four plus two makes six!
+What is three plus three?
+three plus three makes six!
+What is five plus two?
+five plus two makes seven!
+What is four plus four?
+four plus four makes eight!
+What is six plus three?
+six plus three makes nine!
+What is two take away one?
+two take away one makes one!
+What is three take away one?
+three take away one makes two!
+What is three take away two?
+three take away two makes one!
+What is four take away two?
+four take away two makes two!
+What is five take away one?
+five take away one makes four!
+What is five take away three?
+five take away three makes two!
+What is six take away two?
+six take away two makes four!
+What is seven take away three?
+seven take away three makes four!
+What is eight take away four?
+eight take away four makes four!
+What is ten take away five?
+ten take away five makes five!
+twelve footballs!
+twelve
+fifteen footballs!
+fifteen
+eighteen footballs!
+eighteen
+twenty footballs!
+twenty
+What is ten plus five?
+ten plus five makes fifteen!
+What is eight plus five?
+eight plus five makes thirteen!
+thirteen
+What is nine plus four?
+nine plus four makes thirteen!
+What is seven plus six?
+seven plus six makes thirteen!
+What is eight plus eight?
+eight plus eight makes sixteen!
+sixteen
+What is nine plus seven?
+nine plus seven makes sixteen!
+What is six plus seven?
+six plus seven makes thirteen!
+What is nine plus nine?
+nine plus nine makes eighteen!
+What is fifteen take away three?
+fifteen take away three makes twelve!
+What is twelve take away four?
+twelve take away four makes eight!
+What is seventeen take away five?
+seventeen take away five makes twelve!
+What is fourteen take away six?
+fourteen take away six makes eight!
+What is eighteen take away nine?
+eighteen take away nine makes nine!
+What is sixteen take away seven?
+sixteen take away seven makes nine!
+What is twenty take away eight?
+twenty take away eight makes twelve!
+What is twenty take away ten?
+twenty take away ten makes ten!
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24

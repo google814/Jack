@@ -1,0 +1,193 @@
+# hw-20260906-maths-number-bonds-to-10-1 — every line the game speaks, already split into the
+# segments the runtime plays one after another.
+# all 11 bonds, every wrong-answer line, the counting numbers and the half/full time lines
+
+Kick off!
+Find all the pairs that make ten.
+The net is full already.
+You need zero more.
+All ten fingers are up already.
+Yes!
+Try again.
+Now use your fingers.
+You found all the pairs that make ten!
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+zero in the net.
+How many more make ten?
+zero fingers up.
+zero plus ten equals ten
+zero plus zero is not ten.
+zero plus one is not ten.
+zero plus two is not ten.
+zero plus three is not ten.
+zero plus four is not ten.
+zero plus five is not ten.
+zero plus six is not ten.
+zero plus seven is not ten.
+zero plus eight is not ten.
+zero plus nine is not ten.
+one in the net.
+one fingers up.
+one plus nine equals ten
+one plus zero is not ten.
+one plus one is not ten.
+one plus two is not ten.
+one plus three is not ten.
+one plus four is not ten.
+one plus five is not ten.
+one plus six is not ten.
+one plus seven is not ten.
+one plus eight is not ten.
+one plus ten is not ten.
+two in the net.
+two fingers up.
+two plus eight equals ten
+two plus zero is not ten.
+two plus one is not ten.
+two plus two is not ten.
+two plus three is not ten.
+two plus four is not ten.
+two plus five is not ten.
+two plus six is not ten.
+two plus seven is not ten.
+two plus nine is not ten.
+two plus ten is not ten.
+three in the net.
+three fingers up.
+three plus seven equals ten
+three plus zero is not ten.
+three plus one is not ten.
+three plus two is not ten.
+three plus three is not ten.
+three plus four is not ten.
+three plus five is not ten.
+three plus six is not ten.
+three plus eight is not ten.
+three plus nine is not ten.
+three plus ten is not ten.
+four in the net.
+four fingers up.
+four plus six equals ten
+four plus zero is not ten.
+four plus one is not ten.
+four plus two is not ten.
+four plus three is not ten.
+four plus four is not ten.
+four plus five is not ten.
+four plus seven is not ten.
+four plus eight is not ten.
+four plus nine is not ten.
+four plus ten is not ten.
+five in the net.
+five fingers up.
+five plus five equals ten
+five plus zero is not ten.
+five plus one is not ten.
+five plus two is not ten.
+five plus three is not ten.
+five plus four is not ten.
+five plus six is not ten.
+five plus seven is not ten.
+five plus eight is not ten.
+five plus nine is not ten.
+five plus ten is not ten.
+six in the net.
+six fingers up.
+six plus four equals ten
+six plus zero is not ten.
+six plus one is not ten.
+six plus two is not ten.
+six plus three is not ten.
+six plus five is not ten.
+six plus six is not ten.
+six plus seven is not ten.
+six plus eight is not ten.
+six plus nine is not ten.
+six plus ten is not ten.
+seven in the net.
+seven fingers up.
+seven plus three equals ten
+seven plus zero is not ten.
+seven plus one is not ten.
+seven plus two is not ten.
+seven plus four is not ten.
+seven plus five is not ten.
+seven plus six is not ten.
+seven plus seven is not ten.
+seven plus eight is not ten.
+seven plus nine is not ten.
+seven plus ten is not ten.
+eight in the net.
+eight fingers up.
+eight plus two equals ten
+eight plus zero is not ten.
+eight plus one is not ten.
+eight plus three is not ten.
+eight plus four is not ten.
+eight plus five is not ten.
+eight plus six is not ten.
+eight plus seven is not ten.
+eight plus eight is not ten.
+eight plus nine is not ten.
+eight plus ten is not ten.
+nine in the net.
+nine fingers up.
+nine plus one equals ten
+nine plus zero is not ten.
+nine plus two is not ten.
+nine plus three is not ten.
+nine plus four is not ten.
+nine plus five is not ten.
+nine plus six is not ten.
+nine plus seven is not ten.
+nine plus eight is not ten.
+nine plus nine is not ten.
+nine plus ten is not ten.
+ten in the net.
+ten fingers up.
+ten plus zero equals ten
+ten plus one is not ten.
+ten plus two is not ten.
+ten plus three is not ten.
+ten plus four is not ten.
+ten plus five is not ten.
+ten plus six is not ten.
+ten plus seven is not ten.
+ten plus eight is not ten.
+ten plus nine is not ten.
+ten plus ten is not ten.
+Half time!
+You found zero pairs that make ten.
+Full time!
+You scored zero goals.
+You found one pairs that make ten.
+You scored one goals.
+You found two pairs that make ten.
+You scored two goals.
+You found three pairs that make ten.
+You scored three goals.
+You found four pairs that make ten.
+You scored four goals.
+You found five pairs that make ten.
+You scored five goals.
+You found six pairs that make ten.
+You scored six goals.
+You found seven pairs that make ten.
+You scored seven goals.
+You found eight pairs that make ten.
+You scored eight goals.
+You found nine pairs that make ten.
+You scored nine goals.
+You found ten pairs that make ten.
+You scored ten goals.
+You found eleven pairs that make ten.
+You scored eleven goals.

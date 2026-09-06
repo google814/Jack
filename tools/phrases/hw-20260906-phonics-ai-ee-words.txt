@@ -1,0 +1,400 @@
+# hw-20260906-phonics-ai-ee-words — every line the game speaks, already split into the
+# segments the runtime plays one after another.
+# the eight ai/ee words with their sounds and sentences, and every three-word book list the game can read out (8x7x6 orders)
+
+Kick off!
+ai and ee words.
+Extra time!
+Build three words for your book.
+rain
+The rain falls on the grass.
+That says rain
+tail
+The dog wags his tail.
+That says tail
+pain
+Ouch!
+That is a pain.
+That says pain
+wait
+We wait for the bus.
+That says wait
+feet
+I kick the ball with my feet.
+That says feet
+tree
+The tree is very tall.
+That says tree
+seed
+I put a seed in the pot.
+That says seed
+green
+The grass is green.
+That says green
+ay
+ee
+duh
+fff
+guh
+lll
+nnn
+puh
+rrr
+sss
+tuh
+wuh
+Half time!
+0 goals.
+Now listen, and find the word.
+1 goals.
+2 goals.
+3 goals.
+4 goals.
+5 goals.
+6 goals.
+Full time!
+Now write these three words in your book:
+7 goals.
+8 goals.
+9 goals.
+10 goals.
+11 goals.
+12 goals.
+13 goals.
+14 goals.
+rain, tail, pain.
+rain, tail, wait.
+rain, tail, feet.
+rain, tail, tree.
+rain, tail, seed.
+rain, tail, green.
+rain, pain, tail.
+rain, pain, wait.
+rain, pain, feet.
+rain, pain, tree.
+rain, pain, seed.
+rain, pain, green.
+rain, wait, tail.
+rain, wait, pain.
+rain, wait, feet.
+rain, wait, tree.
+rain, wait, seed.
+rain, wait, green.
+rain, feet, tail.
+rain, feet, pain.
+rain, feet, wait.
+rain, feet, tree.
+rain, feet, seed.
+rain, feet, green.
+rain, tree, tail.
+rain, tree, pain.
+rain, tree, wait.
+rain, tree, feet.
+rain, tree, seed.
+rain, tree, green.
+rain, seed, tail.
+rain, seed, pain.
+rain, seed, wait.
+rain, seed, feet.
+rain, seed, tree.
+rain, seed, green.
+rain, green, tail.
+rain, green, pain.
+rain, green, wait.
+rain, green, feet.
+rain, green, tree.
+rain, green, seed.
+tail, rain, pain.
+tail, rain, wait.
+tail, rain, feet.
+tail, rain, tree.
+tail, rain, seed.
+tail, rain, green.
+tail, pain, rain.
+tail, pain, wait.
+tail, pain, feet.
+tail, pain, tree.
+tail, pain, seed.
+tail, pain, green.
+tail, wait, rain.
+tail, wait, pain.
+tail, wait, feet.
+tail, wait, tree.
+tail, wait, seed.
+tail, wait, green.
+tail, feet, rain.
+tail, feet, pain.
+tail, feet, wait.
+tail, feet, tree.
+tail, feet, seed.
+tail, feet, green.
+tail, tree, rain.
+tail, tree, pain.
+tail, tree, wait.
+tail, tree, feet.
+tail, tree, seed.
+tail, tree, green.
+tail, seed, rain.
+tail, seed, pain.
+tail, seed, wait.
+tail, seed, feet.
+tail, seed, tree.
+tail, seed, green.
+tail, green, rain.
+tail, green, pain.
+tail, green, wait.
+tail, green, feet.
+tail, green, tree.
+tail, green, seed.
+pain, rain, tail.
+pain, rain, wait.
+pain, rain, feet.
+pain, rain, tree.
+pain, rain, seed.
+pain, rain, green.
+pain, tail, rain.
+pain, tail, wait.
+pain, tail, feet.
+pain, tail, tree.
+pain, tail, seed.
+pain, tail, green.
+pain, wait, rain.
+pain, wait, tail.
+pain, wait, feet.
+pain, wait, tree.
+pain, wait, seed.
+pain, wait, green.
+pain, feet, rain.
+pain, feet, tail.
+pain, feet, wait.
+pain, feet, tree.
+pain, feet, seed.
+pain, feet, green.
+pain, tree, rain.
+pain, tree, tail.
+pain, tree, wait.
+pain, tree, feet.
+pain, tree, seed.
+pain, tree, green.
+pain, seed, rain.
+pain, seed, tail.
+pain, seed, wait.
+pain, seed, feet.
+pain, seed, tree.
+pain, seed, green.
+pain, green, rain.
+pain, green, tail.
+pain, green, wait.
+pain, green, feet.
+pain, green, tree.
+pain, green, seed.
+wait, rain, tail.
+wait, rain, pain.
+wait, rain, feet.
+wait, rain, tree.
+wait, rain, seed.
+wait, rain, green.
+wait, tail, rain.
+wait, tail, pain.
+wait, tail, feet.
+wait, tail, tree.
+wait, tail, seed.
+wait, tail, green.
+wait, pain, rain.
+wait, pain, tail.
+wait, pain, feet.
+wait, pain, tree.
+wait, pain, seed.
+wait, pain, green.
+wait, feet, rain.
+wait, feet, tail.
+wait, feet, pain.
+wait, feet, tree.
+wait, feet, seed.
+wait, feet, green.
+wait, tree, rain.
+wait, tree, tail.
+wait, tree, pain.
+wait, tree, feet.
+wait, tree, seed.
+wait, tree, green.
+wait, seed, rain.
+wait, seed, tail.
+wait, seed, pain.
+wait, seed, feet.
+wait, seed, tree.
+wait, seed, green.
+wait, green, rain.
+wait, green, tail.
+wait, green, pain.
+wait, green, feet.
+wait, green, tree.
+wait, green, seed.
+feet, rain, tail.
+feet, rain, pain.
+feet, rain, wait.
+feet, rain, tree.
+feet, rain, seed.
+feet, rain, green.
+feet, tail, rain.
+feet, tail, pain.
+feet, tail, wait.
+feet, tail, tree.
+feet, tail, seed.
+feet, tail, green.
+feet, pain, rain.
+feet, pain, tail.
+feet, pain, wait.
+feet, pain, tree.
+feet, pain, seed.
+feet, pain, green.
+feet, wait, rain.
+feet, wait, tail.
+feet, wait, pain.
+feet, wait, tree.
+feet, wait, seed.
+feet, wait, green.
+feet, tree, rain.
+feet, tree, tail.
+feet, tree, pain.
+feet, tree, wait.
+feet, tree, seed.
+feet, tree, green.
+feet, seed, rain.
+feet, seed, tail.
+feet, seed, pain.
+feet, seed, wait.
+feet, seed, tree.
+feet, seed, green.
+feet, green, rain.
+feet, green, tail.
+feet, green, pain.
+feet, green, wait.
+feet, green, tree.
+feet, green, seed.
+tree, rain, tail.
+tree, rain, pain.
+tree, rain, wait.
+tree, rain, feet.
+tree, rain, seed.
+tree, rain, green.
+tree, tail, rain.
+tree, tail, pain.
+tree, tail, wait.
+tree, tail, feet.
+tree, tail, seed.
+tree, tail, green.
+tree, pain, rain.
+tree, pain, tail.
+tree, pain, wait.
+tree, pain, feet.
+tree, pain, seed.
+tree, pain, green.
+tree, wait, rain.
+tree, wait, tail.
+tree, wait, pain.
+tree, wait, feet.
+tree, wait, seed.
+tree, wait, green.
+tree, feet, rain.
+tree, feet, tail.
+tree, feet, pain.
+tree, feet, wait.
+tree, feet, seed.
+tree, feet, green.
+tree, seed, rain.
+tree, seed, tail.
+tree, seed, pain.
+tree, seed, wait.
+tree, seed, feet.
+tree, seed, green.
+tree, green, rain.
+tree, green, tail.
+tree, green, pain.
+tree, green, wait.
+tree, green, feet.
+tree, green, seed.
+seed, rain, tail.
+seed, rain, pain.
+seed, rain, wait.
+seed, rain, feet.
+seed, rain, tree.
+seed, rain, green.
+seed, tail, rain.
+seed, tail, pain.
+seed, tail, wait.
+seed, tail, feet.
+seed, tail, tree.
+seed, tail, green.
+seed, pain, rain.
+seed, pain, tail.
+seed, pain, wait.
+seed, pain, feet.
+seed, pain, tree.
+seed, pain, green.
+seed, wait, rain.
+seed, wait, tail.
+seed, wait, pain.
+seed, wait, feet.
+seed, wait, tree.
+seed, wait, green.
+seed, feet, rain.
+seed, feet, tail.
+seed, feet, pain.
+seed, feet, wait.
+seed, feet, tree.
+seed, feet, green.
+seed, tree, rain.
+seed, tree, tail.
+seed, tree, pain.
+seed, tree, wait.
+seed, tree, feet.
+seed, tree, green.
+seed, green, rain.
+seed, green, tail.
+seed, green, pain.
+seed, green, wait.
+seed, green, feet.
+seed, green, tree.
+green, rain, tail.
+green, rain, pain.
+green, rain, wait.
+green, rain, feet.
+green, rain, tree.
+green, rain, seed.
+green, tail, rain.
+green, tail, pain.
+green, tail, wait.
+green, tail, feet.
+green, tail, tree.
+green, tail, seed.
+green, pain, rain.
+green, pain, tail.
+green, pain, wait.
+green, pain, feet.
+green, pain, tree.
+green, pain, seed.
+green, wait, rain.
+green, wait, tail.
+green, wait, pain.
+green, wait, feet.
+green, wait, tree.
+green, wait, seed.
+green, feet, rain.
+green, feet, tail.
+green, feet, pain.
+green, feet, wait.
+green, feet, tree.
+green, feet, seed.
+green, tree, rain.
+green, tree, tail.
+green, tree, pain.
+green, tree, wait.
+green, tree, feet.
+green, tree, seed.
+green, seed, rain.
+green, seed, tail.
+green, seed, pain.
+green, seed, wait.
+green, seed, feet.
+green, seed, tree.

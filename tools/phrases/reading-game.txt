@@ -1,0 +1,112 @@
+# reading-game — every line the game speaks, already split into the
+# segments the runtime plays one after another.
+# letters A-Z and their phonics sounds, 28 words + sentences
+
+Let's read!
+cat
+The cat sat on the mat.
+dog
+The dog can run.
+sun
+The sun is hot.
+mum
+I love my mum.
+dad
+My dad is big.
+pen
+The pen is blue.
+red
+My hat is red.
+bag
+My bag is big.
+hat
+I have a hat.
+bus
+The bus is yellow.
+book
+I read a book.
+ball
+Jack kicks the ball.
+blue
+The sky is blue.
+play
+We play at school.
+milk
+I drink my milk.
+frog
+The frog can hop.
+fish
+The fish can swim.
+star
+I see a star.
+jump
+I can jump up high.
+cake
+The cake is yummy.
+green
+The grass is green.
+happy
+Jack is happy.
+water
+I drink water.
+lunch
+We eat lunch at school.
+apple
+The apple is red.
+school
+I go to school.
+friend
+You are my friend.
+teacher
+My teacher is kind.
+A
+ah
+B
+buh
+C
+kuh
+D
+duh
+E
+eh
+F
+fff
+G
+guh
+H
+huh
+I
+ih
+J
+juh
+K
+L
+lll
+M
+mmm
+N
+nnn
+O
+oh
+P
+puh
+Q
+kwuh
+R
+rrr
+S
+sss
+T
+tuh
+U
+uh
+V
+vvv
+W
+wuh
+X
+ks
+Y
+yuh
+Z
+zzz
