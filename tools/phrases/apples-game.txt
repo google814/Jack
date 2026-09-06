@@ -90,3 +90,10 @@ Trace twenty
 You wrote twenty!
 twenty
 What comes after nineteen?
+
+# accuracy meter feedback
+Super neat!
+Bonus football!
+Nice and tidy!
+Good.
+Try to stay on the line.

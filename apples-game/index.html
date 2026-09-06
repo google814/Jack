@@ -46,7 +46,15 @@
     background: rgba(0,0,0,.28);
     white-space: nowrap;
   }
-  #score { flex: 1; text-align: right; font-size: 1.3rem; white-space: nowrap; }
+  #score { position: relative; flex: 1; text-align: right; font-size: 1.3rem; white-space: nowrap; }
+  /* the "+2" that floats off the score when a bonus football is won */
+  .gain {
+    position: absolute; right: 0; top: 0;
+    font-size: .8em; font-weight: 800; color: #4ade80;
+    pointer-events: none;
+    animation: gainUp 1.2s ease forwards;
+  }
+  @keyframes gainUp { to { transform: translateY(-1.7em); opacity: 0; } }
   #settingsBtn { background: none; border: none; color: #f1f5f9; font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px; }
 
   a:focus-visible, button:focus-visible { outline: 3px solid #fde047; outline-offset: 2px; }
@@ -62,6 +70,7 @@
     flex: 0 0 auto;
   }
   .chip {
+    position: relative;
     width: clamp(25px, 3.1vw, 33px);
     height: clamp(25px, 3.1vw, 33px);
     display: grid;
@@ -77,6 +86,13 @@
   }
   .chip.done { background: #16a34a; color: #fff; }
   .chip.current { outline: 3px solid #fde047; outline-offset: 1px; }
+  /* a neat one (best 90% or more) keeps a little star */
+  .chip.star::after {
+    content: '⭐';
+    position: absolute; top: -5px; right: -5px;
+    font-size: .6rem; line-height: 1;
+    text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  }
 
   /* ---------- stage ---------- */
   main {
@@ -132,6 +148,42 @@
   .startdot.pulse { animation: pulse 1.2s ease infinite; transform-origin: center; transform-box: fill-box; }
   @keyframes pulse { 50% { transform: scale(1.35); } }
   .arrow { fill: #22c55e; }
+
+  /* ---------- accuracy meter ---------- */
+  #acc {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 460px;
+    font-size: clamp(.78rem, 2.1vmin, 1rem);
+  }
+  #acc .label { opacity: .8; white-space: nowrap; }
+  #accTrack {
+    flex: 1;
+    height: clamp(8px, 1.4vmin, 12px);
+    border-radius: 999px;
+    background: rgba(255,255,255,.14);
+    overflow: hidden;
+  }
+  #accFill {
+    width: 0;
+    height: 100%;
+    border-radius: 999px;
+    background: rgba(255,255,255,.28);
+    transform-origin: center;
+    transition: width .12s linear, background-color .12s linear;
+  }
+  #accFill.pop { animation: accPop .55s ease; }
+  @keyframes accPop { 45% { transform: scaleY(1.9); filter: brightness(1.5); } }
+  #accPct {
+    min-width: 4ch;
+    text-align: right;
+    font-weight: 800;
+    font-size: clamp(1rem, 3vmin, 1.4rem);
+  }
+  @media (prefers-reduced-motion: reduce) { #accFill { transition: none; } }
 
   /* ---------- apple grid ---------- */
   #grid {
@@ -257,6 +309,11 @@
       <svg id="svg" viewBox="0 0 200 140" preserveAspectRatio="xMidYMid meet"></svg>
       <canvas id="ink"></canvas>
     </div>
+    <div id="acc">
+      <span class="label">Accuracy</span>
+      <div id="accTrack"><div id="accFill"></div></div>
+      <strong id="accPct">—</strong>
+    </div>
     <div class="row">
       <button class="btn ghost" id="sayBtn">🔊 Hear it</button>
       <button class="btn ghost" id="againBtn">↺ Try again</button>
@@ -339,6 +396,13 @@
   });
   var footballs = parseInt(localStorage.getItem('jackApplesFootballs') || '0', 10) || 0;
   var half = localStorage.getItem('jackApplesHalf') === '2' ? 2 : 1;
+  /* number -> best accuracy in percent */
+  var best = (function () {
+    try {
+      var o = JSON.parse(localStorage.getItem('jackApplesBest') || '{}');
+      return (o && typeof o === 'object') ? o : {};
+    } catch (e) { return {}; }
+  })();
   var num = 1;                     /* the number being traced, 1..20 */
   var strokeIdx = 0;               /* which stroke of the number */
   var checkpoints = [];            /* per stroke: [{x,y}, ...] */
@@ -346,6 +410,14 @@
   var drawing = false;
   var numberDone = false;
   var started = false;            /* speech needs a tap first, in every browser */
+
+  /* how close to the line the finger stayed: the samples of the strokes that
+     are already finished, plus the samples of the stroke being drawn now
+     (those are thrown away when the stroke has to be started again) */
+  var accSum = 0, accN = 0;
+  var strokeSum = 0, strokeN = 0;
+  var lastSampleAt = 0;
+  var meterRaf = 0;
 
   /* second half state */
   var appleRound = 1;
@@ -358,6 +430,7 @@
   var els = {
     strip: $('strip'), svg: $('svg'), ink: $('ink'), board: $('board'), lead: $('lead'),
     score: $('score'), half: $('half'),
+    accFill: $('accFill'), accPct: $('accPct'),
     sayBtn: $('sayBtn'), againBtn: $('againBtn'), nextBtn: $('nextBtn'), toApplesBtn: $('toApplesBtn'),
     traceView: $('traceView'), appleView: $('appleView'), appleLead: $('appleLead'),
     grid: $('grid'), tiles: $('tiles'), hearBtn: $('hearBtn'), nextRoundBtn: $('nextRoundBtn'),
@@ -372,6 +445,7 @@
     localStorage.setItem('jackApplesTraced', done.join(','));
     localStorage.setItem('jackApplesFootballs', String(footballs));
     localStorage.setItem('jackApplesHalf', String(half));
+    localStorage.setItem('jackApplesBest', JSON.stringify(best));
   }
 
   /* ================= Voice =================
@@ -621,11 +695,98 @@
     els.score.textContent = '⚽ ' + footballs;
   }
 
+  /* a "+2" floating off the score, so the bonus football is noticed */
+  function showGain(n) {
+    var g = document.createElement('span');
+    g.className = 'gain';
+    g.textContent = '+' + n;
+    els.score.appendChild(g);
+    setTimeout(function () { g.remove(); }, 1300);
+  }
+
+  /* ================= Accuracy =================
+     Every finger sample is scored by how far it sits from the line of the
+     stroke being traced: spot on up to 3 units, nothing left at TOL. */
+  function distToStroke(p) {
+    var pts = checkpoints[strokeIdx];
+    if (!pts || !pts.length) return TOL;
+    if (pts.length === 1) return Math.hypot(p.x - pts[0].x, p.y - pts[0].y);
+    var best2 = Infinity;
+    for (var i = 0; i < pts.length - 1; i++) {
+      var ax = pts[i].x, ay = pts[i].y;
+      var dx = pts[i + 1].x - ax, dy = pts[i + 1].y - ay;
+      var len2 = dx * dx + dy * dy;
+      var t = len2 > 0 ? ((p.x - ax) * dx + (p.y - ay) * dy) / len2 : 0;
+      if (t < 0) t = 0; else if (t > 1) t = 1;
+      var qx = ax + t * dx, qy = ay + t * dy;
+      var d2 = (p.x - qx) * (p.x - qx) + (p.y - qy) * (p.y - qy);
+      if (d2 < best2) best2 = d2;
+    }
+    return Math.sqrt(best2);
+  }
+
+  function sampleAccuracy(p, force) {
+    if (strokeIdx >= checkpoints.length) return;
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    /* a slow finger must not weigh more than a quick one */
+    if (!force && now - lastSampleAt < 16) return;
+    lastSampleAt = now;
+    var d = distToStroke(p);
+    var s = d <= 3 ? 1 : (d >= TOL ? 0 : 1 - (d - 3) / (TOL - 3));
+    strokeSum += s;
+    strokeN++;
+    scheduleMeter();
+  }
+
+  function accuracyPct() {
+    var n = accN + strokeN;
+    if (!n) return null;
+    return Math.round((accSum + strokeSum) / n * 100);
+  }
+
+  function accColor(pct) { return 'hsl(' + (pct * 1.2) + ', 85%, 50%)'; }
+
+  function renderMeter() {
+    var pct = accuracyPct();
+    if (pct === null) {
+      els.accFill.style.width = '0%';
+      els.accFill.style.background = 'rgba(255,255,255,.28)';
+      els.accPct.textContent = '—';
+      els.accPct.style.color = '';
+      return;
+    }
+    var col = accColor(pct);
+    els.accFill.style.width = pct + '%';
+    els.accFill.style.background = col;
+    els.accPct.textContent = pct + '%';
+    els.accPct.style.color = col;
+  }
+
+  function scheduleMeter() {
+    if (meterRaf) return;
+    if (typeof requestAnimationFrame !== 'function') { renderMeter(); return; }
+    meterRaf = requestAnimationFrame(function () { meterRaf = 0; renderMeter(); });
+  }
+
+  function resetAccuracy() {
+    accSum = 0; accN = 0; strokeSum = 0; strokeN = 0;
+    if (meterRaf) { cancelAnimationFrame(meterRaf); meterRaf = 0; }
+    els.accFill.classList.remove('pop');
+    renderMeter();
+  }
+
+  function accLine(pct) {
+    if (pct >= 90) return 'Super neat! Bonus football!';
+    if (pct >= 75) return 'Nice and tidy!';
+    return 'Good. Try to stay on the line.';
+  }
+
   function renderStrip() {
     els.strip.innerHTML = '';
     for (var n = 1; n <= 20; n++) {
       var b = document.createElement('button');
-      b.className = 'chip' + (done.indexOf(String(n)) > -1 ? ' done' : '') + (n === num ? ' current' : '');
+      b.className = 'chip' + (done.indexOf(String(n)) > -1 ? ' done' : '') + (n === num ? ' current' : '') +
+                    (best[String(n)] >= 90 ? ' star' : '');
       b.type = 'button';
       b.textContent = n;
       b.addEventListener('click', function (m) {
@@ -752,10 +913,13 @@
 
     els.lead.textContent = 'Start at the green dot and follow the line.';
     els.toApplesBtn.classList.toggle('hidden', done.length < 20);
+    resetAccuracy();
     renderStrip();
     renderScore();
     updatePill();
-    preload(['Trace ' + WORD[num], 'You wrote ' + WORD[num] + '!']);
+    preload(['Trace ' + WORD[num], 'You wrote ' + WORD[num] + '!',
+             'Super neat!', 'Bonus football!', 'Nice and tidy!',
+             'Good.', 'Try to stay on the line.']);
     if (started) speak('Trace ' + WORD[num], 0.75);
   }
 
@@ -795,6 +959,9 @@
   }
 
   function markStrokeDone() {
+    /* this line is written, so its samples now count for good */
+    accSum += strokeSum; accN += strokeN;
+    strokeSum = 0; strokeN = 0;
     var path = els.svg.querySelector('path[data-stroke="' + strokeIdx + '"]');
     if (path) path.setAttribute('class', 'trace done');
     strokeIdx++;
@@ -810,16 +977,31 @@
   function finishNumber() {
     numberDone = true;
     if (done.indexOf(String(num)) === -1) done.push(String(num));
-    footballs++;
+
+    var pct = accuracyPct();
+    var bonus = (pct !== null && pct >= 90) ? 1 : 0;
+    var key = String(num);
+    if (pct !== null && !(best[key] >= pct)) best[key] = pct;
+
+    footballs += 1 + bonus;
     save();
     renderScore();
+    showGain(1 + bonus);
     renderStrip();
+    renderMeter();
+    /* the final value stays up, with one short pulse to draw the eye */
+    els.accFill.classList.remove('pop');
+    void els.accFill.offsetWidth;
+    els.accFill.classList.add('pop');
+
     var old = els.svg.querySelectorAll('.startdot, .arrow');
     for (var i = 0; i < old.length; i++) old[i].remove();
     els.svg.querySelectorAll('.trace').forEach(function (p) { p.setAttribute('class', 'trace done'); });
-    els.lead.textContent = 'You wrote ' + num + '! ⚽';
+    els.lead.textContent = 'You wrote ' + num + '! ⚽' + (pct === null ? '' : '  ·  ' + pct + '%');
     celebrate(20);
-    speak('You wrote ' + WORD[num] + '!', 0.85);
+    var line = pct === null ? '' : accLine(pct);
+    if (line) showFeedback(line);
+    speak('You wrote ' + WORD[num] + '!' + (line ? ' ' + line : ''), 0.85);
     if (done.length === 20) {
       els.toApplesBtn.classList.remove('hidden');
       setTimeout(function () { if (half === 1 && started) enterApples(); }, 2600);
@@ -840,6 +1022,7 @@
     try { els.board.setPointerCapture(ev.pointerId); } catch (e) { /* no capture, no problem */ }
     ctx.beginPath();
     ctx.moveTo(p.px, p.py);
+    sampleAccuracy(p, true);
     advance(p);
     ev.preventDefault();
   }
@@ -851,6 +1034,7 @@
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(p.px, p.py);
+    sampleAccuracy(p, false);
     advance(p);
     ev.preventDefault();
   }
@@ -869,8 +1053,10 @@
     if (!drawing) return;
     drawing = false;
     if (numberDone) return;
-    /* lifted the finger half way — that line starts again */
+    /* lifted the finger half way — that line starts again, and so does its score */
     hit = 0;
+    strokeSum = 0; strokeN = 0;
+    renderMeter();
     clearInkForStroke();
     showFeedback('Keep your finger down — try that line again.');
   }
@@ -1124,6 +1310,7 @@
       done = [];
       footballs = 0;
       appleRound = 1;
+      best = {};
       save();
       els.settingsPanel.classList.add('hidden');
       enterTrace(1);
