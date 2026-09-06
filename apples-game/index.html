@@ -86,7 +86,7 @@
   }
   .chip.done { background: #16a34a; color: #fff; }
   .chip.current { outline: 3px solid #fde047; outline-offset: 1px; }
-  /* a neat one (best 90% or more) keeps a little star */
+  /* a neat one (best 95% or more) keeps a little star */
   .chip.star::after {
     content: '⭐';
     position: absolute; top: -5px; right: -5px;
@@ -776,7 +776,7 @@
   }
 
   function accLine(pct) {
-    if (pct >= 90) return 'Super neat! Bonus football!';
+    if (pct >= 95) return 'Super neat! Bonus football!';
     if (pct >= 75) return 'Nice and tidy!';
     return 'Good. Try to stay on the line.';
   }
@@ -786,7 +786,7 @@
     for (var n = 1; n <= 20; n++) {
       var b = document.createElement('button');
       b.className = 'chip' + (done.indexOf(String(n)) > -1 ? ' done' : '') + (n === num ? ' current' : '') +
-                    (best[String(n)] >= 90 ? ' star' : '');
+                    (best[String(n)] >= 95 ? ' star' : '');
       b.type = 'button';
       b.textContent = n;
       b.addEventListener('click', function (m) {
@@ -979,7 +979,7 @@
     if (done.indexOf(String(num)) === -1) done.push(String(num));
 
     var pct = accuracyPct();
-    var bonus = (pct !== null && pct >= 90) ? 1 : 0;
+    var bonus = (pct !== null && pct >= 95) ? 1 : 0;
     var key = String(num);
     if (pct !== null && !(best[key] >= pct)) best[key] = pct;
 
