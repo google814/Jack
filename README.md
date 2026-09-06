@@ -13,7 +13,7 @@ Browser games for Jack. No build tools needed — every game is a single self-co
 | ✏️ Jack's Letters | [`letters-game/`](letters-game/) | Trace lowercase letters with a finger. Each letter is SVG stroke paths; the checker samples points along each stroke with `getPointAtLength()` and requires them to be hit in order, so the letter has to be formed the way it is written. Taught in movement families (`c a d g o q`, `i l t u`, …), not a–z. An accuracy meter under the board scores how closely the finger hugged the line, red to green; 95% or more pays a bonus football and leaves a ⭐ on that letter. |
 | 🍎 Jack's Apples | [`apples-game/`](apples-game/) | Trace the numbers 1–20 with a finger, then fill the missing numbers into a 4×5 grid of apples (homework sheet „Practice Numbers 1–20"). The tracing half has the same accuracy meter as Letters — red to green, a bonus football at 95% and a ⭐ on the number. |
 | 👀 Jack's Sight Words | [`sight-words/`](sight-words/) | The twenty most common English words (DfE „first 100 high frequency words", rank 1–20) on twenty big cards. Tap one and it is read out in the same neural voice; the card gets a ✓ and counts as read. „Read all" walks the whole list, „Mix" reshuffles the cards so the position is not what he memorises, and a ten-round quiz reads a word out and he taps it. |
-| ♟️ Jackies Schach | [`chess/`](chess/) | Chess with a coach, XP, and streaks (German UI). |
+| ♟️ Jackies Schach | [`chess/`](chess/) | Chess with a spoken German coach (piece + from → to, gold arrow on the board), big status line, captured pieces, XP and streaks. |
 
 ## Start page
 

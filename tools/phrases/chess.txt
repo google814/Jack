@@ -1,0 +1,99 @@
+# chess — every line Jackies Schach speaks, split into the segments
+# the runtime plays one after another (speakParts).
+# Status sentences
+Du bist dran.
+Der Gegner überlegt.
+Schach! Schütze deinen König.
+Schachmatt! Du hast gewonnen!
+Schachmatt. Der Gegner hat gewonnen.
+Patt. Unentschieden.
+Guter Zug!
+Vorsicht, diese Figur ist in Gefahr.
+Wähle eine weiße Figur.
+Du hast eine Figur geschlagen!
+Das Spiel ist zu Ende.
+
+# First-run coaching
+Tippe eine weiße Figur.
+Grüne Punkte sind sichere Züge.
+Gold ist der Coach-Tipp.
+
+# Piece names
+Bauer
+Springer
+Läufer
+Turm
+Dame
+König
+
+# Move words
+von
+nach
+sicher
+Vorsicht
+
+# Squares a1 to h8
+a eins
+a zwei
+a drei
+a vier
+a fünf
+a sechs
+a sieben
+a acht
+b eins
+b zwei
+b drei
+b vier
+b fünf
+b sechs
+b sieben
+b acht
+c eins
+c zwei
+c drei
+c vier
+c fünf
+c sechs
+c sieben
+c acht
+d eins
+d zwei
+d drei
+d vier
+d fünf
+d sechs
+d sieben
+d acht
+e eins
+e zwei
+e drei
+e vier
+e fünf
+e sechs
+e sieben
+e acht
+f eins
+f zwei
+f drei
+f vier
+f fünf
+f sechs
+f sieben
+f acht
+g eins
+g zwei
+g drei
+g vier
+g fünf
+g sechs
+g sieben
+g acht
+h eins
+h zwei
+h drei
+h vier
+h fünf
+h sechs
+h sieben
+h acht
