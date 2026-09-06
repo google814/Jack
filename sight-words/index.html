@@ -68,7 +68,12 @@
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: clamp(8px, 1.6vh, 16px) clamp(10px, 2.5vw, 22px);
+    padding: 0 clamp(10px, 2.5vw, 22px) clamp(8px, 1.6vh, 16px);
+  }
+  /* the line and the countdown bar stay put while the grid scrolls under them */
+  .status {
+    flex: 0 0 auto;
+    padding: clamp(8px, 1.6vh, 16px) clamp(10px, 2.5vw, 22px) 0;
   }
   .lead {
     text-align: center;
@@ -78,6 +83,17 @@
     min-height: 1.4em;
   }
   .lead b { color: var(--gold); }
+
+  /* the countdown bar of the "listen and think" pause */
+  #lockBar {
+    height: 10px;
+    max-width: 320px;
+    margin: 0 auto clamp(6px, 1.2vh, 12px);
+    border-radius: 999px;
+    background: rgba(255,255,255,.16);
+    overflow: hidden;
+  }
+  #lockBar i { display: block; height: 100%; width: 100%; border-radius: 999px; background: var(--gold); }
 
   #grid {
     display: grid;
@@ -102,12 +118,19 @@
     font-size: clamp(1.6rem, 6vmin, 3.2rem);
     line-height: 1;
     cursor: pointer;
-    transition: transform .12s ease, background .2s ease, border-color .2s ease;
+    transition: transform .12s ease, background .2s ease, border-color .2s ease, opacity .35s ease;
   }
   .word:active { transform: scale(.95); }
   .word.read { background: rgba(253,224,71,.16); border-color: rgba(253,224,71,.5); }
   .word.lit  { background: var(--gold); color: #4c1d95; border-color: #fff; }
   .word.wrong { animation: shake .35s ease; }
+  /* quiz: the card he got wrong goes grey, the rest dim while the pause runs */
+  .word.dud { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.12); color: rgba(255,255,255,.45); }
+  /* quiz: a wrong word taken out of the running — it keeps its place in the
+     grid so nothing jumps, it just fades away and stops taking taps */
+  .word.gone { opacity: 0; pointer-events: none; }
+  #grid.locked .word { pointer-events: none; }
+  #grid.locked .word:not(.gone):not(.dud) { opacity: .5; }
   .word .rank {
     position: absolute; top: 4px; left: 8px;
     font-size: clamp(.6rem, 1.4vmin, .8rem);
@@ -189,8 +212,12 @@
   <button id="settingsBtn" title="Settings">⚙</button>
 </header>
 
-<main>
+<div class="status">
   <p class="lead" id="lead">Tap a word to hear it.</p>
+  <div id="lockBar" class="hidden"><i></i></div>
+</div>
+
+<main>
   <div id="grid"></div>
 </main>
 
@@ -222,6 +249,12 @@
   var CONFETTI = ['⭐', '👀', '🎉', '🌟', '💜', '💛', '📖'];
   var QUIZ_ROUNDS = 10;
 
+  /* Quiz pacing: tapping every word in turn until one is right is not reading,
+     so a wrong tap freezes the cards for a moment — longer every time — and the
+     word is said again. If he is still stuck the wrong cards start to fade out. */
+  var LOCK_MS = [3000, 5000, 8000];   /* 1st wrong tap, 2nd, 3rd and after */
+  var IDLE_MS = 15000;                /* no tap at all for this long: fade a few */
+
   /* ================= State ================= */
   var read = (localStorage.getItem('jackSightRead') || '').split(',').filter(function (s) {
     return WORDS.indexOf(s) !== -1;
@@ -231,12 +264,14 @@
   var cards = {};                /* word -> button */
   var reading = false;           /* "Read all" is running */
   var readTimer = null;
-  var quiz = null;               /* { list: [], i: 0, right: 0 } while the quiz runs */
+  var quiz = null;               /* { list, i, right, wrong, locked } while the quiz runs */
+  var quizTimers = { lock: null, tick: null, repeat: null, idle: null, next: null };
   var finished = read.length >= WORDS.length;
 
   var $ = function (id) { return document.getElementById(id); };
   var els = {
     score: $('score'), lead: $('lead'), grid: $('grid'),
+    lockBar: $('lockBar'), lockFill: $('lockBar').querySelector('i'),
     readAllBtn: $('readAllBtn'), mixBtn: $('mixBtn'), quizBtn: $('quizBtn'),
     settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'), resetBtn: $('resetBtn'),
     startOverlay: $('startOverlay'), playBtn: $('playBtn')
@@ -456,6 +491,11 @@
   }
 
   window.__speak = speak;    /* lets a browser check drive the voice from outside */
+  /* what the quiz is asking for right now — only used by the browser check */
+  window.__quiz = function () {
+    return quiz ? { want: quiz.list[quiz.i], i: quiz.i, right: quiz.right,
+                    wrong: quiz.wrong, locked: quiz.locked } : null;
+  };
 
   if (hasSpeech) {
     pickVoice();
@@ -599,10 +639,145 @@
     els.quizBtn.textContent = on ? '✖ Stop quiz' : '⭐ Quiz';
   }
 
+  function clearQuizTimers() {
+    clearTimeout(quizTimers.lock);
+    clearInterval(quizTimers.tick);
+    clearTimeout(quizTimers.repeat);
+    clearTimeout(quizTimers.idle);
+    clearTimeout(quizTimers.next);
+    quizTimers.lock = quizTimers.tick = quizTimers.repeat = quizTimers.idle = quizTimers.next = null;
+  }
+
+  function quizLead(head) {
+    els.lead.innerHTML = head + ' &nbsp;<b>' + quiz.right + ' / ' + QUIZ_ROUNDS + '</b>';
+  }
+
+  function eachCard(fn) { for (var w in cards) fn(cards[w], w); }
+
+  /* every card back in the game */
+  function revealAll() {
+    eachCard(function (c) {
+      c.classList.remove('gone');
+      c.classList.remove('dud');
+      c.classList.remove('wrong');
+      c.removeAttribute('aria-hidden');
+      c.removeAttribute('aria-disabled');
+    });
+  }
+
+  function setLocked(on) {
+    if (on) els.grid.classList.add('locked'); else els.grid.classList.remove('locked');
+    eachCard(function (c) {
+      if (on || c.classList.contains('gone')) c.setAttribute('aria-disabled', 'true');
+      else c.removeAttribute('aria-disabled');
+    });
+  }
+
+  function showBar(ms) {
+    els.lockBar.classList.remove('hidden');
+    els.lockFill.style.transition = 'none';
+    els.lockFill.style.width = '100%';
+    void els.lockFill.offsetWidth;
+    els.lockFill.style.transition = 'width ' + ms + 'ms linear';
+    els.lockFill.style.width = '0%';
+  }
+
+  function hideBar() { els.lockBar.classList.add('hidden'); }
+
+  /* Take wrong words out of the running: half of the ones still standing, or
+     all but one when he has really lost the thread. Returns true if anything
+     went. The right word is never touched. */
+  function narrow(toOne) {
+    if (!quiz) return false;
+    var want = quiz.list[quiz.i], left = [], w;
+    for (w in cards) {
+      if (w !== want && !cards[w].classList.contains('gone')) left.push(w);
+    }
+    var keep = toOne ? 1 : Math.max(1, Math.floor(left.length / 2));
+    if (keep >= left.length) return false;
+    var go = shuffle(left).slice(0, left.length - keep);
+    for (var i = 0; i < go.length; i++) {
+      var c = cards[go[i]];
+      c.classList.remove('dud');
+      c.classList.add('gone');
+      c.setAttribute('aria-hidden', 'true');
+      c.setAttribute('aria-disabled', 'true');
+    }
+    scrollToLeft();
+    return true;
+  }
+
+  /* the few cards still in the game keep their place in the grid, so they can
+     end up off the bottom of a phone screen — scroll them into the middle */
+  function scrollToLeft() {
+    var main = els.grid.parentNode, top = null, bottom = null, w;
+    if (!main || !main.getBoundingClientRect) return;
+    try {
+      for (w in cards) {
+        if (cards[w].classList.contains('gone')) continue;
+        var r = cards[w].getBoundingClientRect();
+        if (top === null || r.top < top) top = r.top;
+        if (bottom === null || r.bottom > bottom) bottom = r.bottom;
+      }
+      if (top === null) return;
+      var m = main.getBoundingClientRect();
+      main.scrollTop += ((top + bottom) / 2) - ((m.top + m.bottom) / 2);
+    } catch (e) { /* an old browser without getBoundingClientRect just stays put */ }
+  }
+
+  /* nothing tapped for a while: thin the choice out and say the word again */
+  function startIdle() {
+    clearTimeout(quizTimers.idle);
+    if (!quiz) return;
+    quizTimers.idle = setTimeout(function () {
+      if (!quiz || quiz.locked) return;
+      narrow(false);
+      speak('Listen again. ' + quiz.list[quiz.i], 0.85);
+      startIdle();
+    }, IDLE_MS);
+  }
+
+  /* the pause after a wrong tap: no card takes a tap, a bar counts down */
+  function lockCards(card) {
+    var ms = LOCK_MS[Math.min(quiz.wrong, LOCK_MS.length) - 1];
+    clearQuizTimers();
+    quiz.locked = true;
+    setLocked(true);
+    if (card) card.classList.add('dud');
+    if (quiz.wrong >= 4) narrow(true);
+    else if (quiz.wrong >= 2) narrow(false);
+    showBar(ms);
+    var left = Math.round(ms / 1000);
+    els.lead.textContent = 'Listen and think… ' + left;
+    quizTimers.tick = setInterval(function () {
+      left--;
+      if (left <= 0) { clearInterval(quizTimers.tick); quizTimers.tick = null; return; }
+      els.lead.textContent = 'Listen and think… ' + left;
+    }, 1000);
+    quizTimers.repeat = setTimeout(function () {
+      if (quiz && quiz.locked) speak('Listen again. ' + quiz.list[quiz.i], 0.85);
+    }, 1000);
+    quizTimers.lock = setTimeout(unlock, ms);
+  }
+
+  function unlock() {
+    if (!quiz) return;
+    clearQuizTimers();
+    quiz.locked = false;
+    setLocked(false);
+    hideBar();
+    eachCard(function (c) { c.classList.remove('dud'); c.classList.remove('wrong'); });
+    quizLead('Which word is it?');
+    speak('Now tap the word.', 0.9);
+    startIdle();
+  }
+
   function startQuiz() {
     if (quiz) { stopQuiz(); return; }
     if (reading) stopReadAll();
-    quiz = { list: shuffle(WORDS).slice(0, QUIZ_ROUNDS), i: 0, right: 0 };
+    quiz = { list: shuffle(WORDS).slice(0, QUIZ_ROUNDS), i: 0, right: 0, wrong: 0, locked: false };
+    preload(['Find the word:', 'Now tap the word.', 'Listen again.', "That's it.",
+             'Well done, first try!']);
     setQuizButtons(true);
     askQuiz();
   }
@@ -611,33 +786,55 @@
     quiz = null;
     stopSpeaking();
     clearTimeout(readTimer);
+    clearQuizTimers();
+    setLocked(false);
+    revealAll();
+    hideBar();
     setQuizButtons(false);
     els.lead.textContent = 'Tap a word to hear it.';
   }
 
   function askQuiz() {
     if (!quiz) return;
-    els.lead.innerHTML = 'Which word is it? &nbsp;<b>' + quiz.right + ' / ' + QUIZ_ROUNDS + '</b>';
+    clearQuizTimers();
+    quiz.wrong = 0;
+    quiz.locked = false;
+    setLocked(false);
+    revealAll();
+    hideBar();
+    quizLead('Which word is it?');
+    if (els.grid.parentNode) els.grid.parentNode.scrollTop = 0;
     speak('Find the word: ' + quiz.list[quiz.i], 0.85);
+    startIdle();
   }
 
   function answer(word, card) {
+    if (!quiz || quiz.locked) return;              /* taps during the pause do nothing */
+    if (card.classList.contains('gone')) return;
     var want = quiz.list[quiz.i];
     if (word !== want) {
+      quiz.wrong++;
       card.classList.remove('wrong');
       void card.offsetWidth;
       card.classList.add('wrong');
-      speak('Try again', 0.9);
+      lockCards(card);
       return;
     }
+    clearQuizTimers();
+    var first = quiz.wrong === 0;
     quiz.right++;
     quiz.i++;
+    quiz.locked = false;
+    setLocked(false);
+    revealAll();
+    hideBar();
     light(word, 1200);
-    markRead(word);
-    celebrate(14);
+    /* a star only for a word he found straight away, so guessing earns less */
+    if (first) { markRead(word); celebrate(14); }
+    else { celebrate(5); }
     var last = quiz.i >= quiz.list.length;
-    els.lead.innerHTML = 'Yes! &nbsp;<b>' + quiz.right + ' / ' + QUIZ_ROUNDS + '</b>';
-    speak(word, 0.8, 1, function () {
+    quizLead(first ? 'Yes!' : 'Got it!');
+    speak((first ? 'Well done, first try! ' : "That's it. ") + word, 0.85, 1, function () {
       if (!quiz) return;
       if (last) {
         var got = quiz.right;
@@ -646,7 +843,7 @@
         showFeedback('⭐ ' + got + ' / ' + QUIZ_ROUNDS + ' — well done, Jack!');
         speak('Well done, Jack!', 0.9);
       } else {
-        readTimer = setTimeout(askQuiz, 700);
+        quizTimers.next = setTimeout(askQuiz, 1200);
       }
     });
   }
@@ -671,7 +868,12 @@
   });
 
   els.readAllBtn.addEventListener('click', function () {
-    if (quiz) { speak('Find the word: ' + quiz.list[quiz.i], 0.85); return; }
+    if (quiz) {
+      if (quiz.locked) return;
+      speak('Find the word: ' + quiz.list[quiz.i], 0.85);
+      startIdle();
+      return;
+    }
     readAll();
   });
   els.mixBtn.addEventListener('click', toggleMix);

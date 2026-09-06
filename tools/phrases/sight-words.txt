@@ -28,6 +28,11 @@ Jack's Sight Words.
 Read the words.
 Tap one to hear it.
 Find the word:
-Try again
 Well done, Jack!
 You can read all twenty words!
+
+# quiz: the pause after a wrong tap
+Listen again.
+Now tap the word.
+Well done, first try!
+That's it.
