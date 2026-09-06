@@ -112,7 +112,7 @@ details.settings{margin-top:8px;background:#fffdf7cc;border-radius:14px;padding:
 details.settings summary{list-style:none;cursor:pointer;font-weight:900;padding:9px 2px;color:#4d554d}
 details.settings summary::-webkit-details-marker{display:none}
 .set-grid{display:grid;gap:7px;padding-bottom:9px}
-.set-grid label,.set-grid button{display:flex;justify-content:space-between;align-items:center;background:#fff;border:0;border-radius:12px;padding:9px 11px;font-size:12px;font-weight:800;color:#4d554d;min-height:44px;width:100%;text-align:left}
+.set-grid label,.set-grid button,.set-grid .ruleline{display:flex;justify-content:space-between;align-items:center;background:#fff;border:0;border-radius:12px;padding:9px 11px;font-size:12px;font-weight:800;color:#4d554d;min-height:44px;width:100%;text-align:left}
 .set-grid select{min-height:28px;box-shadow:none;background:transparent;padding:0;border:0;font-weight:900}
 .badge{font-size:11px;background:#e7efe8;padding:6px 9px;border-radius:999px;white-space:nowrap;font-weight:800}
 .rule-ok{background:#dff5e7;color:#146f3b}.rule-bad{background:#ffe0e0;color:#8b1111}
@@ -193,7 +193,7 @@ details.settings summary::-webkit-details-marker{display:none}
         <label>Gegnerzug<select id="moveSpeed" aria-label="Tempo des Gegnerzugs"><option value="600">Normal</option><option value="900" selected>Langsam</option><option value="1200">Sehr langsam</option></select></label>
         <button id="threat">⚠ Gefahr zeigen<span class="badge" id="threatState">an</span></button>
         <button id="claimDraw" disabled>½ Remis reklamieren</button>
-        <label>Regeln<span class="badge" id="ruleBadge">Regeltest …</span></label>
+        <div class="ruleline">Regeln<span class="badge" id="ruleBadge">Regeltest …</span></div>
       </div>
       <div class="moves" id="log">Noch keine Züge.</div>
       <div class="rules-note"><b>FIDE-Modus:</b> legale Züge, Schach, Matt, Patt, Rochade, en passant und Umwandlung werden geprüft. Dreifache Wiederholung und 50-Züge-Regel können reklamiert werden; fünffache Wiederholung und 75-Züge-Regel beenden automatisch.</div>
@@ -504,7 +504,7 @@ function renderPredictions(){
    +'<span class="pmove"><span class="miniPiece own">'+glyph['w'+(m.piece||'p')]+'</span>'+m.from+'<span class="arr">→</span><span class="to">'+m.to+'</span>'
    +(m.captured?'<span class="miniPiece enemy tiny">'+glyph['b'+m.captured]+'</span>':'')+'</span>'
    +'<span class="tag '+(m.dangerous?'risk':'safe')+'">'+(m.dangerous?'Vorsicht':'sicher')+'</span>'
-   +'<span class="say mini" data-say="1" role="button" aria-label="Vorlesen">🔊</span>'
+   +'<span class="say mini" data-say="1" aria-hidden="true">🔊</span>'
    +'</button>').join('');
  PRED.querySelectorAll('.prediction').forEach(btn=>btn.addEventListener('click',ev=>{
    const m=recommendations[+btn.dataset.i];if(!m)return;
