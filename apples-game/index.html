@@ -135,7 +135,8 @@
 
   /* ---------- apple grid ---------- */
   #grid {
-    flex: 1 1 auto;
+    /* no grow: growing would stretch the grid past its 5 / 4 ratio on a phone */
+    flex: 0 1 auto;
     min-height: 0;
     max-width: 100%;
     aspect-ratio: 5 / 4;
@@ -159,7 +160,8 @@
   }
   .apple svg { width: 100%; height: 100%; }
   .apple .num { font-size: clamp(1.2rem, 4vmin, 2.2rem); font-weight: 800; fill: currentColor; }
-  .apple.target { outline: 3px solid #fde047; outline-offset: 2px; animation: pulse 1.2s ease infinite; }
+  .apple.target { outline: 3px solid #fde047; outline-offset: 2px; animation: applePulse 1.2s ease infinite; }
+  @keyframes applePulse { 50% { transform: scale(1.07); } }
   .apple.pop { animation: bounceIn .8s ease; }
   .apple.lit { transform: scale(1.15); }
   .apple.lit svg { filter: drop-shadow(0 0 10px #fde047); }
@@ -314,8 +316,8 @@
     5: ['M 70 20 L 34 20 L 30 60 C 46 52 74 58 72 84 C 70 108 42 116 28 100'],
     6: ['M 66 24 C 40 44 28 68 28 86 A 22 22 0 1 0 72 86 A 22 22 0 0 0 28 86'],
     7: ['M 28 20 L 74 20 L 44 110'],
-    8: ['M 66 36 C 60 12 30 18 32 42 C 34 60 70 66 70 90 C 70 118 30 118 30 90 C 30 66 66 60 68 42 C 70 18 40 12 34 36'],
-    9: ['M 70 42 A 21 22 0 1 0 70 48 L 70 110']
+    8: ['M 66 38 C 66 14 34 14 34 38 C 34 54 72 60 72 84 C 72 119 28 119 28 84 C 28 60 66 54 66 38'],
+    9: ['M 72 46 C 72 12 26 12 26 45 C 26 76 72 76 72 46 L 72 110']
   };
 
   var WORD = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
