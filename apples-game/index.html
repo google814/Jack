@@ -477,7 +477,19 @@
     return n;
   }
 
+  /* The board grows to fill the leftover height, which on a phone or an iPad
+     held upright makes it taller than 200:140 — the drawing then letterboxes
+     and sits in a big empty box. Cap the height so the box hugs the number. */
+  function fitBoard() {
+    els.board.style.maxHeight = '';
+    var r = els.board.getBoundingClientRect();
+    if (r.width > 0 && r.height > r.width * 140 / 200 + 1) {
+      els.board.style.maxHeight = (r.width * 140 / 200) + 'px';
+    }
+  }
+
   function sizeCanvas() {
+    fitBoard();
     var r = els.board.getBoundingClientRect();
     var dpr = window.devicePixelRatio || 1;
     els.ink.width = Math.round(r.width * dpr);
