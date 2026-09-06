@@ -34,6 +34,7 @@
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
 
   html { height: 100%; }
   body {
@@ -159,18 +160,10 @@
     border: 3px solid rgba(255,255,255,.85);
     box-shadow: 0 12px 0 rgba(0,0,0,.28), 0 20px 40px rgba(0,0,0,.35);
     transition: transform .14s ease, box-shadow .14s ease;
-    animation: run-on .5s cubic-bezier(.2,.9,.3,1.2) backwards;
   }
-  .card:nth-child(1) { animation-delay: .05s; }
-  .card:nth-child(2) { animation-delay: .13s; }
-  .card:nth-child(3) { animation-delay: .21s; }
-  .card:nth-child(4) { animation-delay: .29s; }
-  .card:nth-child(5) { animation-delay: .37s; }
-  .card:nth-child(6) { animation-delay: .45s; }
-  .card:nth-child(7) { animation-delay: .53s; }
-  .card:nth-child(8) { animation-delay: .61s; }
-  .card:nth-child(9) { animation-delay: .69s; }
-  .card:nth-child(10) { animation-delay: .77s; }
+  /* the run-on is replayed on every filter change, so it lives in a class
+     and the stagger delay is set per VISIBLE card by the script */
+  .card.run-on { animation: run-on .5s cubic-bezier(.2,.9,.3,1.2) backwards; }
   @keyframes run-on {
     from { opacity: 0; transform: translateY(26px) scale(.94); }
     to   { opacity: 1; transform: none; }
@@ -241,8 +234,137 @@
   .say:hover { background: rgba(0,0,0,.4); }
   .say:active { transform: scale(.88); }
   .say:focus-visible { outline: 4px solid #ffd400; outline-offset: 3px; }
-  .say.speaking { animation: pulse .7s ease infinite; }
+  .say.speaking, .mini-say.speaking { animation: pulse .7s ease infinite; }
   @keyframes pulse { 50% { transform: scale(1.14); } }
+
+  /* ---------- what's new: the newest things, right at the top ---------- */
+  .whatsnew {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: 8px 10px;
+    border-radius: 18px;
+    border: 2px solid var(--chalk-dim);
+    background: rgba(0,0,0,.3);
+  }
+  .whatsnew h2 {
+    font-family: var(--display);
+    font-size: clamp(.72rem, 1.7vmin, .95rem);
+    font-weight: 400;
+    letter-spacing: .1em;
+    color: #ffd400;
+  }
+  .whatsnew-list { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 240px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--chalk-dim);
+    background: rgba(255,255,255,.07);
+  }
+  .chip-link {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 6px 6px 12px;
+    color: var(--chalk);
+    text-decoration: none;
+    font-size: clamp(.78rem, 1.7vmin, .95rem);
+    line-height: 1.2;
+  }
+  a.chip-link:hover { color: #ffd400; }
+  a.chip-link:focus-visible { outline: 4px solid #ffd400; outline-offset: 3px; border-radius: 999px; }
+  .chip-ico { font-size: 1.1rem; }
+  .whatsnew .more {
+    margin-left: auto;
+    min-height: 40px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 2px solid var(--chalk-dim);
+    background: none;
+    color: var(--chalk);
+    font-family: var(--read);
+    font-size: clamp(.75rem, 1.6vmin, .9rem);
+    cursor: pointer;
+  }
+  .whatsnew .more:hover { color: #ffd400; border-color: #ffd400; }
+  .whatsnew .more:focus-visible { outline: 4px solid #ffd400; outline-offset: 3px; }
+
+  /* small round say-it badge used by the chips and the filter tabs */
+  .mini-say {
+    flex: 0 0 auto;
+    width: 34px; height: 34px;
+    margin: 0 4px;
+    display: grid;
+    place-items: center;
+    font-size: .95rem;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,.28);
+    color: inherit;
+    cursor: pointer;
+    transition: transform .12s ease, background .12s ease;
+  }
+  .mini-say:hover { background: rgba(0,0,0,.45); }
+  .mini-say:active { transform: scale(.88); }
+  .mini-say:focus-visible { outline: 4px solid #ffd400; outline-offset: 3px; }
+
+  /* ---------- filter tabs: what Jack wants to play right now ---------- */
+  .filters {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(6px, 1.4vmin, 12px);
+  }
+  .filter-tab {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    border-radius: 999px;
+    border: 2px solid var(--chalk-dim);
+    background: rgba(255,255,255,.05);
+  }
+  .filter {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    align-self: stretch;
+    padding: 6px 2px 6px 10px;
+    border: none;
+    background: none;
+    color: var(--chalk);
+    font-family: var(--read);
+    font-size: clamp(.82rem, 1.8vmin, 1.05rem);
+    font-weight: 700;
+    white-space: nowrap;
+    border-radius: 999px 0 0 999px;
+    cursor: pointer;
+  }
+  .filter .f-ico { font-size: 1.15em; }
+  .filter:focus-visible { outline: 4px solid #ffd400; outline-offset: 3px; }
+  .filter-tab.is-active { background: #ffd400; border-color: #ffd400; }
+  .filter-tab.is-active .filter { color: #06251a; }
+  .filter-tab.is-active .mini-say { background: rgba(6,37,26,.16); color: #06251a; }
+  .filter-tab.is-active .mini-say:hover { background: rgba(6,37,26,.3); }
+
+  /* NEW ribbon on a card added in the last two weeks */
+  .ribbon {
+    position: absolute;
+    top: 12px; right: 10px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #ffd400;
+    color: #06251a;
+    font-family: var(--display);
+    font-size: clamp(.58rem, 1.3vmin, .72rem);
+    letter-spacing: .08em;
+    line-height: 1.45;
+    box-shadow: 0 2px 0 rgba(0,0,0,.25);
+  }
+  .card.is-new .say { right: 62px; }
 
   /* ---------- open positions on the team sheet ---------- */
   .slot {
@@ -260,6 +382,7 @@
     animation: run-on .5s cubic-bezier(.2,.9,.3,1.2) backwards;
     animation-delay: .3s;
   }
+  .lineup .slot { grid-column: 1 / -1; }
   .slot .plus { font-family: var(--display); font-size: clamp(1rem, 2.6vmin, 1.4rem); line-height: 1; }
   .slot .what { font-size: clamp(.75rem, 1.7vmin, .95rem); }
 
@@ -272,6 +395,9 @@
   }
 
   /* ---------- iPad mini portrait & phones ---------- */
+  @media (max-width: 700px) {
+    .filters { grid-template-columns: repeat(2, 1fr); }
+  }
   @media (max-width: 860px) {
     .lineup { grid-template-columns: repeat(4, 1fr); }
     .lineup .card { grid-column: span 2; }
@@ -281,6 +407,7 @@
     .lineup { grid-template-columns: 1fr; }
     .lineup .card,
     .lineup .card.chess { grid-column: span 1; }
+    .lineup .slot { grid-column: span 1; }
     .bench-row { grid-template-columns: 1fr; }
     .pitch::after { display: none; }
   }
@@ -298,9 +425,34 @@
     <p class="prompt">Tap a game to play. Tap <span aria-hidden="true">🔊</span> to hear its name.</p>
   </header>
 
+  <section class="whatsnew" id="whatsnew" aria-label="What's new" hidden>
+    <h2>✨ NEW</h2>
+    <div class="whatsnew-list" id="whatsnew-list"></div>
+    <button class="more" id="whatsnew-more" type="button" aria-expanded="false" hidden>more ▸</button>
+  </section>
+
+  <nav class="filters" aria-label="Choose what to play">
+    <div class="filter-tab is-active">
+      <button class="filter" type="button" data-filter="all" aria-pressed="true"><span class="f-ico" aria-hidden="true">⚽</span>All</button>
+      <button class="mini-say" type="button" data-say="All games." aria-label="Say: All games">🔊</button>
+    </div>
+    <div class="filter-tab">
+      <button class="filter" type="button" data-filter="homework" aria-pressed="false"><span class="f-ico" aria-hidden="true">📚</span>Homework</button>
+      <button class="mini-say" type="button" data-say="Homework." aria-label="Say: Homework">🔊</button>
+    </div>
+    <div class="filter-tab">
+      <button class="filter" type="button" data-filter="practice" aria-pressed="false"><span class="f-ico" aria-hidden="true">🎓</span>Practice</button>
+      <button class="mini-say" type="button" data-say="Practice games." aria-label="Say: Practice games">🔊</button>
+    </div>
+    <div class="filter-tab">
+      <button class="filter" type="button" data-filter="fun" aria-pressed="false"><span class="f-ico" aria-hidden="true">🎲</span>Fun</button>
+      <button class="mini-say" type="button" data-say="Fun. Chess." aria-label="Say: Fun. Chess">🔊</button>
+    </div>
+  </nav>
+
   <div class="lineup">
 
-    <a class="card homework" href="hw-20260906-phonics-ai-ee-words/" data-say="Ai / Ee Words. Homework." data-hw="jackHw_hw20260906phonicsaieewords">
+    <a class="card homework" href="hw-20260906-phonics-ai-ee-words/" data-group="homework" data-say="Ai / Ee Words. Homework." data-hw="jackHw_hw20260906phonicsaieewords">
       <span class="score" id="score-hw-20260906-phonics-ai-ee-words" hidden></span>
       <button class="say" type="button" aria-label="Say: Ai / Ee Words">🔊</button>
       <span class="icon" aria-hidden="true">🔤</span>
@@ -308,7 +460,7 @@
       <span class="what">Homework</span>
     </a>
 
-    <a class="card homework" href="hw-20260906-maths-number-bonds-to-10-1/" data-say="Number Bonds To 10. Homework." data-hw="jackHw_hw20260906mathsnumberbondsto101">
+    <a class="card homework" href="hw-20260906-maths-number-bonds-to-10-1/" data-group="homework" data-say="Number Bonds To 10. Homework." data-hw="jackHw_hw20260906mathsnumberbondsto101">
       <span class="score" id="score-hw-20260906-maths-number-bonds-to-10-1" hidden></span>
       <button class="say" type="button" aria-label="Say: Number Bonds To 10">🔊</button>
       <span class="icon" aria-hidden="true">🔢</span>
@@ -316,7 +468,7 @@
       <span class="what">Homework</span>
     </a>
 
-    <a class="card words" href="reading-game/" data-say="Jack's Words. Reading.">
+    <a class="card words" href="reading-game/" data-group="practice" data-say="Jack's Words. Reading.">
       <span class="score" id="score-words" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Words">🔊</button>
       <span class="icon" aria-hidden="true">📖</span>
@@ -324,7 +476,7 @@
       <span class="what">Reading</span>
     </a>
 
-    <a class="card match" href="match-game/" data-say="Jack's Match. Read and write.">
+    <a class="card match" href="match-game/" data-group="practice" data-say="Jack's Match. Read and write.">
       <span class="score" id="score-match" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Match">🔊</button>
       <span class="icon" aria-hidden="true">🥅✍️</span>
@@ -332,7 +484,7 @@
       <span class="what">Read &amp; write</span>
     </a>
 
-    <a class="card letters" href="letters-game/" data-say="Jack's Letters. Writing.">
+    <a class="card letters" href="letters-game/" data-group="practice" data-say="Jack's Letters. Writing.">
       <span class="score" id="score-letters" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Letters">🔊</button>
       <span class="icon" aria-hidden="true">✏️</span>
@@ -340,7 +492,7 @@
       <span class="what">Write with your finger</span>
     </a>
 
-    <a class="card numbers" href="math-game/" data-say="Jack's Numbers. Maths.">
+    <a class="card numbers" href="math-game/" data-group="practice" data-say="Jack's Numbers. Maths.">
       <span class="score" id="score-numbers" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Numbers">🔊</button>
       <span class="icon" aria-hidden="true">🔢</span>
@@ -348,7 +500,7 @@
       <span class="what">Maths</span>
     </a>
 
-    <a class="card big" href="big-numbers/" data-say="Jack's Big Numbers. Maths to one hundred.">
+    <a class="card big" href="big-numbers/" data-group="practice" data-new="2026-09-06" data-say="Jack's Big Numbers. Maths to one hundred.">
       <span class="score" id="score-big" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Big Numbers">🔊</button>
       <span class="icon" aria-hidden="true">💯</span>
@@ -357,7 +509,7 @@
     </a>
 
     <!-- Order: homework/practice games first. Chess stays LAST — it is the treat. -->
-    <a class="card apples" href="apples-game/" data-say="Jack's Apples. Numbers to twenty.">
+    <a class="card apples" href="apples-game/" data-group="practice" data-new="2026-09-06" data-say="Jack's Apples. Numbers to twenty.">
       <span class="score" id="score-apples" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Apples">🔊</button>
       <span class="icon" aria-hidden="true">🍎</span>
@@ -365,7 +517,7 @@
       <span class="what">Numbers 1–20</span>
     </a>
 
-    <a class="card sight" href="sight-words/" data-say="Jack's Sight Words. Reading.">
+    <a class="card sight" href="sight-words/" data-group="practice" data-new="2026-09-06" data-say="Jack's Sight Words. Reading.">
       <span class="score" id="score-sight" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Sight Words">🔊</button>
       <span class="icon" aria-hidden="true">👀</span>
@@ -373,7 +525,9 @@
       <span class="what">Top 20 words</span>
     </a>
 
-    <a class="card chess" href="chess/" data-say="Chess.">
+    <div class="slot" id="empty-slot" hidden><span class="plus" aria-hidden="true">+</span><span class="what">Nothing here yet</span></div>
+
+    <a class="card chess" href="chess/" data-group="fun" data-say="Chess.">
       <span class="score" id="score-chess" hidden></span>
       <button class="say" type="button" aria-label="Say: Chess">🔊</button>
       <span class="icon" aria-hidden="true">♟️</span>
@@ -396,6 +550,24 @@
 <script>
 (function () {
   'use strict';
+
+  /* Adding a game: add a card with data-group + data-new, and a WHATS_NEW entry. */
+  var WHATS_NEW = [
+    { date: '2026-09-06', icon: '💯', text: "Jack's Big Numbers", href: 'big-numbers/', say: "New: Jack's Big Numbers. Maths to one hundred." },
+    { date: '2026-09-06', icon: '👀', text: "Jack's Sight Words", href: 'sight-words/', say: "New: Jack's Sight Words." },
+    { date: '2026-09-06', icon: '🍎', text: "Jack's Apples", href: 'apples-game/', say: "New: Jack's Apples. Numbers to twenty." },
+    { date: '2026-09-06', icon: '🎯', text: 'Accuracy meter in Apples & Letters', href: 'apples-game/', say: 'New: an accuracy meter when you trace.' },
+    { date: '2026-09-06', icon: '🔊', text: 'A real voice in every game', href: '', say: 'New: a real voice in every game.' },
+    { date: '2026-09-06', icon: '♟️', text: 'Chess pieces easier to tell apart', href: 'chess/', say: 'New: chess pieces are easier to tell apart.' }
+  ];
+  var NEW_STRIP_DAYS = 21;   /* how long an entry stays in the NEW strip */
+  var NEW_RIBBON_DAYS = 14;  /* how long a card wears the NEW ribbon */
+
+  function daysOld(iso) {
+    var t = Date.parse(iso + 'T00:00:00');
+    if (isNaN(t)) return Infinity;
+    return (Date.now() - t) / 86400000;
+  }
 
   /* ---- progress badges: read each game's own saved score ---- */
   function num(key) {
@@ -478,21 +650,142 @@
     } catch (e) { /* speech is a bonus, never block the link */ }
   }
 
-  var buttons = document.querySelectorAll('.say');
-  for (var i = 0; i < buttons.length; i++) {
-    buttons[i].addEventListener('click', function (ev) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      var card = this.closest('.card');
-      speak(card.getAttribute('data-say'), this);
-    });
-  }
+  /* delegated, so the what's-new chips built below are covered too */
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target && ev.target.closest ? ev.target.closest('.say, .mini-say') : null;
+    if (!btn) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    var card = btn.closest('.card');
+    var line = btn.getAttribute('data-say') || (card ? card.getAttribute('data-say') : '');
+    if (line) speak(line, btn);
+  });
 
+  function hideSayButtons() {
+    var b = document.querySelectorAll('.say, .mini-say');
+    for (var j = 0; j < b.length; j++) b[j].style.display = 'none';
+  }
   if (!hasTTS) {
-    for (var j = 0; j < buttons.length; j++) buttons[j].style.display = 'none';
+    hideSayButtons();
     var prompt = document.querySelector('.prompt');
     if (prompt) prompt.textContent = 'Tap a game to play.';
   }
+
+  /* ---- what's new: the newest things first, nothing older than 21 days ---- */
+  var strip     = document.getElementById('whatsnew');
+  var stripList = document.getElementById('whatsnew-list');
+  var stripMore = document.getElementById('whatsnew-more');
+  var stripOpen = false;
+
+  function freshNews() {
+    return WHATS_NEW
+      .filter(function (n) { return daysOld(n.date) <= NEW_STRIP_DAYS; })
+      .sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
+  }
+
+  function renderNews() {
+    if (!strip || !stripList || !stripMore) return;
+    var items = freshNews();
+    if (!items.length) { strip.hidden = true; return; }
+    strip.hidden = false;
+
+    var shown = stripOpen ? items : items.slice(0, 3);
+    stripList.textContent = '';
+    shown.forEach(function (n) {
+      var chip = document.createElement('span');
+      chip.className = 'chip';
+
+      var link = document.createElement(n.href ? 'a' : 'span');
+      link.className = 'chip-link';
+      if (n.href) link.href = n.href;
+      var ico = document.createElement('span');
+      ico.className = 'chip-ico';
+      ico.setAttribute('aria-hidden', 'true');
+      ico.textContent = n.icon;
+      var txt = document.createElement('span');
+      txt.textContent = n.text;
+      link.appendChild(ico);
+      link.appendChild(txt);
+
+      var say = document.createElement('button');
+      say.className = 'mini-say';
+      say.type = 'button';
+      say.setAttribute('data-say', n.say);
+      say.setAttribute('aria-label', 'Say: ' + n.text);
+      say.textContent = '🔊';
+      if (!hasTTS) say.style.display = 'none';
+
+      chip.appendChild(link);
+      chip.appendChild(say);
+      stripList.appendChild(chip);
+    });
+
+    stripMore.hidden = items.length <= 3;
+    stripMore.textContent = stripOpen ? 'less ◂' : 'more ▸';
+    stripMore.setAttribute('aria-expanded', stripOpen ? 'true' : 'false');
+  }
+
+  if (stripMore) {
+    stripMore.addEventListener('click', function () { stripOpen = !stripOpen; renderNews(); });
+  }
+  renderNews();
+
+  /* ---- NEW ribbon on a card added in the last two weeks ---- */
+  document.querySelectorAll('.card[data-new]').forEach(function (c) {
+    if (daysOld(c.getAttribute('data-new')) > NEW_RIBBON_DAYS) return;
+    c.classList.add('is-new');
+    var r = document.createElement('span');
+    r.className = 'ribbon';
+    r.textContent = 'NEW';
+    c.insertBefore(r, c.firstChild);
+  });
+
+  /* ---- filter tabs: All / Homework / Practice / Fun ---- */
+  var GROUPS = ['all', 'homework', 'practice', 'fun'];
+  var grid  = document.querySelector('.lineup');
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.lineup .card'));
+  var empty = document.getElementById('empty-slot');
+  var tabs  = Array.prototype.slice.call(document.querySelectorAll('.filter'));
+
+  function applyFilter(group) {
+    if (GROUPS.indexOf(group) < 0) group = 'all';
+    var shown = 0;
+    cards.forEach(function (c) {
+      var on = (group === 'all') || (c.getAttribute('data-group') === group);
+      c.hidden = !on;
+      c.classList.remove('run-on');
+      if (on) { c.style.animationDelay = (0.05 + shown * 0.07).toFixed(2) + 's'; shown++; }
+    });
+    if (empty) empty.hidden = shown > 0;
+    if (grid) void grid.offsetWidth;          /* restart the run-on animation */
+    cards.forEach(function (c) { if (!c.hidden) c.classList.add('run-on'); });
+
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('data-filter') === group;
+      t.setAttribute('aria-pressed', on ? 'true' : 'false');
+      if (t.parentNode) t.parentNode.classList.toggle('is-active', on);
+    });
+    try { localStorage.setItem('jackFilter', group); } catch (e) { /* private mode */ }
+  }
+
+  function groupFromHash() {
+    var h = (location.hash || '').replace(/^#/, '').toLowerCase();
+    return GROUPS.indexOf(h) >= 0 ? h : '';
+  }
+
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () { applyFilter(this.getAttribute('data-filter')); });
+  });
+  window.addEventListener('hashchange', function () {
+    var g = groupFromHash();
+    if (g) applyFilter(g);
+  });
+
+  var start = groupFromHash();          /* a link like /#homework wins */
+  if (!start) {
+    try { start = localStorage.getItem('jackFilter') || 'all'; } catch (e) { start = 'all'; }
+  }
+  applyFilter(start);
 })();
 </script>
 </body>
