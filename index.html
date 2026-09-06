@@ -170,6 +170,7 @@
   .card:nth-child(7) { animation-delay: .53s; }
   .card:nth-child(8) { animation-delay: .61s; }
   .card:nth-child(9) { animation-delay: .69s; }
+  .card:nth-child(10) { animation-delay: .77s; }
   @keyframes run-on {
     from { opacity: 0; transform: translateY(26px) scale(.94); }
     to   { opacity: 1; transform: none; }
@@ -193,6 +194,7 @@
 
   .words   { background: linear-gradient(160deg, var(--words), var(--words-deep)); }
   .numbers { background: linear-gradient(160deg, var(--numbers), var(--numbers-deep)); }
+  .big     { background: linear-gradient(160deg, #0e7490, #0f766e); }
   .match   { background: linear-gradient(160deg, #f59e0b, #b45309); }
   .letters { background: linear-gradient(160deg, #64748b, #2b3440); }
   .apples  { background: linear-gradient(160deg, #ef4444, #991b1b); }
@@ -346,6 +348,14 @@
       <span class="what">Maths</span>
     </a>
 
+    <a class="card big" href="big-numbers/" data-say="Jack's Big Numbers. Maths to one hundred.">
+      <span class="score" id="score-big" hidden></span>
+      <button class="say" type="button" aria-label="Say: Jack's Big Numbers">🔊</button>
+      <span class="icon" aria-hidden="true">💯</span>
+      <span class="name">Jack's Big Numbers</span>
+      <span class="what">Maths to 100</span>
+    </a>
+
     <!-- Order: homework/practice games first. Chess stays LAST — it is the treat. -->
     <a class="card apples" href="apples-game/" data-say="Jack's Apples. Numbers to twenty.">
       <span class="score" id="score-apples" hidden></span>
@@ -404,12 +414,14 @@
     var xp      = num('jackChessXp');
     var match   = num('jackMatchFootballs');
     var apples  = num('jackApplesFootballs');
+    var big     = num('jackBigFootballs');
     var sight   = num('jackSightStars');
     var letters = (localStorage.getItem('jackLettersDone') || '').length;
     badge('score-words',   read,    '⚽ ' + read);
     badge('score-match',   match,   '⚽ ' + match);
     badge('score-letters', letters, letters + '/26');
     badge('score-numbers', math,    '⚽ ' + math);
+    badge('score-big',     big,     '⚽ ' + big);
     badge('score-apples',  apples,  '⚽ ' + apples);
     badge('score-sight',   sight,   '⭐ ' + sight);
     badge('score-chess',   xp,      '⭐ ' + xp);

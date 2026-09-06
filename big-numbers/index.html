@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>Jack's Big Numbers 💯</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Big Numbers">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #0f766e, #0e7490 55%, #0f766e);
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;          /* the whole game always fits on one screen */
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  a:focus-visible, button:focus-visible { outline: 3px solid #fde047; outline-offset: 2px; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(0,0,0,.26);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none; color: #f1f5f9;
+    font-size: 1.5rem; line-height: 1;
+    min-width: 44px; min-height: 44px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    background: rgba(255,255,255,.13);
+  }
+  header h1 { font-size: clamp(1rem, 2.8vw, 1.5rem); white-space: nowrap; }
+  /* on a phone the score matters more than the title */
+  @media (max-width: 560px) { header h1 { display: none; } }
+  #score {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1px;
+    font-size: 1.25rem;
+    justify-content: flex-end;
+    overflow: hidden;
+    max-height: 2.2rem;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.2rem; margin-left: 6px; }
+  #settingsBtn {
+    background: none; border: none; color: #f1f5f9;
+    font-size: 1.2rem; opacity: .5; cursor: pointer;
+    min-width: 44px; min-height: 44px;
+  }
+
+  /* ---------- stage ---------- */
+  main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 1.8vh, 20px);
+    padding: clamp(8px, 1.6vh, 18px) 10px calc(clamp(8px, 1.6vh, 18px) + env(safe-area-inset-bottom));
+    text-align: center;
+    overflow: hidden;
+  }
+  .hidden { display: none !important; }
+
+  #problem {
+    flex: 0 0 auto;
+    font-size: clamp(1.9rem, 7.4vmin, 4rem);
+    font-weight: 900;
+    line-height: 1.1;
+    cursor: pointer;
+    padding: .05em .35em;
+    border-radius: 18px;
+    text-shadow: 0 5px 16px rgba(0,0,0,.35);
+  }
+  #problem.words { font-size: clamp(1.2rem, 4.4vmin, 2.2rem); }
+  #problem:hover { background: rgba(255,255,255,.1); }
+
+  /* the footballs: ten to a net, the rest loose */
+  #stage {
+    --bs: 30px;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  #stageInner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: calc(var(--bs) * .5);
+    max-width: 100%;
+  }
+  .group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--bs) * .3);
+    padding: calc(var(--bs) * .18);
+    border-radius: 14px;
+  }
+  .group.second { background: rgba(253,224,71,.16); }
+  .net, .ones {
+    display: grid;
+    grid-template-columns: repeat(5, var(--bs));
+    gap: calc(var(--bs) * .1);
+    padding: calc(var(--bs) * .22);
+    border-radius: 12px;
+  }
+  /* a net of ten — the tens rod they use at school */
+  .net {
+    background: rgba(255,255,255,.13);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.3);
+  }
+  .ones { background: rgba(255,255,255,.05); }
+  .op {
+    font-size: calc(var(--bs) * 1.5);
+    font-weight: 900;
+    opacity: .9;
+    padding: 0 .1em;
+  }
+  .cball {
+    position: relative;
+    width: var(--bs);
+    height: var(--bs);
+    display: grid;
+    place-items: center;
+    border: none;
+    background: none;
+    color: inherit;
+    font-family: inherit;
+    font-size: calc(var(--bs) * .88);
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: transform .12s ease;
+  }
+  .cball:active { transform: scale(.86); }
+  .cball.counted { box-shadow: 0 0 0 3px #fde047; }
+  .cball.counted .num {
+    position: absolute;
+    top: -40%; right: -30%;
+    background: #fde047;
+    color: #0f172a;
+    font-size: calc(var(--bs) * .42);
+    font-weight: 900;
+    min-width: 1.6em;
+    padding: 0 3px;
+    border-radius: 999px;
+    animation: pop .3s ease;
+  }
+  /* only the ball itself fades — the cross stays bright, so it reads as
+     "this one is gone" and not just "this one is dim" */
+  .cball .pic { line-height: 1; }
+  .cball.gone .pic { opacity: .3; filter: grayscale(1); }
+  .cball.gone::after {
+    content: '✖';
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    color: #fb7185;
+    font-size: 1.15em;
+    font-weight: 900;
+    text-shadow: 0 1px 3px rgba(0,0,0,.5);
+  }
+
+  /* what comes next: the sequence in big chips */
+  .seq { display: flex; flex-wrap: wrap; gap: clamp(8px, 2vmin, 18px); justify-content: center; }
+  .seq .chip {
+    min-width: clamp(54px, 13vmin, 104px);
+    padding: clamp(8px, 2vmin, 18px) clamp(6px, 1.4vmin, 12px);
+    border-radius: 18px;
+    background: rgba(255,255,255,.14);
+    font-size: clamp(1.6rem, 6.5vmin, 3.4rem);
+    font-weight: 900;
+  }
+  .seq .chip.q { background: rgba(253,224,71,.22); color: #fde047; }
+
+  /* ---------- answer tiles ---------- */
+  #tiles {
+    flex: 0 0 auto;
+    display: flex;
+    gap: clamp(8px, 2vmin, 16px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .tile {
+    min-width: 44px; min-height: 44px;
+    width: clamp(66px, 13vmin, 108px);
+    height: clamp(58px, 11vmin, 92px);
+    border: none;
+    border-radius: 18px;
+    font-family: inherit;
+    font-size: clamp(1.7rem, 5.6vmin, 3rem);
+    font-weight: 900;
+    color: #0f172a;
+    cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .tile:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .tile.shake { animation: shake .35s ease; }
+  .tile:disabled { opacity: .3; cursor: default; box-shadow: none; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    font-family: inherit; font-weight: 800; color: #0f172a;
+    border: none; border-radius: 999px; cursor: pointer;
+    min-height: 44px;
+    padding: clamp(9px, 1.6vh, 14px) clamp(18px, 4vw, 30px);
+    font-size: clamp(.9rem, 2.4vmin, 1.2rem);
+    background: #fde047;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .btn.ghost { background: rgba(255,255,255,.14); color: #f1f5f9; box-shadow: none; }
+
+  /* ---------- the answer ---------- */
+  #cheer { flex: 0 0 auto; font-size: clamp(1.2rem, 4vmin, 2.1rem); font-weight: 900; animation: pop .5s ease; }
+  #equation {
+    flex: 0 0 auto;
+    font-size: clamp(2rem, 8vmin, 4.6rem);
+    font-weight: 900;
+    line-height: 1.25;
+    cursor: pointer;
+    padding: .1em .3em;
+    border-radius: 22px;
+  }
+  #equation:hover { background: rgba(255,255,255,.1); }
+  .rainbow {
+    display: inline-block;
+    background: linear-gradient(90deg, #ff3b6b, #ff9f1a, #ffd60a, #2ecc71, #34d399, #8b5cf6, #ff3b6b);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 900;
+    animation: rainbowShift 2.5s linear infinite, pulseWord 1s ease-in-out infinite;
+  }
+
+  /* ---------- overlays ---------- */
+  #startOverlay, #endOverlay {
+    position: fixed; inset: 0; z-index: 70;
+    background: linear-gradient(160deg, #0f766e, #0e7490 55%, #0f766e);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: clamp(16px, 4vh, 32px); text-align: center; padding: 24px;
+  }
+  #startOverlay h2, #endOverlay h2 { font-size: clamp(1.5rem, 5.5vmin, 2.8rem); }
+  #startOverlay p, #endOverlay p { max-width: 28ch; opacity: .9; font-size: clamp(.95rem, 2.4vmin, 1.2rem); }
+  #endScore { font-size: clamp(1.4rem, 5vmin, 2.4rem); font-weight: 900; opacity: 1; }
+  #playBtn {
+    width: clamp(120px, 26vmin, 190px);
+    height: clamp(120px, 26vmin, 190px);
+    border-radius: 50%;
+    font-size: clamp(3rem, 10vmin, 5rem);
+    padding: 0;
+    animation: pulseWord 1.6s ease-in-out infinite;
+  }
+
+  /* ---------- settings ---------- */
+  #settingsPanel {
+    position: fixed; top: 56px; right: 12px; z-index: 60;
+    background: #fff; color: #0f172a;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; min-height: 44px; padding: 8px 14px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  /* ---------- toast + confetti ---------- */
+  #feedback {
+    position: fixed; left: 50%; bottom: 9vh; transform: translateX(-50%);
+    background: rgba(2,44,44,.92); color: #f1f5f9;
+    font-size: clamp(1rem, 2.8vmin, 1.4rem); font-weight: 700;
+    padding: .55em 1.15em; border-radius: 999px;
+    z-index: 50; pointer-events: none; white-space: nowrap;
+    animation: pop .3s ease;
+  }
+  .confetti { position: fixed; top: -6vh; font-size: 1.8rem; animation: fall linear forwards; pointer-events: none; z-index: 80; }
+
+  /* ---------- keyframes ---------- */
+  @keyframes pop { 0% { transform: scale(.5); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+  @keyframes rainbowShift { to { background-position: 300% 0; } }
+  @keyframes pulseWord { 50% { transform: scale(1.1); } }
+  @keyframes bounceIn {
+    0% { transform: translateY(-40px) scale(.3); opacity: 0; }
+    55% { transform: translateY(6px) scale(1.15); opacity: 1; }
+    75% { transform: translateY(-4px) scale(.95); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  @keyframes fall { to { transform: translateY(115vh) rotate(400deg); } }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Jack's Big Numbers</h1>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <!-- play -->
+  <div id="problem" class="hidden"></div>
+  <div id="stage" class="hidden"><div id="stageInner"></div></div>
+  <button id="hearBtn" class="btn ghost hidden">🔊 Hear it</button>
+  <div id="tiles" class="hidden"></div>
+
+  <!-- the answer -->
+  <div id="cheer" class="hidden"></div>
+  <div id="equation" class="hidden"></div>
+  <button id="hearAnswerBtn" class="btn ghost hidden">🔊 Hear it</button>
+  <button id="nextBtn" class="btn hidden">Next ➜ ⚽</button>
+</main>
+
+<div id="startOverlay">
+  <h2>💯 Jack's Big Numbers</h2>
+  <p>Tens and ones, all the way to one hundred.</p>
+  <button id="playBtn" class="btn">▶</button>
+</div>
+
+<div id="endOverlay" class="hidden">
+  <h2>🏁 Full time!</h2>
+  <p id="endScore"></p>
+  <button id="playAgainBtn" class="btn">▶ Play again</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <button id="resetBtn">Start again</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say lives in here and nowhere else. It touches no
+     DOM, so tools/phrases/big-numbers.txt is generated straight out of this
+     block (see the generator in the commit message) and can never drift. */
+
+  var ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+              'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
+              'seventeen', 'eighteen', 'nineteen'];
+  var TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+  /* every number word from zero to one hundred: "twenty-three", "one hundred" */
+  var NUM_WORDS = (function () {
+    var a = [], n, t, o;
+    for (n = 0; n <= 100; n++) {
+      if (n < 20) { a.push(ONES[n]); continue; }
+      if (n === 100) { a.push('one hundred'); continue; }
+      t = Math.floor(n / 10); o = n % 10;
+      a.push(TENS[t] + (o ? '-' + ONES[o] : ''));
+    }
+    return a;
+  })();
+
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  /* Sixty problems in six steps, always in this order. Each one is a small
+     object; `ten` marks the +10 / -10 step, which gets its own picture. */
+  var PROBLEMS = [
+    /* 1 — tens and ones: how many footballs in the nets? */
+    { t: 'tens', a: 12 }, { t: 'tens', a: 15 }, { t: 'tens', a: 21 }, { t: 'tens', a: 27 },
+    { t: 'tens', a: 34 }, { t: 'tens', a: 40 }, { t: 'tens', a: 46 }, { t: 'tens', a: 53 },
+    { t: 'tens', a: 68 }, { t: 'tens', a: 75 },
+    /* 2 — add ones, the tens never change */
+    { t: 'add', a: 23, b: 4 }, { t: 'add', a: 31, b: 5 }, { t: 'add', a: 42, b: 3 },
+    { t: 'add', a: 55, b: 2 }, { t: 'add', a: 64, b: 4 }, { t: 'add', a: 71, b: 6 },
+    { t: 'add', a: 25, b: 3 }, { t: 'add', a: 36, b: 2 }, { t: 'add', a: 83, b: 5 },
+    { t: 'add', a: 92, b: 6 },
+    /* 3 — a whole net more, or a whole net gone */
+    { t: 'add', a: 23, b: 10, ten: 1 }, { t: 'add', a: 45, b: 10, ten: 1 },
+    { t: 'add', a: 67, b: 10, ten: 1 }, { t: 'add', a: 34, b: 10, ten: 1 },
+    { t: 'add', a: 58, b: 10, ten: 1 }, { t: 'sub', a: 47, b: 10, ten: 1 },
+    { t: 'sub', a: 82, b: 10, ten: 1 }, { t: 'sub', a: 36, b: 10, ten: 1 },
+    { t: 'sub', a: 91, b: 10, ten: 1 }, { t: 'sub', a: 65, b: 10, ten: 1 },
+    /* 4 — bridging: the ones spill over into the next ten */
+    { t: 'add', a: 27, b: 5 }, { t: 'add', a: 38, b: 4 }, { t: 'add', a: 49, b: 3 },
+    { t: 'add', a: 56, b: 7 }, { t: 'add', a: 65, b: 8 }, { t: 'sub', a: 32, b: 4 },
+    { t: 'sub', a: 41, b: 3 }, { t: 'sub', a: 53, b: 5 }, { t: 'sub', a: 64, b: 6 },
+    { t: 'sub', a: 72, b: 7 },
+    /* 5 — whole tens only */
+    { t: 'add', a: 30, b: 40 }, { t: 'add', a: 20, b: 50 }, { t: 'add', a: 60, b: 30 },
+    { t: 'add', a: 10, b: 70 }, { t: 'add', a: 40, b: 40 }, { t: 'sub', a: 90, b: 30 },
+    { t: 'sub', a: 80, b: 50 }, { t: 'sub', a: 100, b: 40 }, { t: 'sub', a: 70, b: 20 },
+    { t: 'sub', a: 60, b: 60 },
+    /* 6 — what comes next: counting in twos, fives and tens */
+    { t: 'next', seq: [12, 14, 16], step: 2 }, { t: 'next', seq: [5, 10, 15], step: 5 },
+    { t: 'next', seq: [30, 40, 50], step: 10 }, { t: 'next', seq: [24, 26, 28], step: 2 },
+    { t: 'next', seq: [35, 40, 45], step: 5 }, { t: 'next', seq: [60, 70, 80], step: 10 },
+    { t: 'next', seq: [18, 20, 22], step: 2 }, { t: 'next', seq: [45, 50, 55], step: 5 },
+    { t: 'next', seq: [70, 80, 90], step: 10 }, { t: 'next', seq: [88, 90, 92], step: 2 }
+  ];
+
+  function answerOf(p) {
+    if (p.t === 'tens') return p.a;
+    if (p.t === 'add') return p.a + p.b;
+    if (p.t === 'sub') return p.a - p.b;
+    return p.seq[p.seq.length - 1] + p.step;
+  }
+
+  function questionText(p) {
+    if (p.t === 'tens') return 'How many footballs?';
+    if (p.t === 'next') return 'What comes next?';
+    if (p.t === 'add') return 'What is ' + NUM_WORDS[p.a] + ' plus ' + NUM_WORDS[p.b] + '?';
+    return 'What is ' + NUM_WORDS[p.a] + ' take away ' + NUM_WORDS[p.b] + '?';
+  }
+
+  /* the answer on its own, the way it is cheered: "Twenty-seven!" */
+  function answerWord(p) { return cap(NUM_WORDS[answerOf(p)]) + '!'; }
+
+  /* the whole thing as one sentence: "Twenty-three plus four is twenty-seven." */
+  function answerSentence(p) {
+    var r = NUM_WORDS[answerOf(p)];
+    if (p.t === 'tens') return 'There are ' + r + ' footballs.';
+    if (p.t === 'next') {
+      var w = [], i;
+      for (i = 0; i < p.seq.length; i++) w.push(NUM_WORDS[p.seq[i]]);
+      w.push(r);
+      return cap(w.join(', ')) + '.';
+    }
+    if (p.t === 'add') return cap(NUM_WORDS[p.a]) + ' plus ' + NUM_WORDS[p.b] + ' is ' + r + '.';
+    return cap(NUM_WORDS[p.a]) + ' take away ' + NUM_WORDS[p.b] + ' is ' + r + '.';
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i;
+    function add(s) { if (s && !seen[s]) { seen[s] = 1; out.push(s); } }
+    add("Jack's Big Numbers.");
+    add("Let's go!");
+    add('Try again');
+    add('On fire!');
+    add('Full time!');
+    add('Well done, Jack!');
+    for (i = 0; i <= 100; i++) add(NUM_WORDS[i]);   /* tapping a ball or a tile */
+    for (i = 0; i < PROBLEMS.length; i++) {
+      add(questionText(PROBLEMS[i]));
+      add(answerWord(PROBLEMS[i]));
+      add(answerSentence(PROBLEMS[i]));
+    }
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') { return; }
+  window.__phrases = phraseList;
+
+  var TILE_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4', '#fdba74', '#c4b5fd', '#67e8f9'];
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💛', '💯'];
+
+  /* ================= State ================= */
+  var footballs = parseInt(localStorage.getItem('jackBigFootballs') || '0', 10) || 0;
+  var probIndex = parseInt(localStorage.getItem('jackBigIndex') || '0', 10) || 0;
+  if (!(probIndex >= 0) || probIndex >= PROBLEMS.length) probIndex = 0;
+  var streak = 0;
+  var countStep = 0;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), problem: $('problem'), stage: $('stage'), stageInner: $('stageInner'),
+    hearBtn: $('hearBtn'), tiles: $('tiles'), cheer: $('cheer'), equation: $('equation'),
+    hearAnswerBtn: $('hearAnswerBtn'), nextBtn: $('nextBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    endOverlay: $('endOverlay'), endScore: $('endScore'), playAgainBtn: $('playAgainBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    try {
+      localStorage.setItem('jackBigFootballs', String(footballs));
+      localStorage.setItem('jackBigIndex', String(probIndex));
+    } catch (e) { /* private mode: the game still plays */ }
+  }
+
+  /* ================= Voice =================
+     The browser's own voice sounds like a computer, so every line these
+     games say is pre-rendered with a neural en-GB voice (tools/build-audio.py)
+     and played back through Web Audio. speechSynthesis is only the fallback
+     for a line that has no clip. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/big-numbers/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment: "Twenty-seven! ... Twenty-three plus
+     four is twenty-seven." is the word clip followed by the sentence clip.
+     Written out by hand because a lookbehind regex would not parse on older
+     phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    var BREAK = /^\s*(?:!\s*\.\.\.\s*|\.\.\.\s*)/;
+    while (i < t.length) {
+      var m = BREAK.exec(t.slice(i));
+      if (m && m[0].length) {
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+        i += m[0].length;
+        continue;
+      }
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?' || ch === ':') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      /* nothing has been tapped yet, so there is no audio context to decode
+         into — just pull the file into the browser cache and try again later */
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips for the screen he is about to tap on, so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var f = clipFor(list[i]);
+        if (f && !buffers[f]) loadClip(f).catch(function () {});
+      }
+    });
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Samantha|Martha|Serena|Kate|Karen|Moira|Zira|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) || find(en, good) ||
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(gb, female) ||
+      find(en, /female|woman/i) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  /* the fallback: only used for a line that has no clip */
+  function say(text, rate, pitch, my, done) {
+    if (!hasSpeech) { if (done) done(); return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = (rate || 0.95);
+      u.pitch = pitch || 1;
+      u.onend = function () { if (my === speakToken && done) done(); };
+      u.onerror = u.onend;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { if (done) done(); }
+  }
+
+  function speak(text, rate, pitch) {
+    if (!hasTTS) return;
+    stopSpeaking();
+    var my = speakToken;
+    var parts = segments(text);
+    if (!parts.length) return;
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken || i >= parts.length) return;
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) onward();
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            src.start(0);
+          }, function () { say(parts[i], rate, pitch, my, onward); });
+        } else {
+          say(parts[i], rate, pitch, my, onward);
+        }
+      })(0);
+    });
+  }
+
+  window.__speak = speak;    /* lets a browser check drive the voice from outside */
+
+  if (hasSpeech) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+  if (!hasTTS) {
+    els.hearBtn.style.display = 'none';
+    els.hearAnswerBtn.style.display = 'none';
+  }
+
+  /* ================= Small helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1600);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+      c.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 12) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  var STATE_ELS = {
+    play: ['problem', 'stage', 'hearBtn', 'tiles'],
+    answer: ['cheer', 'equation', 'hearAnswerBtn', 'nextBtn']
+  };
+  function show(state) {
+    [].concat(STATE_ELS.play, STATE_ELS.answer).forEach(function (id) { els[id].classList.add('hidden'); });
+    STATE_ELS[state].forEach(function (id) { els[id].classList.remove('hidden'); });
+  }
+
+  /* ================= Distractors =================
+     One away, ten away, or the two digits the other way round — the three
+     mistakes a six-year-old actually makes. Never the right answer twice,
+     never outside 0-100. */
+  function digitSwap(n) {
+    if (n < 0 || n > 99) return -1;
+    var t = Math.floor(n / 10), o = n % 10;
+    return o * 10 + t;
+  }
+
+  function optionsFor(answer) {
+    var out = [answer];
+    function tryAdd(v) {
+      if (v < 0 || v > 100 || out.indexOf(v) !== -1) return;
+      out.push(v);
+    }
+    var wanted = shuffle([answer + 1, answer - 1, answer + 10, answer - 10, digitSwap(answer)]);
+    wanted.forEach(function (v) { if (out.length < 4) tryAdd(v); });
+    /* answers at the very edge can run out of near misses — widen the net */
+    var backup = shuffle([answer + 2, answer - 2, answer + 20, answer - 20, answer + 11, answer - 11]);
+    backup.forEach(function (v) { if (out.length < 4) tryAdd(v); });
+    for (var extra = 1; out.length < 4; extra++) { tryAdd(answer + extra); tryAdd(answer - extra); }
+    return out.slice(0, 4);
+  }
+
+  /* ================= The picture ================= */
+  function current() { return PROBLEMS[probIndex]; }
+
+  function makeBall(gone) {
+    var b = document.createElement('button');
+    b.className = 'cball' + (gone ? ' gone' : '');
+    var pic = document.createElement('span');
+    pic.className = 'pic';
+    pic.textContent = '⚽';
+    b.appendChild(pic);
+    b.setAttribute('aria-label', 'football');
+    if (gone) b.disabled = true;
+    else b.addEventListener('click', function () { onBall(b); });
+    return b;
+  }
+
+  /* `value` footballs: ten to a net, the rest loose. `crossed` is a set of
+     ball positions (0-based, nets first) that are shown crossed out. */
+  function numberGroup(value, crossed, extraClass) {
+    var g = document.createElement('div');
+    g.className = 'group' + (extraClass ? ' ' + extraClass : '');
+    var nets = Math.floor(value / 10), ones = value % 10, i, j, net, box;
+    for (i = 0; i < nets; i++) {
+      net = document.createElement('div');
+      net.className = 'net';
+      for (j = 0; j < 10; j++) net.appendChild(makeBall(crossed && crossed[i * 10 + j]));
+      g.appendChild(net);
+    }
+    if (ones) {
+      box = document.createElement('div');
+      box.className = 'ones';
+      /* the loose ones only take the columns they need, so two of them do not
+         sit in a box as wide as a whole net */
+      box.style.gridTemplateColumns = 'repeat(' + Math.min(ones, 5) + ', var(--bs))';
+      for (j = 0; j < ones; j++) box.appendChild(makeBall(crossed && crossed[nets * 10 + j]));
+      g.appendChild(box);
+    }
+    return g;
+  }
+
+  function opSign(sign) {
+    var s = document.createElement('span');
+    s.className = 'op';
+    s.textContent = sign;
+    return s;
+  }
+
+  /* shrink the footballs until the whole picture fits the space it was given,
+     so the sum and the answer tiles never get pushed off the screen */
+  function fitStage() {
+    var el = els.stage, bs = 56, guard = 0;
+    el.style.setProperty('--bs', bs + 'px');
+    while (guard++ < 24 && bs > 11 &&
+           (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)) {
+      bs = Math.max(11, Math.floor(bs * 0.86));
+      el.style.setProperty('--bs', bs + 'px');
+    }
+  }
+
+  function drawStage(p) {
+    var inner = els.stageInner, crossed, i;
+    inner.innerHTML = '';
+    els.stage.classList.remove('hidden');
+
+    if (p.t === 'next') {
+      var seq = document.createElement('div');
+      seq.className = 'seq';
+      for (i = 0; i < p.seq.length; i++) {
+        var chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = p.seq[i];
+        seq.appendChild(chip);
+      }
+      var q = document.createElement('span');
+      q.className = 'chip q';
+      q.textContent = '?';
+      seq.appendChild(q);
+      inner.appendChild(seq);
+      return;
+    }
+
+    if (p.t === 'tens') {
+      inner.appendChild(numberGroup(p.a, null));
+      return;
+    }
+
+    if (p.t === 'add') {
+      inner.appendChild(numberGroup(p.a, null));
+      inner.appendChild(opSign('+'));
+      inner.appendChild(numberGroup(p.b, null, 'second'));
+      return;
+    }
+
+    /* taking away: the balls that go are crossed out where they stand */
+    crossed = {};
+    if (p.ten) {
+      /* a whole net disappears, not the last ten balls in the row */
+      var lastNet = Math.floor(p.a / 10) - 1;
+      for (i = 0; i < 10; i++) crossed[lastNet * 10 + i] = 1;
+    } else {
+      for (i = p.a - p.b; i < p.a; i++) crossed[i] = 1;
+    }
+    inner.appendChild(numberGroup(p.a, crossed));
+  }
+
+  function onBall(ball) {
+    var live = els.stageInner.querySelectorAll('.cball:not(.gone)');
+    if (ball.classList.contains('counted')) return;
+    countStep++;
+    speak(NUM_WORDS[Math.min(countStep, 100)], 0.95);
+    ball.classList.add('counted');
+    var badge = document.createElement('span');
+    badge.className = 'num';
+    badge.textContent = countStep;
+    ball.appendChild(badge);
+    if (countStep >= live.length) {
+      /* the whole lot is counted: clear the marks so he can count again */
+      setTimeout(function () {
+        countStep = 0;
+        var marked = els.stageInner.querySelectorAll('.cball.counted');
+        for (var i = 0; i < marked.length; i++) {
+          marked[i].classList.remove('counted');
+          var n = marked[i].querySelector('.num');
+          if (n) n.remove();
+        }
+      }, 2200);
+    }
+  }
+
+  /* ================= Play ================= */
+  function equationPrefix(p) {
+    if (p.t === 'tens') return '⚽ = ';
+    if (p.t === 'next') return p.seq.join(', ') + ', ';
+    return p.a + (p.t === 'add' ? ' + ' : ' − ') + p.b + ' = ';
+  }
+
+  function enterPlay() {
+    var p = current();
+    countStep = 0;
+    els.endOverlay.classList.add('hidden');
+
+    els.problem.classList.toggle('words', p.t === 'next');
+    if (p.t === 'tens') els.problem.textContent = '⚽ = ?';
+    else if (p.t === 'next') els.problem.textContent = 'What comes next?';
+    else els.problem.textContent = p.a + (p.t === 'add' ? ' + ' : ' − ') + p.b + ' = ?';
+
+    drawStage(p);
+
+    var answer = answerOf(p);
+    var opts = shuffle(optionsFor(answer));
+    els.tiles.innerHTML = '';
+    opts.forEach(function (num, i) {
+      var tile = document.createElement('button');
+      tile.className = 'tile';
+      tile.textContent = num;
+      tile.style.background = TILE_COLORS[i % TILE_COLORS.length];
+      tile.addEventListener('click', function () { onTile(tile, num); });
+      els.tiles.appendChild(tile);
+    });
+
+    show('play');
+    fitStage();
+
+    /* warm every clip this screen can need: the question, the answer, the
+       tiles, and the first stretch of counting */
+    var warm = [questionText(p), answerWord(p), answerSentence(p), 'Try again'];
+    opts.forEach(function (n) { warm.push(NUM_WORDS[n]); });
+    for (var w = 1; w <= 20; w++) warm.push(NUM_WORDS[w]);
+    preload(warm);
+    speak(questionText(p), 0.9);
+  }
+
+  function onTile(tile, num) {
+    var p = current();
+    if (tile.disabled) return;
+    if (num === answerOf(p)) {
+      footballs++;
+      streak++;
+      save();
+      renderScore(true);
+      if (streak > 0 && streak % 5 === 0) {
+        showFeedback('On fire! 🔥');
+        speak('On fire!', 0.95);
+        setTimeout(function () { enterAnswer(); }, 900);
+      } else {
+        speak(NUM_WORDS[num], 0.95);
+        setTimeout(function () { enterAnswer(); }, 400);
+      }
+    } else {
+      streak = 0;
+      tile.disabled = true;
+      tile.classList.remove('shake');
+      void tile.offsetWidth;
+      tile.classList.add('shake');
+      showFeedback('Try again 🙂');
+      speak('Try again', 0.95);
+    }
+  }
+
+  /* ================= The answer ================= */
+  function enterAnswer() {
+    var p = current();
+    var answer = answerOf(p);
+
+    celebrate(28);
+
+    els.equation.innerHTML = '';
+    els.equation.appendChild(document.createTextNode(equationPrefix(p)));
+    var span = document.createElement('span');
+    span.className = 'rainbow';
+    span.textContent = answer;
+    els.equation.appendChild(span);
+
+    var isLast = probIndex === PROBLEMS.length - 1;
+    els.cheer.textContent = isLast ? '🏆 That was the last one!' : 'GOAL! ⚽ Well done, Jack!';
+    els.nextBtn.textContent = isLast ? 'Full time ➜ 🏁' : 'Next ➜ ⚽';
+
+    show('answer');
+    speak(answerWord(p) + ' ... ' + answerSentence(p), 0.9);
+  }
+
+  function nextProblem() {
+    if (probIndex >= PROBLEMS.length - 1) {
+      probIndex = PROBLEMS.length - 1;
+      save();
+      enterFullTime();
+      return;
+    }
+    probIndex++;
+    save();
+    enterPlay();
+  }
+
+  function enterFullTime() {
+    els.endScore.textContent = '⚽ ' + footballs;
+    els.endOverlay.classList.remove('hidden');
+    celebrate(50);
+    speak('Full time! Well done, Jack!', 0.9);
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasTTS) pickVoice();
+    els.startOverlay.remove();
+    speak("Jack's Big Numbers. Let's go!", 0.9);
+    setTimeout(function () { enterPlay(); }, 10);
+  });
+
+  els.problem.addEventListener('click', function () { speak(questionText(current()), 0.9); });
+  els.hearBtn.addEventListener('click', function () { speak(questionText(current()), 0.9); });
+  els.equation.addEventListener('click', function () { speak(answerSentence(current()), 0.9); });
+  els.hearAnswerBtn.addEventListener('click', function () { speak(answerSentence(current()), 0.9); });
+  els.nextBtn.addEventListener('click', nextProblem);
+
+  els.playAgainBtn.addEventListener('click', function () {
+    probIndex = 0;
+    streak = 0;
+    save();
+    els.endOverlay.classList.add('hidden');
+    enterPlay();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Clear the footballs and start from the first sum?')) {
+      footballs = 0;
+      probIndex = 0;
+      streak = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+      els.endOverlay.classList.add('hidden');
+      enterPlay();
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!els.stage.classList.contains('hidden')) fitStage();
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>
