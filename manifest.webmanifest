@@ -1,7 +1,7 @@
 {
   "name": "Jack's Games",
   "short_name": "Jack",
-  "description": "Jack's own games: reading, maths and chess.",
+  "description": "Jack's own games: reading, writing, maths and chess.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#991b1b">
+<title>Jack's Apples 🍎</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Apples">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #7f1d1d 0%, #b91c1c 55%, #7f1d1d 100%);
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(0,0,0,.28);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none; color: #f1f5f9;
+    font-size: 1.6rem; line-height: 1;
+    padding: 6px 10px; border-radius: 12px;
+    background: rgba(255,255,255,.13);
+  }
+  header h1 { font-size: clamp(1.05rem, 3vw, 1.6rem); }
+  /* on a phone the half/score pills matter more than the title */
+  @media (max-width: 560px) { header h1 { display: none; } }
+  #half {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.28);
+    white-space: nowrap;
+  }
+  #score { flex: 1; text-align: right; font-size: 1.3rem; white-space: nowrap; }
+  #settingsBtn { background: none; border: none; color: #f1f5f9; font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px; }
+
+  a:focus-visible, button:focus-visible { outline: 3px solid #fde047; outline-offset: 2px; }
+
+  /* ---------- number strip ---------- */
+  #strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    padding: 8px 12px;
+    background: rgba(0,0,0,.16);
+    flex: 0 0 auto;
+  }
+  .chip {
+    width: clamp(25px, 3.1vw, 33px);
+    height: clamp(25px, 3.1vw, 33px);
+    display: grid;
+    place-items: center;
+    font-family: inherit;
+    font-size: clamp(.85rem, 2vw, 1.1rem);
+    font-weight: 700;
+    color: #cbd5e1;
+    background: rgba(255,255,255,.08);
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  .chip.done { background: #16a34a; color: #fff; }
+  .chip.current { outline: 3px solid #fde047; outline-offset: 1px; }
+
+  /* ---------- stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: clamp(8px, 2vh, 18px) 16px calc(clamp(8px, 2vh, 18px) + env(safe-area-inset-bottom));
+  }
+  .view {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(6px, 1.4vh, 14px);
+  }
+  .lead { font-size: clamp(.9rem, 2.4vmin, 1.25rem); opacity: .85; text-align: center; }
+
+  /* ---------- trace board ---------- */
+  #board {
+    position: relative;
+    /* fill whatever height is left over, width follows from the aspect ratio */
+    flex: 1 1 auto;
+    min-height: 0;
+    max-width: 100%;
+    aspect-ratio: 200 / 140;
+    background: #450a0a;
+    border: 3px solid rgba(255,255,255,.18);
+    border-radius: 20px;
+    touch-action: none;
+    overflow: hidden;
+  }
+  #board svg, #board canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #board canvas { z-index: 2; }
+
+  .guide { stroke: rgba(255,255,255,.16); stroke-width: 1; }
+  .guide.base { stroke: rgba(253,224,71,.45); stroke-width: 1.6; }
+  .trace {
+    fill: none;
+    stroke: rgba(255,255,255,.20);
+    stroke-width: 15;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .trace.active { stroke: rgba(255,255,255,.34); }
+  .trace.done   { stroke: rgba(34,197,94,.55); }
+  .startdot { fill: #22c55e; }
+  .startdot.pulse { animation: pulse 1.2s ease infinite; transform-origin: center; transform-box: fill-box; }
+  @keyframes pulse { 50% { transform: scale(1.35); } }
+  .arrow { fill: #22c55e; }
+
+  /* ---------- apple grid ---------- */
+  #grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-width: 100%;
+    aspect-ratio: 5 / 4;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: clamp(3px, 1vmin, 10px);
+  }
+  .apple {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 2px;
+    border: none;
+    border-radius: 16px;
+    background: none;
+    color: #fff;
+    cursor: pointer;
+    transition: transform .15s ease;
+  }
+  .apple svg { width: 100%; height: 100%; }
+  .apple .num { font-size: clamp(1.2rem, 4vmin, 2.2rem); font-weight: 800; fill: currentColor; }
+  .apple.target { outline: 3px solid #fde047; outline-offset: 2px; animation: pulse 1.2s ease infinite; }
+  .apple.pop { animation: bounceIn .8s ease; }
+  .apple.lit { transform: scale(1.15); }
+  .apple.lit svg { filter: drop-shadow(0 0 10px #fde047); }
+
+  /* ---------- answer tiles ---------- */
+  #tiles { display: flex; gap: clamp(8px, 2vmin, 14px); flex-wrap: wrap; justify-content: center; }
+  .tile {
+    width: clamp(64px, 13vmin, 96px);
+    height: clamp(56px, 11vmin, 84px);
+    border: none;
+    border-radius: 16px;
+    font-family: inherit;
+    font-size: clamp(1.7rem, 6vmin, 2.6rem);
+    font-weight: 900;
+    color: #1e293b;
+    cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .tile:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .tile.shake { animation: shake .35s ease; }
+  .tile:disabled { opacity: .35; cursor: default; box-shadow: none; }
+  @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+  @keyframes bounceIn {
+    0% { transform: translateY(-40px) scale(.3); opacity: 0; }
+    55% { transform: translateY(6px) scale(1.15); opacity: 1; }
+    75% { transform: translateY(-4px) scale(.95); }
+    100% { transform: translateY(0) scale(1); }
+  }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit; font-weight: 800; color: #0f172a;
+    border: none; border-radius: 999px; cursor: pointer;
+    padding: clamp(9px, 1.8vh, 14px) clamp(18px, 4vw, 30px);
+    font-size: clamp(.9rem, 2.4vmin, 1.2rem);
+    background: #fde047;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .btn.ghost { background: rgba(255,255,255,.14); color: #f1f5f9; box-shadow: none; }
+
+  #startOverlay, #endOverlay {
+    position: fixed; inset: 0; z-index: 70;
+    background: linear-gradient(160deg, #7f1d1d 0%, #b91c1c 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: clamp(16px, 4vh, 32px); text-align: center; padding: 24px;
+  }
+  #startOverlay h2, #endOverlay h2 { font-size: clamp(1.5rem, 5.5vmin, 2.8rem); }
+  #startOverlay p, #endOverlay p { max-width: 28ch; opacity: .85; font-size: clamp(.95rem, 2.4vmin, 1.2rem); }
+  #playBtn { font-size: clamp(1.4rem, 4.5vmin, 2.2rem); padding: clamp(14px, 3vh, 22px) clamp(30px, 7vw, 56px); }
+
+  #settingsPanel {
+    position: fixed; top: 56px; right: 12px; z-index: 60;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+  .hidden { display: none !important; }
+
+  #feedback {
+    position: fixed; left: 50%; bottom: 10vh; transform: translateX(-50%);
+    background: rgba(0,0,0,.78); padding: 10px 20px; border-radius: 999px;
+    font-size: clamp(.9rem, 2.4vmin, 1.2rem); z-index: 50; pointer-events: none;
+  }
+  .confetti { position: fixed; top: -6vh; font-size: 2rem; animation: fall linear forwards; pointer-events: none; z-index: 80; }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Jack's Apples</h1>
+  <span id="half">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<div id="strip"></div>
+
+<main>
+  <!-- first half: trace the numbers 1-20 -->
+  <div class="view" id="traceView">
+    <p class="lead" id="lead">Start at the green dot and follow the line.</p>
+    <div id="board">
+      <svg id="svg" viewBox="0 0 200 140" preserveAspectRatio="xMidYMid meet"></svg>
+      <canvas id="ink"></canvas>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="sayBtn">🔊 Hear it</button>
+      <button class="btn ghost" id="againBtn">↺ Try again</button>
+      <button class="btn" id="nextBtn">Next number ➜</button>
+      <button class="btn hidden" id="toApplesBtn">Second half ➜</button>
+    </div>
+  </div>
+
+  <!-- second half: fill the missing numbers into the apple grid -->
+  <div class="view hidden" id="appleView">
+    <p class="lead" id="appleLead">Which number goes on the pale apple?</p>
+    <div id="grid"></div>
+    <div id="tiles"></div>
+    <div class="row">
+      <button class="btn ghost" id="hearBtn">🔊 Hear it</button>
+      <button class="btn hidden" id="nextRoundBtn">Next ➜</button>
+    </div>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>🍎 Jack's Apples</h2>
+  <p>First half: trace the numbers.<br>Second half: fill the apples.</p>
+  <button id="playBtn" class="btn">▶ Start</button>
+</div>
+
+<div id="endOverlay" class="hidden">
+  <h2>🏁 Full time!</h2>
+  <p id="endScore"></p>
+  <div class="row">
+    <button class="btn" id="playAgainBtn">▶ Play again</button>
+    <button class="btn ghost" id="traceAgainBtn">✏️ Trace again</button>
+  </div>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <button id="resetBtn">Clear everything and start again</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================================
+     Digit shapes, UK school form (1 without a flag, 4 open, 7 no crossbar).
+     Each digit is a list of strokes in writing order, drawn in a 100 x 140
+     cell: cap height top 20, baseline 110, digit width about 26-74.
+     A one-digit number is centred in the 200-wide board (dx 50); a two-digit
+     number draws its tens at dx 0 and its ones at dx 100.
+     ========================================================================= */
+  var DIGITS = {
+    0: ['M 50 20 A 24 45 0 1 0 50 110 A 24 45 0 1 0 50 20'],
+    1: ['M 50 20 L 50 110'],
+    2: ['M 28 44 A 23 23 0 1 1 68 60 L 28 110 L 74 110'],
+    3: ['M 30 34 A 20 20 0 1 1 52 64 A 23 23 0 1 1 30 98'],
+    4: ['M 62 20 L 26 80 L 78 80', 'M 62 20 L 62 110'],
+    5: ['M 70 20 L 34 20 L 30 60 C 46 52 74 58 72 84 C 70 108 42 116 28 100'],
+    6: ['M 66 24 C 40 44 28 68 28 86 A 22 22 0 1 0 72 86 A 22 22 0 0 0 28 86'],
+    7: ['M 28 20 L 74 20 L 44 110'],
+    8: ['M 66 36 C 60 12 30 18 32 42 C 34 60 70 66 70 90 C 70 118 30 118 30 90 C 30 66 66 60 68 42 C 70 18 40 12 34 36'],
+    9: ['M 70 42 A 21 22 0 1 0 70 48 L 70 110']
+  };
+
+  var WORD = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+              'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
+              'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+  var TILE_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4', '#fdba74', '#c4b5fd', '#67e8f9'];
+
+  /* Round 1 copies Jack's homework sheet: these stay visible, the rest is filled in. */
+  var SHEET_VISIBLE = [2, 3, 6, 9, 10, 12, 14, 16, 20];
+  var ROUND_EMPTY = [0, 12, 16];   /* random empties in rounds 2 and 3 */
+
+  var TOL = 17;          /* how far off the line a finger may be, in board units */
+  var START_TOL = 22;    /* a bit kinder when starting a stroke */
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💛', '🍎'];
+
+  /* ================= State ================= */
+  var done = (localStorage.getItem('jackApplesTraced') || '').split(',').filter(function (s) {
+    return /^\d+$/.test(s) && +s >= 1 && +s <= 20;
+  });
+  var footballs = parseInt(localStorage.getItem('jackApplesFootballs') || '0', 10) || 0;
+  var half = localStorage.getItem('jackApplesHalf') === '2' ? 2 : 1;
+  var num = 1;                     /* the number being traced, 1..20 */
+  var strokeIdx = 0;               /* which stroke of the number */
+  var checkpoints = [];            /* per stroke: [{x,y}, ...] */
+  var hit = 0;                     /* next checkpoint to reach */
+  var drawing = false;
+  var numberDone = false;
+  var started = false;            /* speech needs a tap first, in every browser */
+
+  /* second half state */
+  var appleRound = 1;
+  var filled = {};                 /* n -> true once the apple shows its number */
+  var target = 0;                  /* the empty apple being asked for */
+  var countDelay = null;           /* timeout before the 1..20 count starts */
+  var countInt = null;             /* the counting interval itself */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    strip: $('strip'), svg: $('svg'), ink: $('ink'), board: $('board'), lead: $('lead'),
+    score: $('score'), half: $('half'),
+    sayBtn: $('sayBtn'), againBtn: $('againBtn'), nextBtn: $('nextBtn'), toApplesBtn: $('toApplesBtn'),
+    traceView: $('traceView'), appleView: $('appleView'), appleLead: $('appleLead'),
+    grid: $('grid'), tiles: $('tiles'), hearBtn: $('hearBtn'), nextRoundBtn: $('nextRoundBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'), resetBtn: $('resetBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    endOverlay: $('endOverlay'), endScore: $('endScore'),
+    playAgainBtn: $('playAgainBtn'), traceAgainBtn: $('traceAgainBtn')
+  };
+  var ctx = els.ink.getContext('2d');
+
+  function save() {
+    localStorage.setItem('jackApplesTraced', done.join(','));
+    localStorage.setItem('jackApplesFootballs', String(footballs));
+    localStorage.setItem('jackApplesHalf', String(half));
+  }
+
+  /* ================= Speech ================= */
+  var hasTTS = 'speechSynthesis' in window;
+  var voice = null;
+
+  function pickVoice() {
+    if (!hasTTS) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Samantha|Martha|Serena|Kate|Karen|Moira|Hazel|Zira|Libby|Sonia|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    voice =
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(en, /female|woman/i) ||
+      find(gb, female) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+  if (hasTTS) { pickVoice(); speechSynthesis.addEventListener('voiceschanged', pickVoice); }
+
+  function speak(text, rate) {
+    if (!hasTTS) return;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = rate || 0.8;
+      u.pitch = 1.05;
+      setTimeout(function () { speechSynthesis.speak(u); }, 40);
+    } catch (e) { /* speech is a bonus */ }
+  }
+
+  /* ================= Helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1500);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+      c.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4000);
+    }
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function renderScore() {
+    els.score.textContent = '⚽ ' + footballs;
+  }
+
+  function renderStrip() {
+    els.strip.innerHTML = '';
+    for (var n = 1; n <= 20; n++) {
+      var b = document.createElement('button');
+      b.className = 'chip' + (done.indexOf(String(n)) > -1 ? ' done' : '') + (n === num ? ' current' : '');
+      b.type = 'button';
+      b.textContent = n;
+      b.addEventListener('click', function (m) {
+        return function () { num = m; loadNumber(); };
+      }(n));
+      els.strip.appendChild(b);
+    }
+  }
+
+  function updatePill() {
+    if (half === 1) {
+      els.half.textContent = 'First half · ' + num + '/20';
+    } else {
+      els.half.textContent = 'Second half · Apple ' + Math.min(countFilled() + 1, 20) + '/20';
+    }
+  }
+
+  /* ================= Board ================= */
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+
+  function el(name, attrs) {
+    var n = document.createElementNS(SVG_NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  function sizeCanvas() {
+    var r = els.board.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    els.ink.width = Math.round(r.width * dpr);
+    els.ink.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineWidth = Math.max(6, r.height * 0.04);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#fde047';
+  }
+
+  /* board pixels -> the 200x140 coordinate system the digits are drawn in */
+  function toBoard(ev) {
+    var r = els.board.getBoundingClientRect();
+    return {
+      x: (ev.clientX - r.left) / r.width * 200,
+      y: (ev.clientY - r.top) / r.height * 140,
+      px: ev.clientX - r.left,
+      py: ev.clientY - r.top
+    };
+  }
+
+  /* every stroke of the number, in writing order, with its cell offset */
+  function strokesFor(n) {
+    var ds = String(n).split('');
+    var out = [];
+    ds.forEach(function (d, di) {
+      var dx = ds.length === 1 ? 50 : di * 100;
+      DIGITS[d].forEach(function (p) { out.push({ d: p, dx: dx }); });
+    });
+    return out;
+  }
+
+  function loadNumber() {
+    strokeIdx = 0;
+    hit = 0;
+    numberDone = false;
+    drawing = false;
+
+    els.svg.innerHTML = '';
+    /* writing guides, like the lines in a school book */
+    [[20, 'guide'], [65, 'guide'], [110, 'guide base']].forEach(function (g) {
+      els.svg.appendChild(el('line', { x1: 4, x2: 196, y1: g[0], y2: g[0], class: g[1] }));
+    });
+
+    checkpoints = [];
+    strokesFor(num).forEach(function (st, i) {
+      var path = el('path', { d: st.d, transform: 'translate(' + st.dx + ' 0)', class: 'trace' + (i === 0 ? ' active' : '') });
+      path.dataset.stroke = i;
+      els.svg.appendChild(path);
+
+      var len = path.getTotalLength();
+      var steps = Math.max(8, Math.round(len / 6));
+      var pts = [];
+      for (var s = 0; s <= steps; s++) {
+        var p = path.getPointAtLength(len * s / steps);
+        pts.push({ x: p.x + st.dx, y: p.y });
+      }
+      checkpoints.push(pts);
+    });
+
+    drawStartMarker();
+    sizeCanvas();
+    ctx.clearRect(0, 0, els.ink.width, els.ink.height);
+
+    els.lead.textContent = 'Start at the green dot and follow the line.';
+    els.toApplesBtn.classList.toggle('hidden', done.length < 20);
+    renderStrip();
+    renderScore();
+    updatePill();
+    if (started) speak('Trace ' + WORD[num], 0.75);
+  }
+
+  function drawStartMarker() {
+    var old = els.svg.querySelectorAll('.startdot, .arrow');
+    for (var i = 0; i < old.length; i++) old[i].remove();
+    if (strokeIdx >= checkpoints.length) return;
+    var pts = checkpoints[strokeIdx];
+    var a = pts[0], b = pts[Math.min(3, pts.length - 1)];
+    els.svg.appendChild(el('circle', { cx: a.x, cy: a.y, r: 7, class: 'startdot pulse' }));
+    /* a small triangle showing which way to go */
+    var ang = Math.atan2(b.y - a.y, b.x - a.x);
+    var tipX = a.x + Math.cos(ang) * 15, tipY = a.y + Math.sin(ang) * 15;
+    var p1x = a.x + Math.cos(ang + 2.5) * 8, p1y = a.y + Math.sin(ang + 2.5) * 8;
+    var p2x = a.x + Math.cos(ang - 2.5) * 8, p2y = a.y + Math.sin(ang - 2.5) * 8;
+    els.svg.appendChild(el('polygon', {
+      points: tipX + ',' + tipY + ' ' + p1x + ',' + p1y + ' ' + p2x + ',' + p2y,
+      class: 'arrow'
+    }));
+  }
+
+  function clearInkForStroke() {
+    /* strokes already finished stay on the board, so redraw them all */
+    ctx.clearRect(0, 0, els.ink.width, els.ink.height);
+    var r = els.board.getBoundingClientRect();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(253,224,71,.8)';
+    for (var s = 0; s < strokeIdx; s++) {
+      var pts = checkpoints[s];
+      ctx.beginPath();
+      for (var i = 0; i < pts.length; i++) {
+        var x = pts[i].x / 200 * r.width, y = pts[i].y / 140 * r.height;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function markStrokeDone() {
+    var path = els.svg.querySelector('path[data-stroke="' + strokeIdx + '"]');
+    if (path) path.setAttribute('class', 'trace done');
+    strokeIdx++;
+    hit = 0;
+    var next = els.svg.querySelector('path[data-stroke="' + strokeIdx + '"]');
+    if (next) next.setAttribute('class', 'trace active');
+    clearInkForStroke();
+
+    if (strokeIdx >= checkpoints.length) finishNumber();
+    else { drawStartMarker(); showFeedback('Good! Next line.'); }
+  }
+
+  function finishNumber() {
+    numberDone = true;
+    if (done.indexOf(String(num)) === -1) done.push(String(num));
+    footballs++;
+    save();
+    renderScore();
+    renderStrip();
+    var old = els.svg.querySelectorAll('.startdot, .arrow');
+    for (var i = 0; i < old.length; i++) old[i].remove();
+    els.svg.querySelectorAll('.trace').forEach(function (p) { p.setAttribute('class', 'trace done'); });
+    els.lead.textContent = 'You wrote ' + num + '! ⚽';
+    celebrate(20);
+    speak('You wrote ' + WORD[num] + '!', 0.85);
+    if (done.length === 20) {
+      els.toApplesBtn.classList.remove('hidden');
+      setTimeout(function () { if (half === 1 && started) enterApples(); }, 2600);
+    }
+  }
+
+  /* ================= Tracing ================= */
+  function onDown(ev) {
+    if (numberDone || half !== 1) return;
+    var p = toBoard(ev);
+    var pt = checkpoints[strokeIdx][hit];
+    var tol = hit === 0 ? START_TOL : TOL;
+    if (Math.hypot(p.x - pt.x, p.y - pt.y) > tol) {
+      showFeedback(hit === 0 ? 'Start at the green dot 🟢' : 'Carry on from the line');
+      return;
+    }
+    drawing = true;
+    try { els.board.setPointerCapture(ev.pointerId); } catch (e) { /* no capture, no problem */ }
+    ctx.beginPath();
+    ctx.moveTo(p.px, p.py);
+    advance(p);
+    ev.preventDefault();
+  }
+
+  function onMove(ev) {
+    if (!drawing || numberDone) return;
+    var p = toBoard(ev);
+    ctx.lineTo(p.px, p.py);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(p.px, p.py);
+    advance(p);
+    ev.preventDefault();
+  }
+
+  /* let the finger tick off every checkpoint it passes close to, in order */
+  function advance(p) {
+    var pts = checkpoints[strokeIdx];
+    while (hit < pts.length && Math.hypot(p.x - pts[hit].x, p.y - pts[hit].y) <= TOL) hit++;
+    if (hit >= pts.length) {
+      drawing = false;
+      markStrokeDone();
+    }
+  }
+
+  function onUp() {
+    if (!drawing) return;
+    drawing = false;
+    if (numberDone) return;
+    /* lifted the finger half way — that line starts again */
+    hit = 0;
+    clearInkForStroke();
+    showFeedback('Keep your finger down — try that line again.');
+  }
+
+  els.board.addEventListener('pointerdown', onDown);
+  els.board.addEventListener('pointermove', onMove);
+  els.board.addEventListener('pointerup', onUp);
+  els.board.addEventListener('pointercancel', onUp);
+  els.board.addEventListener('pointerleave', onUp);
+
+  /* ================= Half 2: fill the apples ================= */
+  function countFilled() {
+    var c = 0;
+    for (var k in filled) if (filled[k]) c++;
+    return c;
+  }
+
+  function firstEmpty() {
+    for (var n = 1; n <= 20; n++) if (!filled[n]) return n;
+    return 0;
+  }
+
+  function appleMarkup(n, isFilled) {
+    return '<svg viewBox="0 0 64 64" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+      '<path d="M32 19 C27 10 13 12 11 25 C9 39 21 54 32 56 C43 54 55 39 53 25 C51 12 37 10 32 19 Z" fill="' +
+        (isFilled ? '#dc2626' : 'rgba(255,255,255,.25)') + '"/>' +
+      '<path d="M32 17 C32 11 34 7 39 5" stroke="#92400e" stroke-width="3.5" fill="none" stroke-linecap="round"/>' +
+      '<path d="M39 7 C45 3 51 5 53 9 C48 13 41 12 39 7 Z" fill="#4ade80"/>' +
+      (isFilled ? '<text class="num" x="32" y="44" text-anchor="middle">' + n + '</text>' : '') +
+      '</svg>';
+  }
+
+  function renderGrid() {
+    els.grid.innerHTML = '';
+    for (var n = 1; n <= 20; n++) {
+      var b = document.createElement('button');
+      b.className = 'apple' + (filled[n] ? ' filled' : ' empty') + (n === target ? ' target' : '');
+      b.type = 'button';
+      b.dataset.n = n;
+      b.innerHTML = appleMarkup(n, !!filled[n]);
+      b.setAttribute('aria-label', filled[n] ? 'Apple ' + n : 'Empty apple ' + n);
+      b.addEventListener('click', function (m) {
+        return function () {
+          /* Jack sometimes wants to jump — any empty apple may be picked */
+          if (half === 2 && !filled[m] && !countInt && !countDelay) setTarget(m);
+        };
+      }(n));
+      els.grid.appendChild(b);
+    }
+  }
+
+  function questionFor(n) {
+    return n === 1 ? 'What is the first number?' : 'What comes after ' + WORD[n - 1] + '?';
+  }
+
+  function setTarget(n) {
+    target = n;
+    var apples = els.grid.querySelectorAll('.apple');
+    for (var i = 0; i < apples.length; i++) {
+      apples[i].classList.toggle('target', +apples[i].dataset.n === n);
+    }
+    updatePill();
+    renderTiles();
+    if (started) speak(questionFor(n), 0.85);
+  }
+
+  function renderTiles() {
+    var n = target;
+    var options = [n];
+    var pool = shuffle([n - 3, n - 2, n - 1, n + 1, n + 2, n + 3]);
+    pool.forEach(function (c) {
+      if (options.length < 4 && c >= 1 && c <= 20 && options.indexOf(c) === -1) options.push(c);
+    });
+    /* unreachable in 1..20, but never leave fewer than four tiles */
+    for (var extra = 1; extra <= 20 && options.length < 4; extra++) {
+      if (options.indexOf(extra) === -1) options.push(extra);
+    }
+
+    els.tiles.innerHTML = '';
+    shuffle(options).forEach(function (v, i) {
+      var tile = document.createElement('button');
+      tile.className = 'tile';
+      tile.type = 'button';
+      tile.textContent = v;
+      tile.style.background = TILE_COLORS[i % TILE_COLORS.length];
+      tile.addEventListener('click', function () { onTile(tile, v); });
+      els.tiles.appendChild(tile);
+    });
+  }
+
+  function onTile(tile, v) {
+    if (countInt || countDelay || !target) return;
+    if (v === target) {
+      filled[v] = true;
+      target = 0;   /* no answers until the next question is up */
+      var btn = els.grid.querySelector('.apple[data-n="' + v + '"]');
+      if (btn) {
+        btn.classList.remove('empty', 'target');
+        btn.classList.add('filled', 'pop');
+        btn.innerHTML = appleMarkup(v, true);
+        btn.setAttribute('aria-label', 'Apple ' + v);
+      }
+      speak(WORD[v], 0.9);
+      /* let the number be heard before the next question starts */
+      setTimeout(function () {
+        if (firstEmpty() === 0) finishAppleRound();
+        else setTarget(firstEmpty());
+      }, 800);
+    } else {
+      tile.classList.remove('shake');
+      void tile.offsetWidth;
+      tile.classList.add('shake');
+      tile.disabled = true;
+      speak('Try again', 0.9);
+    }
+  }
+
+  function stopCount() {
+    if (countDelay) { clearTimeout(countDelay); countDelay = null; }
+    if (countInt) { clearInterval(countInt); countInt = null; }
+    var lit = els.grid.querySelectorAll('.apple.lit');
+    for (var i = 0; i < lit.length; i++) lit[i].classList.remove('lit');
+  }
+
+  /* grid full: celebrate, then light the apples up one by one and count 1..20 */
+  function finishAppleRound() {
+    footballs++;
+    save();
+    renderScore();
+    updatePill();
+    celebrate(24);
+    els.tiles.innerHTML = '';
+    els.nextRoundBtn.classList.remove('hidden');
+    speak('All twenty apples! Well done.', 0.85);
+
+    var step = 0;
+    countDelay = setTimeout(function () {
+      countDelay = null;
+      countInt = setInterval(function () {
+        step++;
+        if (step > 20) { stopCount(); afterRound(); return; }
+        var lit = els.grid.querySelectorAll('.apple.lit');
+        for (var i = 0; i < lit.length; i++) lit[i].classList.remove('lit');
+        var btn = els.grid.querySelector('.apple[data-n="' + step + '"]');
+        if (btn) btn.classList.add('lit');
+        speak(WORD[step], 0.95);
+      }, 350);
+    }, 2200);
+  }
+
+  function afterRound() {
+    els.nextRoundBtn.classList.add('hidden');
+    if (appleRound < 3) {
+      startAppleRound(appleRound + 1);
+    } else {
+      enterFullTime();
+    }
+  }
+
+  function startAppleRound(round) {
+    appleRound = round;
+    filled = {};
+    if (round === 1) {
+      SHEET_VISIBLE.forEach(function (n) { filled[n] = true; });
+    } else {
+      /* later rounds are random: pick the empties, everything else stays visible */
+      var empties = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
+        .slice(0, ROUND_EMPTY[round - 1]);
+      for (var n = 1; n <= 20; n++) if (empties.indexOf(n) === -1) filled[n] = true;
+    }
+    target = 0;
+    renderGrid();
+    els.appleLead.textContent = 'Round ' + round + ' of 3 — which number goes on the pale apple?';
+    setTarget(firstEmpty());
+  }
+
+  function enterFullTime() {
+    els.half.textContent = 'Full time';
+    els.endScore.textContent = '⚽ ' + footballs;
+    els.endOverlay.classList.remove('hidden');
+    celebrate(45);
+    speak('Full time! Well done, Jack!', 0.85);
+  }
+
+  /* ================= Switching halves ================= */
+  function setHalf(h) {
+    half = h;
+    save();
+    els.strip.classList.toggle('hidden', h === 2);
+    els.traceView.classList.toggle('hidden', h === 2);
+    els.appleView.classList.toggle('hidden', h === 1);
+  }
+
+  function enterTrace(n) {
+    stopCount();
+    els.endOverlay.classList.add('hidden');
+    setHalf(1);
+    num = n;
+    loadNumber();
+  }
+
+  function enterApples() {
+    els.endOverlay.classList.add('hidden');
+    setHalf(2);
+    startAppleRound(1);
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    started = true;
+    if (hasTTS) pickVoice();
+    els.startOverlay.remove();
+    updatePill();
+    if (half === 1) {
+      speak("Jack's Apples. Let's trace the numbers!", 0.85);
+    } else {
+      speak("Jack's Apples. Let's fill the apples! " + questionFor(target), 0.85);
+    }
+  });
+
+  els.sayBtn.addEventListener('click', function () { speak('Trace ' + WORD[num], 0.75); });
+  els.againBtn.addEventListener('click', loadNumber);
+  els.nextBtn.addEventListener('click', function () {
+    num = num % 20 + 1;
+    loadNumber();
+  });
+  els.toApplesBtn.addEventListener('click', enterApples);
+
+  els.hearBtn.addEventListener('click', function () {
+    if (target) speak(questionFor(target), 0.85);
+  });
+  els.nextRoundBtn.addEventListener('click', function () {
+    stopCount();
+    afterRound();
+  });
+
+  els.playAgainBtn.addEventListener('click', function () { enterApples(); });
+  els.traceAgainBtn.addEventListener('click', function () { enterTrace(1); });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Clear the score and all the green numbers and start again?')) {
+      done = [];
+      footballs = 0;
+      appleRound = 1;
+      save();
+      els.settingsPanel.classList.add('hidden');
+      enterTrace(1);
+    }
+  });
+  window.addEventListener('resize', function () {
+    if (half !== 1) return;
+    sizeCanvas();
+    clearInkForStroke();
+  });
+
+  /* ================= Go ================= */
+  if (half === 2) {
+    setHalf(2);
+    startAppleRound(1);
+  } else {
+    /* carry on where he left off */
+    for (var i = 1; i <= 20; i++) {
+      if (done.indexOf(String(i)) === -1) { num = i; break; }
+    }
+    setHalf(1);
+    loadNumber();
+  }
+  els.half.textContent = 'Kick off';
+  renderScore();
+})();
+</script>
+</body>
+</html>
