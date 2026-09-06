@@ -494,6 +494,12 @@
   function loadClip(file) {
     if (buffers[file]) return Promise.resolve(buffers[file]);
     if (loading[file]) return loading[file];
+    if (!actx) {
+      /* nothing has been tapped yet, so there is no audio context to decode
+         into — just pull the file into the browser cache and try again later */
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
     var ac = audioReady();
     if (!ac) return Promise.reject(new Error('no audio yet'));
     loading[file] = fetch(CLIP_DIR + file)
@@ -598,6 +604,8 @@
       })(0);
     });
   }
+
+  window.__speak = speak;    /* lets a browser check drive the voice from outside */
 
   if (hasSpeech) {
     pickVoice();
