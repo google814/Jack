@@ -1,0 +1,33 @@
+# sight-words — every line the game speaks, already split into the
+# segments the runtime plays one after another.
+# The 20 most common English words (DfE "first 100 high frequency words", rank 1-20).
+
+the
+and
+a
+to
+said
+in
+he
+I
+of
+it
+was
+you
+they
+on
+she
+is
+for
+at
+his
+but
+
+# prompts
+Jack's Sight Words.
+Read the words.
+Tap one to hear it.
+Find the word:
+Try again
+Well done, Jack!
+You can read all twenty words!

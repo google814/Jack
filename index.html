@@ -167,6 +167,9 @@
   .card:nth-child(4) { animation-delay: .29s; }
   .card:nth-child(5) { animation-delay: .37s; }
   .card:nth-child(6) { animation-delay: .45s; }
+  .card:nth-child(7) { animation-delay: .53s; }
+  .card:nth-child(8) { animation-delay: .61s; }
+  .card:nth-child(9) { animation-delay: .69s; }
   @keyframes run-on {
     from { opacity: 0; transform: translateY(26px) scale(.94); }
     to   { opacity: 1; transform: none; }
@@ -193,6 +196,7 @@
   .match   { background: linear-gradient(160deg, #f59e0b, #b45309); }
   .letters { background: linear-gradient(160deg, #64748b, #2b3440); }
   .apples  { background: linear-gradient(160deg, #ef4444, #991b1b); }
+  .sight   { background: linear-gradient(160deg, #7c3aed, #4c1d95); }
   .chess {
     color: var(--chess-deep);
     background:
@@ -351,6 +355,14 @@
       <span class="what">Numbers 1–20</span>
     </a>
 
+    <a class="card sight" href="sight-words/" data-say="Jack's Sight Words. Reading.">
+      <span class="score" id="score-sight" hidden></span>
+      <button class="say" type="button" aria-label="Say: Jack's Sight Words">🔊</button>
+      <span class="icon" aria-hidden="true">👀</span>
+      <span class="name">Jack's Sight Words</span>
+      <span class="what">Top 20 words</span>
+    </a>
+
     <a class="card chess" href="chess/" data-say="Chess.">
       <span class="score" id="score-chess" hidden></span>
       <button class="say" type="button" aria-label="Say: Chess">🔊</button>
@@ -392,12 +404,14 @@
     var xp      = num('jackChessXp');
     var match   = num('jackMatchFootballs');
     var apples  = num('jackApplesFootballs');
+    var sight   = num('jackSightStars');
     var letters = (localStorage.getItem('jackLettersDone') || '').length;
     badge('score-words',   read,    '⚽ ' + read);
     badge('score-match',   match,   '⚽ ' + match);
     badge('score-letters', letters, letters + '/26');
     badge('score-numbers', math,    '⚽ ' + math);
     badge('score-apples',  apples,  '⚽ ' + apples);
+    badge('score-sight',   sight,   '⭐ ' + sight);
     badge('score-chess',   xp,      '⭐ ' + xp);
     document.querySelectorAll('.card[data-hw]').forEach(function (c) {
       var v = num(c.getAttribute('data-hw'));

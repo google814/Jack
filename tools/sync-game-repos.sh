@@ -16,7 +16,7 @@ DRY=""
 [ "${1:-}" = "--dry-run" ] && DRY=1
 
 # folder in this repo  ->  repo name in the org
-GAMES="reading-game:words math-game:numbers match-game:match letters-game:letters chess:chess apples-game:apples"
+GAMES="reading-game:words math-game:numbers match-game:match letters-game:letters chess:chess apples-game:apples sight-words:sight-words"
 
 for pair in $GAMES; do
   from="${pair%%:*}"

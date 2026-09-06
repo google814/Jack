@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#4c1d95">
+<title>Jack's Sight Words 👀</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Sight Words">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --read: "Andika", "Comic Sans MS", "Segoe UI", system-ui, sans-serif;
+    --gold: #fde047;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--read);
+    background: linear-gradient(160deg, #4c1d95, #7c3aed 55%, #4c1d95);
+    color: #f5f3ff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .hidden { display: none !important; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(0,0,0,.26);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none; color: #f5f3ff;
+    font-size: 1.6rem; line-height: 1;
+    padding: 6px 10px; border-radius: 12px;
+    background: rgba(255,255,255,.14);
+  }
+  header h1 { font-size: clamp(1.05rem, 3vw, 1.6rem); font-weight: 700; }
+  @media (max-width: 460px) { header h1 { font-size: 1rem; } }
+  #score {
+    flex: 1; text-align: right;
+    font-size: clamp(1rem, 2.6vw, 1.3rem);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  #settingsBtn {
+    background: none; border: none; color: #f5f3ff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- stage ---------- */
+  main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: clamp(8px, 1.6vh, 16px) clamp(10px, 2.5vw, 22px);
+  }
+  .lead {
+    text-align: center;
+    font-size: clamp(.85rem, 2.1vmin, 1.1rem);
+    opacity: .85;
+    margin-bottom: clamp(6px, 1.2vh, 12px);
+    min-height: 1.4em;
+  }
+  .lead b { color: var(--gold); }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(7px, 1.4vmin, 14px);
+  }
+  @media (max-width: 560px) { #grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .word {
+    position: relative;
+    min-height: 64px;
+    height: clamp(64px, 13vh, 150px);
+    display: grid;
+    place-items: center;
+    padding: 14px 6px 6px;
+    border: 3px solid rgba(255,255,255,.2);
+    border-radius: 18px;
+    background: rgba(255,255,255,.1);
+    color: #fff;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: clamp(1.6rem, 6vmin, 3.2rem);
+    line-height: 1;
+    cursor: pointer;
+    transition: transform .12s ease, background .2s ease, border-color .2s ease;
+  }
+  .word:active { transform: scale(.95); }
+  .word.read { background: rgba(253,224,71,.16); border-color: rgba(253,224,71,.5); }
+  .word.lit  { background: var(--gold); color: #4c1d95; border-color: #fff; }
+  .word.wrong { animation: shake .35s ease; }
+  .word .rank {
+    position: absolute; top: 4px; left: 8px;
+    font-size: clamp(.6rem, 1.4vmin, .8rem);
+    font-weight: 400;
+    opacity: .5;
+  }
+  .word.lit .rank { opacity: .75; }
+  .word .tick {
+    position: absolute; top: 3px; right: 7px;
+    font-size: clamp(.7rem, 1.7vmin, 1rem);
+    opacity: 0;
+    transition: opacity .2s ease;
+  }
+  .word.read .tick { opacity: 1; }
+
+  /* ---------- buttons ---------- */
+  .row {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    padding: clamp(8px, 1.4vh, 14px) 12px calc(clamp(8px, 1.4vh, 14px) + env(safe-area-inset-bottom));
+    background: rgba(0,0,0,.2);
+    flex: 0 0 auto;
+  }
+  .btn {
+    font-family: inherit; font-weight: 700; color: #3b0764;
+    border: none; border-radius: 999px; cursor: pointer;
+    min-height: 44px;
+    padding: 10px clamp(14px, 3.4vw, 26px);
+    font-size: clamp(.9rem, 2.2vmin, 1.1rem);
+    background: var(--gold);
+    box-shadow: 0 5px 0 rgba(0,0,0,.3);
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .btn.ghost { background: rgba(255,255,255,.15); color: #f5f3ff; box-shadow: none; }
+
+  /* ---------- overlay / panel / toast ---------- */
+  #startOverlay {
+    position: fixed; inset: 0; z-index: 70;
+    background: linear-gradient(160deg, #4c1d95, #7c3aed 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: clamp(16px, 4vh, 32px); text-align: center; padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 5.5vmin, 2.8rem); }
+  #startOverlay p { max-width: 28ch; opacity: .85; font-size: clamp(.95rem, 2.4vmin, 1.2rem); }
+  #playBtn { font-size: clamp(1.4rem, 4.5vmin, 2.2rem); padding: clamp(14px, 3vh, 22px) clamp(30px, 7vw, 56px); }
+
+  #settingsPanel {
+    position: fixed; top: 56px; right: 12px; z-index: 60;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px; min-height: 44px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  #feedback {
+    position: fixed; left: 50%; bottom: 12vh; transform: translateX(-50%);
+    background: rgba(0,0,0,.8); color: #fff;
+    padding: 10px 20px; border-radius: 999px;
+    font-size: clamp(.9rem, 2.4vmin, 1.2rem); font-weight: 700;
+    z-index: 50; pointer-events: none; white-space: nowrap;
+  }
+  .confetti { position: fixed; top: -6vh; font-size: 2rem; animation: fall linear forwards; pointer-events: none; z-index: 80; }
+
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+  @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Jack's Sight Words</h1>
+  <div id="score">⭐ 0</div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead" id="lead">Tap a word to hear it.</p>
+  <div id="grid"></div>
+</main>
+
+<div class="row">
+  <button class="btn ghost" id="readAllBtn">🔊 Read all</button>
+  <button class="btn ghost" id="mixBtn">🎲 Mix</button>
+  <button class="btn" id="quizBtn">⭐ Quiz</button>
+</div>
+
+<div id="startOverlay">
+  <h2>👀 Jack's Sight Words</h2>
+  <p>Read the words. Tap one to hear it.</p>
+  <button id="playBtn" class="btn">▶ Start</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <button id="resetBtn">Clear the ticks and start again</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= The words =================
+     DfE "first 100 high frequency words", rank 1-20, in that order. */
+  var WORDS = ['the', 'and', 'a', 'to', 'said', 'in', 'he', 'I', 'of', 'it',
+               'was', 'you', 'they', 'on', 'she', 'is', 'for', 'at', 'his', 'but'];
+
+  var CONFETTI = ['⭐', '👀', '🎉', '🌟', '💜', '💛', '📖'];
+  var QUIZ_ROUNDS = 10;
+
+  /* ================= State ================= */
+  var read = (localStorage.getItem('jackSightRead') || '').split(',').filter(function (s) {
+    return WORDS.indexOf(s) !== -1;
+  });
+  var order = WORDS.slice();     /* the order the cards are shown in */
+  var mixed = false;
+  var cards = {};                /* word -> button */
+  var reading = false;           /* "Read all" is running */
+  var readTimer = null;
+  var quiz = null;               /* { list: [], i: 0, right: 0 } while the quiz runs */
+  var finished = read.length >= WORDS.length;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), lead: $('lead'), grid: $('grid'),
+    readAllBtn: $('readAllBtn'), mixBtn: $('mixBtn'), quizBtn: $('quizBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'), resetBtn: $('resetBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn')
+  };
+
+  function save() {
+    try {
+      localStorage.setItem('jackSightRead', read.join(','));
+      localStorage.setItem('jackSightStars', String(read.length));
+    } catch (e) { /* private mode: the game still plays, it just forgets */ }
+  }
+
+  /* ================= Voice =================
+     The browser's own voice sounds like a computer, so every line these
+     games say is pre-rendered with a neural en-GB voice (tools/build-audio.py)
+     and played back through Web Audio. speechSynthesis is only the fallback
+     for a line that has no clip. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/sight-words/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment: "Find the word: said" is the prompt
+     clip followed by the word clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    var BREAK = /^\s*(?:!\s*\.\.\.\s*|\.\.\.\s*)/;
+    while (i < t.length) {
+      var m = BREAK.exec(t.slice(i));
+      if (m && m[0].length) {
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+        i += m[0].length;
+        continue;
+      }
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?' || ch === ':') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      /* nothing has been tapped yet, so there is no audio context to decode
+         into — just pull the file into the browser cache and try again later */
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips for the screen he is about to tap on, so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var f = clipFor(list[i]);
+        if (f && !buffers[f]) loadClip(f).catch(function () {});
+      }
+    });
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Samantha|Martha|Serena|Kate|Karen|Moira|Zira|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) || find(en, good) ||
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(gb, female) ||
+      find(en, /female|woman/i) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  /* the fallback: only used for a line that has no clip */
+  function say(text, rate, pitch, my, done) {
+    if (!hasSpeech) { if (done) done(); return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = (rate || 0.95);
+      u.pitch = pitch || 1;
+      u.onend = function () { if (my === speakToken && done) done(); };
+      u.onerror = u.onend;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { if (done) done(); }
+  }
+
+  /* `done` fires once the last segment has finished — "Read all" and the quiz
+     wait for it instead of guessing how long a word takes to say. */
+  function speak(text, rate, pitch, done) {
+    if (!hasTTS) { if (done) done(); return; }
+    stopSpeaking();
+    var my = speakToken;
+    var parts = segments(text);
+    if (!parts.length) { if (done) done(); return; }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) onward();
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            src.start(0);
+          }, function () { say(parts[i], rate, pitch, my, onward); });
+        } else {
+          say(parts[i], rate, pitch, my, onward);
+        }
+      })(0);
+    });
+  }
+
+  window.__speak = speak;    /* lets a browser check drive the voice from outside */
+
+  if (hasSpeech) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  /* ================= Helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 2200);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+      c.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4000);
+    }
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function renderScore() { els.score.textContent = '⭐ ' + read.length; }
+
+  /* light a card up for a moment while its word is being said */
+  var litTimer = null;
+  function light(word, ms) {
+    for (var w in cards) cards[w].classList.remove('lit');
+    var card = cards[word];
+    if (!card) return;
+    card.classList.add('lit');
+    if (card.scrollIntoView) {
+      try { card.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+    }
+    clearTimeout(litTimer);
+    litTimer = setTimeout(function () { card.classList.remove('lit'); }, ms || 700);
+  }
+
+  /* ================= The grid ================= */
+  function build() {
+    els.grid.innerHTML = '';
+    cards = {};
+    order.forEach(function (word) {
+      var card = document.createElement('button');
+      card.className = 'word' + (read.indexOf(word) !== -1 ? ' read' : '');
+      card.type = 'button';
+      card.setAttribute('aria-label', word);
+
+      var rank = document.createElement('span');
+      rank.className = 'rank';
+      rank.textContent = String(WORDS.indexOf(word) + 1);
+      card.appendChild(rank);
+
+      var tick = document.createElement('span');
+      tick.className = 'tick';
+      tick.textContent = '✓';
+      card.appendChild(tick);
+
+      card.appendChild(document.createTextNode(word));
+      card.addEventListener('click', function () { onCard(word, card); });
+      els.grid.appendChild(card);
+      cards[word] = card;
+    });
+  }
+
+  function markRead(word) {
+    if (read.indexOf(word) !== -1) return;
+    read.push(word);
+    save();
+    renderScore();
+    if (cards[word]) cards[word].classList.add('read');
+    if (read.length >= WORDS.length && !finished) {
+      finished = true;
+      setTimeout(function () {
+        celebrate(50);
+        showFeedback('🏆 You can read all twenty words!');
+        speak('You can read all twenty words!', 0.9);
+      }, 700);
+    }
+  }
+
+  function onCard(word, card) {
+    if (reading) { stopReadAll(); }
+    if (quiz) { answer(word, card); return; }
+    light(word, 700);
+    speak(word, 0.8);
+    markRead(word);
+  }
+
+  /* ================= Read all ================= */
+  function stopReadAll() {
+    reading = false;
+    clearTimeout(readTimer);
+    stopSpeaking();
+    for (var w in cards) cards[w].classList.remove('lit');
+    els.readAllBtn.textContent = '🔊 Read all';
+    if (!quiz) els.lead.textContent = 'Tap a word to hear it.';
+  }
+
+  function readAll() {
+    if (reading) { stopReadAll(); return; }
+    if (quiz) stopQuiz();
+    reading = true;
+    els.readAllBtn.textContent = '⏹ Stop';
+    els.lead.textContent = 'Listen and follow along…';
+    var i = 0;
+    (function next() {
+      if (!reading) return;
+      if (i >= order.length) { stopReadAll(); return; }
+      var word = order[i];
+      i++;
+      light(word, 4000);
+      speak(word, 0.8, 1, function () {
+        if (!reading) return;
+        readTimer = setTimeout(next, 900);
+      });
+    })();
+  }
+
+  /* ================= Quiz ================= */
+  function setQuizButtons(on) {
+    els.readAllBtn.textContent = on ? '🔊 Again' : '🔊 Read all';
+    els.mixBtn.classList.toggle('hidden', on);
+    els.quizBtn.textContent = on ? '✖ Stop quiz' : '⭐ Quiz';
+  }
+
+  function startQuiz() {
+    if (quiz) { stopQuiz(); return; }
+    if (reading) stopReadAll();
+    quiz = { list: shuffle(WORDS).slice(0, QUIZ_ROUNDS), i: 0, right: 0 };
+    setQuizButtons(true);
+    askQuiz();
+  }
+
+  function stopQuiz() {
+    quiz = null;
+    stopSpeaking();
+    clearTimeout(readTimer);
+    setQuizButtons(false);
+    els.lead.textContent = 'Tap a word to hear it.';
+  }
+
+  function askQuiz() {
+    if (!quiz) return;
+    els.lead.innerHTML = 'Which word is it? &nbsp;<b>' + quiz.right + ' / ' + QUIZ_ROUNDS + '</b>';
+    speak('Find the word: ' + quiz.list[quiz.i], 0.85);
+  }
+
+  function answer(word, card) {
+    var want = quiz.list[quiz.i];
+    if (word !== want) {
+      card.classList.remove('wrong');
+      void card.offsetWidth;
+      card.classList.add('wrong');
+      speak('Try again', 0.9);
+      return;
+    }
+    quiz.right++;
+    quiz.i++;
+    light(word, 1200);
+    markRead(word);
+    celebrate(14);
+    var last = quiz.i >= quiz.list.length;
+    els.lead.innerHTML = 'Yes! &nbsp;<b>' + quiz.right + ' / ' + QUIZ_ROUNDS + '</b>';
+    speak(word, 0.8, 1, function () {
+      if (!quiz) return;
+      if (last) {
+        var got = quiz.right;
+        stopQuiz();
+        celebrate(45);
+        showFeedback('⭐ ' + got + ' / ' + QUIZ_ROUNDS + ' — well done, Jack!');
+        speak('Well done, Jack!', 0.9);
+      } else {
+        readTimer = setTimeout(askQuiz, 700);
+      }
+    });
+  }
+
+  /* ================= Mix ================= */
+  function toggleMix() {
+    if (reading) stopReadAll();
+    if (quiz) stopQuiz();
+    mixed = !mixed;
+    order = mixed ? shuffle(WORDS) : WORDS.slice();
+    els.mixBtn.textContent = mixed ? '🔢 In order' : '🎲 Mix';
+    build();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasTTS) pickVoice();
+    els.startOverlay.remove();
+    speak("Jack's Sight Words. Read the words. Tap one to hear it.", 0.9);
+    preload(WORDS);
+  });
+
+  els.readAllBtn.addEventListener('click', function () {
+    if (quiz) { speak('Find the word: ' + quiz.list[quiz.i], 0.85); return; }
+    readAll();
+  });
+  els.mixBtn.addEventListener('click', toggleMix);
+  els.quizBtn.addEventListener('click', startQuiz);
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Clear all the ticks and stars and start again?')) {
+      if (reading) stopReadAll();
+      if (quiz) stopQuiz();
+      read = [];
+      finished = false;
+      mixed = false;
+      order = WORDS.slice();
+      els.mixBtn.textContent = '🎲 Mix';
+      save();
+      renderScore();
+      build();
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  /* ================= Go ================= */
+  build();
+  renderScore();
+})();
+</script>
+</body>
+</html>

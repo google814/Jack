@@ -11,6 +11,7 @@ Browser games for Jack. No build tools needed — every game is a single self-co
 | 🥅✍️ Jack's Match | [`match-game/`](match-game/) | Two halves. First half is the phonics screening check idea: a word appears and he decides GOAL (real word) or ALIEN (made-up but decodable — `zat`, `shob`). Nothing is read out first, so he has to sound it out. Second half he hears a word and writes it on an ABC keyboard with no letters given. |
 | ✏️ Jack's Letters | [`letters-game/`](letters-game/) | Trace lowercase letters with a finger. Each letter is SVG stroke paths; the checker samples points along each stroke with `getPointAtLength()` and requires them to be hit in order, so the letter has to be formed the way it is written. Taught in movement families (`c a d g o q`, `i l t u`, …), not a–z. |
 | 🍎 Jack's Apples | [`apples-game/`](apples-game/) | Trace the numbers 1–20 with a finger, then fill the missing numbers into a 4×5 grid of apples (homework sheet „Practice Numbers 1–20"). |
+| 👀 Jack's Sight Words | [`sight-words/`](sight-words/) | The twenty most common English words (DfE „first 100 high frequency words", rank 1–20) on twenty big cards. Tap one and it is read out in the same neural voice; the card gets a ✓ and counts as read. „Read all" walks the whole list, „Mix" reshuffles the cards so the position is not what he memorises, and a ten-round quiz reads a word out and he taps it. |
 | ♟️ Jackies Schach | [`chess/`](chess/) | Chess with a coach, XP, and streaks (German UI). |
 
 ## Start page
@@ -34,6 +35,7 @@ edit a game here, then run `./tools/sync-game-repos.sh` to push the copies.
 | ✏️ Jack's Letters | [jacks-games/letters](https://github.com/jacks-games/letters) | [play](https://jacks-games.github.io/letters/) |
 | 🔢 Jack's Numbers | [jacks-games/numbers](https://github.com/jacks-games/numbers) | [play](https://jacks-games.github.io/numbers/) |
 | 🍎 Jack's Apples | [jacks-games/apples](https://github.com/jacks-games/apples) | [play](https://jacks-games.github.io/apples/) |
+| 👀 Jack's Sight Words | [jacks-games/sight-words](https://github.com/jacks-games/sight-words) | [play](https://jacks-games.github.io/sight-words/) |
 | ♟️ Jackies Schach | [jacks-games/chess](https://github.com/jacks-games/chess) | [play](https://jacks-games.github.io/chess/) |
 
 ## Where it runs
