@@ -136,7 +136,7 @@
   .ln.desc { stroke: rgba(255,255,255,.35); stroke-width: 1.5; }
   .ln.glow { stroke: #fde047; stroke-width: 3.5; }
   .spot { fill: rgba(255,255,255,.045); }
-  .zlabel { font-size: 14px; opacity: .6; pointer-events: none; }
+  .zlabel { font-size: 14px; opacity: .45; pointer-events: none; }
 
   .guide {
     fill: none; stroke: rgba(226,232,240,.55); stroke-width: 6;
@@ -146,6 +146,7 @@
     fill: none; stroke: rgba(255,255,255,.14); stroke-width: 15;
     stroke-linecap: round; stroke-linejoin: round;
   }
+  .gl:not(.cur) .track { display: none; }
   .gl.cur .guide { stroke: rgba(255,255,255,.9); }
   .gl.past .guide, .gl.past .track { display: none; }
   .challenge .gl .guide, .challenge .gl .track { display: none; }
@@ -817,7 +818,7 @@
     lines.base = el('line', { x1: 0, x2: W, y1: 110, y2: 110, class: 'ln base' }, els.fixed);
     lines.desc = el('line', { x1: 0, x2: W, y1: 140, y2: 140, class: 'ln desc' }, els.fixed);
     [['☁️', 41], ['🌱', 86], ['🪨', 131]].forEach(function (z) {
-      var t = el('text', { x: W - 3, y: z[1], 'text-anchor': 'end', class: 'zlabel' }, els.fixed);
+      var t = el('text', { x: 3, y: z[1], class: 'zlabel' }, els.fixed);
       t.textContent = z[0];
     });
     highlightZones();
