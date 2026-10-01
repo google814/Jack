@@ -192,6 +192,7 @@
   .letters { background: linear-gradient(160deg, #64748b, #2b3440); }
   .apples  { background: linear-gradient(160deg, #ef4444, #991b1b); }
   .sight   { background: linear-gradient(160deg, #7c3aed, #4c1d95); }
+  .clock   { background: linear-gradient(160deg, #ec4899, #9d174d); }
   .chess {
     color: var(--chess-deep);
     background:
@@ -516,6 +517,14 @@
       <span class="what">Maths to 100</span>
     </a>
 
+    <a class="card clock" href="clock-game/" data-group="practice" data-new="2026-10-01" data-say="Jack's Clock. Tell the time.">
+      <span class="score" id="score-clock" hidden></span>
+      <button class="say" type="button" aria-label="Say: Jack's Clock">🔊</button>
+      <span class="icon" aria-hidden="true">⏰</span>
+      <span class="name">Jack's Clock</span>
+      <span class="what">Tell the time</span>
+    </a>
+
     <!-- Order: homework/practice games first. Chess stays LAST — it is the treat. -->
     <a class="card apples" href="apples-game/" data-group="practice" data-new="2026-09-06" data-say="Jack's Apples. Numbers to twenty.">
       <span class="score" id="score-apples" hidden></span>
@@ -561,6 +570,7 @@
 
   /* Adding a game: add a card with data-group + data-new, and a WHATS_NEW entry. */
   var WHATS_NEW = [
+    { date: '2026-10-01', icon: '⏰', text: "Jack's Clock", href: 'clock-game/', say: "New: Jack's Clock. Tell the time." },
     { date: '2026-09-26', icon: '🔠', text: 'Write it Right! Capital letters', href: 'hw-20260926-capital-letters/', say: 'New homework: Write it Right! Capital letters.' },
     { date: '2026-09-06', icon: '💯', text: "Jack's Big Numbers", href: 'big-numbers/', say: "New: Jack's Big Numbers. Maths to one hundred." },
     { date: '2026-09-06', icon: '👀', text: "Jack's Sight Words", href: 'sight-words/', say: "New: Jack's Sight Words." },
@@ -597,6 +607,7 @@
     var apples  = num('jackApplesFootballs');
     var big     = num('jackBigFootballs');
     var sight   = num('jackSightStars');
+    var clock   = num('jackClockFootballs');
     var letters = (localStorage.getItem('jackLettersDone') || '').length;
     badge('score-words',   read,    '⚽ ' + read);
     badge('score-match',   match,   '⚽ ' + match);
@@ -605,6 +616,7 @@
     badge('score-big',     big,     '⚽ ' + big);
     badge('score-apples',  apples,  '⚽ ' + apples);
     badge('score-sight',   sight,   '⭐ ' + sight);
+    badge('score-clock',   clock,   '⚽ ' + clock);
     badge('score-chess',   xp,      '⭐ ' + xp);
     document.querySelectorAll('.card[data-hw]').forEach(function (c) {
       var v = num(c.getAttribute('data-hw'));

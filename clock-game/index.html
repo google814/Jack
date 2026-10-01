@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1e3a8a">
+<title>Jack's Clock ⏰</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Clock">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #1e3a8a, #3730a3 55%, #1e3a8a);
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;          /* the whole game always fits on one screen */
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  a:focus-visible, button:focus-visible { outline: 3px solid #fde047; outline-offset: 2px; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(0,0,0,.26);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none; color: #f1f5f9;
+    font-size: 1.5rem; line-height: 1;
+    min-width: 44px; min-height: 44px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    background: rgba(255,255,255,.13);
+  }
+  header h1 { font-size: clamp(1rem, 2.8vw, 1.5rem); white-space: nowrap; }
+  /* on a phone the score matters more than the title */
+  @media (max-width: 560px) { header h1 { display: none; } }
+  #score {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1px;
+    font-size: 1.25rem;
+    justify-content: flex-end;
+    overflow: hidden;
+    max-height: 2.2rem;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.2rem; margin-left: 6px; }
+  #settingsBtn {
+    background: none; border: none; color: #f1f5f9;
+    font-size: 1.2rem; opacity: .5; cursor: pointer;
+    min-width: 44px; min-height: 44px;
+  }
+
+  /* how far through the forty clocks he is */
+  #progress { flex: 0 0 auto; height: 6px; background: rgba(255,255,255,.12); }
+  #progressBar { height: 100%; width: 0; background: #fde047; transition: width .4s ease; }
+
+  /* ---------- stage ---------- */
+  main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 1.6vh, 18px);
+    padding: clamp(8px, 1.6vh, 18px) 10px calc(clamp(8px, 1.6vh, 18px) + env(safe-area-inset-bottom));
+    text-align: center;
+    overflow: hidden;
+  }
+  .hidden { display: none !important; }
+
+  #problem {
+    flex: 0 0 auto;
+    font-size: clamp(1.5rem, 5.6vmin, 3rem);
+    font-weight: 900;
+    line-height: 1.15;
+    cursor: pointer;
+    padding: .05em .35em;
+    border-radius: 18px;
+    text-shadow: 0 5px 16px rgba(0,0,0,.35);
+  }
+  #problem:hover { background: rgba(255,255,255,.1); }
+  #problem .target { color: #fde047; white-space: nowrap; }
+
+  #hint {
+    flex: 0 0 auto;
+    font-size: clamp(.95rem, 2.8vmin, 1.4rem);
+    font-weight: 700;
+    color: #fde047;
+    max-width: 34ch;
+    min-height: 1.3em;
+    cursor: pointer;
+  }
+
+  /* ---------- the clock ---------- */
+  #clockWrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  #clock { display: block; touch-action: none; filter: drop-shadow(0 10px 22px rgba(0,0,0,.4)); }
+  #clock .num { font-family: "Arial Rounded MT Bold", "Segoe UI", Arial, sans-serif; font-weight: 800; fill: #1e293b; }
+  #clock .numHit { fill: transparent; cursor: pointer; }
+  #clock.setting { cursor: grab; }
+  #clock.setting.dragging { cursor: grabbing; }
+  #clock.setting .numHit { pointer-events: none; }
+  #clock .hand { stroke-linecap: round; }
+  #clock .hour { stroke: #ef4444; }
+  #clock .minute { stroke: #2563eb; }
+  #clock .handHit { stroke: transparent; stroke-width: 26; stroke-linecap: round; }
+  #clock:not(.setting) .handHit { pointer-events: none; }
+  /* "move this one": the hand the hint is about */
+  #clock .nudge .hand { animation: nudge .45s ease-in-out 4; }
+  #clock .halves { display: none; }
+  #clock.quarters .halves { display: inline; }
+  #clock .halfLabel { font-weight: 800; font-size: 11px; letter-spacing: .04em; }
+
+  /* the two legend chips: which hand is which */
+  #legend {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: clamp(.8rem, 2.2vmin, 1.05rem);
+    font-weight: 700;
+  }
+  #legend button {
+    font-family: inherit; font-size: inherit; font-weight: inherit;
+    color: #f1f5f9; background: rgba(255,255,255,.12);
+    border: none; border-radius: 999px; cursor: pointer;
+    min-height: 40px; padding: 6px 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  #legend .swatch { display: inline-block; height: 6px; border-radius: 3px; }
+  #legend .swatch.h { width: 22px; height: 8px; background: #ef4444; }
+  #legend .swatch.m { width: 36px; background: #3b82f6; }
+
+  /* ---------- answer tiles ---------- */
+  #tiles {
+    flex: 0 0 auto;
+    display: flex;
+    gap: clamp(8px, 2vmin, 16px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .tile {
+    min-width: 44px; min-height: 44px;
+    padding: 0 clamp(12px, 2.4vmin, 22px);
+    height: clamp(58px, 10vmin, 86px);
+    border: none;
+    border-radius: 18px;
+    font-family: inherit;
+    font-size: clamp(1.15rem, 3.8vmin, 2rem);
+    font-weight: 900;
+    color: #0f172a;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .tile:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .tile.shake { animation: shake .35s ease; }
+  .tile:disabled { opacity: .3; cursor: default; box-shadow: none; }
+
+  /* ---------- buttons ---------- */
+  .row { flex: 0 0 auto; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit; font-weight: 800; color: #0f172a;
+    border: none; border-radius: 999px; cursor: pointer;
+    min-height: 44px;
+    padding: clamp(9px, 1.6vh, 14px) clamp(18px, 4vw, 30px);
+    font-size: clamp(.9rem, 2.4vmin, 1.2rem);
+    background: #fde047;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .btn.ghost { background: rgba(255,255,255,.14); color: #f1f5f9; box-shadow: none; }
+  #checkBtn { font-size: clamp(1.1rem, 3.4vmin, 1.7rem); padding-left: clamp(26px, 6vw, 44px); padding-right: clamp(26px, 6vw, 44px); }
+
+  /* ---------- the answer ---------- */
+  #cheer { flex: 0 0 auto; font-size: clamp(1.2rem, 4vmin, 2.1rem); font-weight: 900; animation: pop .5s ease; }
+  #equation {
+    flex: 0 0 auto;
+    font-size: clamp(1.8rem, 6.6vmin, 3.8rem);
+    font-weight: 900;
+    line-height: 1.2;
+    cursor: pointer;
+    padding: .1em .3em;
+    border-radius: 22px;
+  }
+  #equation:hover { background: rgba(255,255,255,.1); }
+  #equation .digital {
+    display: inline-block;
+    margin-left: .5em;
+    font-size: .55em;
+    font-family: "Courier New", monospace;
+    background: #0f172a;
+    color: #4ade80;
+    padding: .1em .4em;
+    border-radius: 10px;
+    vertical-align: middle;
+  }
+  .rainbow {
+    display: inline-block;
+    background: linear-gradient(90deg, #ff3b6b, #ff9f1a, #ffd60a, #2ecc71, #34d399, #8b5cf6, #ff3b6b);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 900;
+    animation: rainbowShift 2.5s linear infinite, pulseWord 1s ease-in-out infinite;
+  }
+
+  /* ---------- overlays ---------- */
+  #startOverlay, #endOverlay {
+    position: fixed; inset: 0; z-index: 70;
+    background: linear-gradient(160deg, #1e3a8a, #3730a3 55%, #1e3a8a);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: clamp(16px, 4vh, 32px); text-align: center; padding: 24px;
+  }
+  #startOverlay h2, #endOverlay h2 { font-size: clamp(1.5rem, 5.5vmin, 2.8rem); }
+  #startOverlay p, #endOverlay p { max-width: 28ch; opacity: .9; font-size: clamp(.95rem, 2.4vmin, 1.2rem); }
+  #endScore { font-size: clamp(1.4rem, 5vmin, 2.4rem); font-weight: 900; opacity: 1; }
+  #playBtn {
+    width: clamp(120px, 26vmin, 190px);
+    height: clamp(120px, 26vmin, 190px);
+    border-radius: 50%;
+    font-size: clamp(3rem, 10vmin, 5rem);
+    padding: 0;
+    animation: pulseWord 1.6s ease-in-out infinite;
+  }
+
+  /* ---------- settings ---------- */
+  #settingsPanel {
+    position: fixed; top: 56px; right: 12px; z-index: 60;
+    background: #fff; color: #0f172a;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+    max-width: calc(100vw - 24px);
+  }
+  #settingsPanel .lbl { font-weight: 700; }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; min-height: 44px; padding: 8px 14px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+    text-align: left;
+  }
+
+  /* ---------- toast + confetti ---------- */
+  #feedback {
+    position: fixed; left: 50%; bottom: 9vh; transform: translateX(-50%);
+    background: rgba(15,23,42,.92); color: #f1f5f9;
+    font-size: clamp(1rem, 2.8vmin, 1.4rem); font-weight: 700;
+    padding: .55em 1.15em; border-radius: 999px;
+    z-index: 50; pointer-events: none; white-space: nowrap;
+    animation: pop .3s ease;
+  }
+  .confetti { position: fixed; top: -6vh; font-size: 1.8rem; animation: fall linear forwards; pointer-events: none; z-index: 80; }
+
+  /* ---------- keyframes ---------- */
+  @keyframes pop { 0% { transform: scale(.5); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+  @keyframes rainbowShift { to { background-position: 300% 0; } }
+  @keyframes pulseWord { 50% { transform: scale(1.1); } }
+  @keyframes nudge { 50% { opacity: .25; } }
+  @keyframes bounceIn {
+    0% { transform: translateY(-40px) scale(.3); opacity: 0; }
+    55% { transform: translateY(6px) scale(1.15); opacity: 1; }
+    75% { transform: translateY(-4px) scale(.95); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  @keyframes fall { to { transform: translateY(115vh) rotate(400deg); } }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Jack's Clock</h1>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+<div id="progress"><div id="progressBar"></div></div>
+
+<main>
+  <div id="problem" class="hidden"></div>
+  <div id="hint" class="hidden"></div>
+  <div id="clockWrap" class="hidden">
+    <svg id="clock" viewBox="0 0 200 200" width="300" height="300" aria-label="clock"></svg>
+  </div>
+  <div id="legend" class="hidden">
+    <button id="legendHour" type="button"><span class="swatch h"></span>hour</button>
+    <button id="legendMinute" type="button"><span class="swatch m"></span>minutes</button>
+  </div>
+  <div id="tiles" class="hidden"></div>
+  <div id="setRow" class="row hidden">
+    <button id="hearBtn" class="btn ghost">🔊</button>
+    <button id="checkBtn" class="btn">✓ Check</button>
+  </div>
+
+  <!-- the answer -->
+  <div id="cheer" class="hidden"></div>
+  <div id="equation" class="hidden"></div>
+  <div id="answerRow" class="row hidden">
+    <button id="hearAnswerBtn" class="btn ghost">🔊 Hear it</button>
+    <button id="nextBtn" class="btn">Next ➜ ⚽</button>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>⏰ Jack's Clock</h2>
+  <p>Read the clock and set the hands. O'clock, half past, quarter past and quarter to.</p>
+  <button id="playBtn" class="btn">▶</button>
+</div>
+
+<div id="endOverlay" class="hidden">
+  <h2>🏁 Full time!</h2>
+  <p id="endScore"></p>
+  <button id="playAgainBtn" class="btn">▶ Play again</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <span class="lbl">Jump to</span>
+  <div id="stepButtons" style="display:flex;flex-direction:column;gap:6px"></div>
+  <button id="resetBtn">Start again</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say lives in here and nowhere else. It touches no
+     DOM, so tools/phrases/clock-game.txt is generated straight out of this
+     block (tools/gen-phrases-clock-game.js) and can never drift. */
+
+  var WORDS = ['twelve', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+               'nine', 'ten', 'eleven', 'twelve'];
+
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  /* A time is minutes after twelve, 0-719. The hands only ever stop on a
+     quarter, so there are 48 times in the whole game. */
+  function hourOf(t) { var h = Math.floor(t / 60) % 12; return h === 0 ? 12 : h; }
+  function nextHour(h) { return h === 12 ? 1 : h + 1; }
+  function prevHour(h) { return h === 1 ? 12 : h - 1; }
+  function at(h, m) { return ((h % 12) * 60 + m) % 720; }
+
+  /* the way it is said: "quarter to four" */
+  function timeWords(t) {
+    var h = hourOf(t), m = t % 60;
+    if (m === 0) return WORDS[h] + " o'clock";
+    if (m === 15) return 'quarter past ' + WORDS[h];
+    if (m === 30) return 'half past ' + WORDS[h];
+    return 'quarter to ' + WORDS[nextHour(h)];
+  }
+
+  /* the way it is written on a tile: "quarter to 4" */
+  function timeLabel(t) {
+    var h = hourOf(t), m = t % 60;
+    if (m === 0) return h + " o'clock";
+    if (m === 15) return 'quarter past ' + h;
+    if (m === 30) return 'half past ' + h;
+    return 'quarter to ' + nextHour(h);
+  }
+
+  /* the digital clock under the answer: "3:45" */
+  function digital(t) {
+    var m = t % 60;
+    return hourOf(t) + ':' + (m < 10 ? '0' : '') + m;
+  }
+
+  /* where the long hand goes, said the way a teacher says it */
+  function minuteRule(m) {
+    if (m === 0) return "For o'clock, the long hand points to twelve.";
+    if (m === 15) return 'For quarter past, the long hand points to three.';
+    if (m === 30) return 'For half past, the long hand points to six.';
+    return 'For quarter to, the long hand points to nine.';
+  }
+
+  /* where the short hand goes — it is never exactly on the number unless
+     it is o'clock, and that is the bit children get wrong */
+  function hourRule(t) {
+    var h = hourOf(t), m = t % 60;
+    if (m === 0) return 'The short hand points to ' + WORDS[h] + '.';
+    if (m === 15) return 'The short hand is just after ' + WORDS[h] + '.';
+    if (m === 30) return 'The short hand is half way between ' + WORDS[h] + ' and ' + WORDS[nextHour(h)] + '.';
+    return 'The short hand is just before ' + WORDS[nextHour(h)] + '.';
+  }
+
+  /* Forty clocks in six steps, always in this order: read, then set, o'clock
+     first, then half past, then the quarters. */
+  var STEPS = [
+    { name: "Read o'clock", t: 'read' },
+    { name: "Set o'clock", t: 'set' },
+    { name: 'Read half past', t: 'read' },
+    { name: 'Set half past', t: 'set' },
+    { name: 'Read the quarters', t: 'read', quarters: 1 },
+    { name: 'Set them all', t: 'set', quarters: 1 }
+  ];
+  var PROBLEMS = (function () {
+    var plan = [
+      /* 1 */ [[3, 0], [7, 0], [12, 0], [9, 0], [1, 0], [5, 0]],
+      /* 2 */ [[4, 0], [8, 0], [2, 0], [11, 0], [6, 0], [10, 0]],
+      /* 3 */ [[3, 30], [6, 30], [9, 30], [12, 30], [1, 30], [8, 30], [4, 30]],
+      /* 4 */ [[2, 30], [5, 30], [7, 30], [10, 30], [11, 30], [3, 30], [6, 30]],
+      /* 5 */ [[3, 15], [5, 45], [9, 15], [11, 45], [1, 15], [3, 45], [7, 15]],
+      /* 6 */ [[5, 0], [8, 30], [2, 15], [9, 45], [1, 0], [11, 30], [6, 15]]
+    ];
+    var out = [], s, i;
+    for (s = 0; s < plan.length; s++) {
+      for (i = 0; i < plan[s].length; i++) {
+        out.push({ t: STEPS[s].t, step: s, time: at(plan[s][i][0], plan[s][i][1]), first: i === 0 });
+      }
+    }
+    return out;
+  })();
+
+  var HOW_TO_SET = 'Move the hands. The short hand shows the hour. The long hand shows the minutes. Then tap the tick.';
+  var HOW_PAST_TO = 'The right side of the clock is past. The left side is to.';
+
+  function questionText(p) {
+    if (p.t === 'read') return 'What time is it?';
+    return 'Make it ' + timeWords(p.time) + '.';
+  }
+
+  /* the first clock of a step also says how the step works */
+  function introText(p) {
+    var s = questionText(p);
+    if (!p.first) return s;
+    if (p.t === 'set') s = HOW_TO_SET + ' ' + s;
+    if (STEPS[p.step].quarters) s = HOW_PAST_TO + ' ' + s;
+    return s;
+  }
+
+  /* the answer on its own, the way it is cheered: "Half past three!" */
+  function answerWord(p) { return cap(timeWords(p.time)) + '!'; }
+
+  /* the whole picture in two sentences, long hand first */
+  function answerSentence(p) {
+    var m = p.time % 60, longHand;
+    if (m === 0) longHand = 'The long hand points to twelve.';
+    else if (m === 15) longHand = 'The long hand points to three.';
+    else if (m === 30) longHand = 'The long hand points to six.';
+    else longHand = 'The long hand points to nine.';
+    return longHand + ' ' + hourRule(p.time) + ' It is ' + timeWords(p.time) + '.';
+  }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim(), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i;
+    function add(s) { if (s && !seen[s]) { seen[s] = 1; out.push(s); } }
+    function addAll(text) { var p = segments(text); for (var k = 0; k < p.length; k++) add(p[k]); }
+    add("Jack's Clock.");
+    add("Let's go!");
+    add('Try again');
+    add('Look at the long hand first.');
+    add('On fire!');
+    add('Full time!');
+    add('Well done, Jack!');
+    add('Look!');
+    add('hour');
+    add('minutes');
+    add('The short hand shows the hour.');
+    add('The long hand shows the minutes.');
+    for (i = 1; i <= 12; i++) add(WORDS[i]);           /* tapping a number on the clock */
+    for (i = 0; i < 720; i += 15) add(timeWords(i));   /* letting go of a hand */
+    addAll(HOW_TO_SET);
+    addAll(HOW_PAST_TO);
+    add(minuteRule(0)); add(minuteRule(15)); add(minuteRule(30)); add(minuteRule(45));
+    for (i = 0; i < PROBLEMS.length; i++) {
+      add(questionText(PROBLEMS[i]));
+      add(answerWord(PROBLEMS[i]));
+      addAll(answerSentence(PROBLEMS[i]));
+      add(hourRule(PROBLEMS[i].time));
+    }
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') { return; }
+  window.__phrases = phraseList;
+
+  var TILE_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4', '#fdba74', '#c4b5fd'];
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '⏰', '💛'];
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  /* ================= State ================= */
+  var footballs = parseInt(localStorage.getItem('jackClockFootballs') || '0', 10) || 0;
+  var probIndex = parseInt(localStorage.getItem('jackClockIndex') || '0', 10) || 0;
+  if (!(probIndex >= 0) || probIndex >= PROBLEMS.length) probIndex = 0;
+  var streak = 0;
+  var misses = 0;            /* wrong tries on the clock in front of him */
+  var shown = 0;             /* the time the hands show right now */
+  var busy = false;          /* hands are animating or the answer is up */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), progressBar: $('progressBar'),
+    problem: $('problem'), hint: $('hint'), clockWrap: $('clockWrap'), clock: $('clock'),
+    legend: $('legend'), legendHour: $('legendHour'), legendMinute: $('legendMinute'),
+    tiles: $('tiles'), setRow: $('setRow'), hearBtn: $('hearBtn'), checkBtn: $('checkBtn'),
+    cheer: $('cheer'), equation: $('equation'), answerRow: $('answerRow'),
+    hearAnswerBtn: $('hearAnswerBtn'), nextBtn: $('nextBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    endOverlay: $('endOverlay'), endScore: $('endScore'), playAgainBtn: $('playAgainBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    stepButtons: $('stepButtons'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    try {
+      localStorage.setItem('jackClockFootballs', String(footballs));
+      localStorage.setItem('jackClockIndex', String(probIndex));
+    } catch (e) { /* private mode: the game still plays */ }
+  }
+
+  /* ================= Voice =================
+     The browser's own voice sounds like a computer, so every line these
+     games say is pre-rendered with a neural en-GB voice (tools/build-audio.py)
+     and played back through Web Audio. speechSynthesis is only the fallback
+     for a line that has no clip. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/clock-game/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips for the screen he is about to tap on, so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Samantha|Martha|Serena|Kate|Karen|Moira|Zira|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) || find(en, good) ||
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(gb, female) ||
+      find(en, /female|woman/i) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  /* the fallback: only used for a line that has no clip */
+  function say(text, rate, my, done) {
+    window.__clipMisses.push(text);
+    if (!hasSpeech) { if (done) done(); return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = (rate || 0.95);
+      u.onend = function () { if (my === speakToken && done) done(); };
+      u.onerror = u.onend;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { if (done) done(); }
+  }
+
+  function speak(text, rate) {
+    if (!hasTTS) return;
+    stopSpeaking();
+    var my = speakToken;
+    var parts = segments(text);
+    if (!parts.length) return;
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken || i >= parts.length) return;
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) onward();
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            src.start(0);
+          }, function () { say(parts[i], rate, my, onward); });
+        } else {
+          say(parts[i], rate, my, onward);
+        }
+      })(0);
+    });
+  }
+
+  window.__speak = speak;    /* lets a browser check drive the voice from outside */
+
+  if (hasSpeech) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+  if (!hasTTS) {
+    els.hearBtn.style.display = 'none';
+    els.hearAnswerBtn.style.display = 'none';
+  }
+
+  /* ================= Small helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1600);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+      c.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 12) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function renderProgress() {
+    els.progressBar.style.width = (100 * probIndex / PROBLEMS.length) + '%';
+  }
+
+  var STATE_ELS = {
+    read: ['problem', 'clockWrap', 'tiles'],
+    set: ['problem', 'hint', 'clockWrap', 'legend', 'setRow'],
+    answer: ['cheer', 'clockWrap', 'equation', 'answerRow']
+  };
+  var ALL_STATE_ELS = ['problem', 'hint', 'clockWrap', 'legend', 'tiles', 'setRow', 'cheer', 'equation', 'answerRow'];
+  function show(state) {
+    ALL_STATE_ELS.forEach(function (id) { els[id].classList.add('hidden'); });
+    STATE_ELS[state].forEach(function (id) { els[id].classList.remove('hidden'); });
+  }
+
+  /* ================= The clock face ================= */
+  var hourHand, minuteHand, hourGroup, minuteGroup;
+
+  function el(name, attrs, parent) {
+    var n = document.createElementNS(SVGNS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+
+  function buildClock() {
+    var svg = els.clock, i, a, x, y;
+    svg.innerHTML = '';
+    el('circle', { cx: 100, cy: 100, r: 97, fill: '#1e293b' }, svg);
+    el('circle', { cx: 100, cy: 100, r: 91, fill: '#fffbeb' }, svg);
+
+    /* quarters only: the right half is "past", the left half is "to" */
+    var halves = el('g', { 'class': 'halves' }, svg);
+    el('path', { d: 'M100 100 L100 9 A91 91 0 0 1 100 191 Z', fill: '#bbf7d0' }, halves);
+    el('path', { d: 'M100 100 L100 191 A91 91 0 0 1 100 9 Z', fill: '#fed7aa' }, halves);
+    var past = el('text', { x: 140, y: 128, 'text-anchor': 'middle', 'class': 'halfLabel', fill: '#15803d' }, halves);
+    past.textContent = 'past';
+    var to = el('text', { x: 60, y: 128, 'text-anchor': 'middle', 'class': 'halfLabel', fill: '#c2410c' }, halves);
+    to.textContent = 'to';
+
+    /* minute ticks, the five-minute ones thicker */
+    for (i = 0; i < 60; i++) {
+      a = i * 6 * Math.PI / 180;
+      var big = i % 5 === 0;
+      var r1 = big ? 80 : 84, r2 = 88;
+      el('line', {
+        x1: 100 + r1 * Math.sin(a), y1: 100 - r1 * Math.cos(a),
+        x2: 100 + r2 * Math.sin(a), y2: 100 - r2 * Math.cos(a),
+        stroke: '#334155', 'stroke-width': big ? 2.4 : 1, 'stroke-linecap': 'round'
+      }, svg);
+    }
+
+    /* the numbers: tap one and it is read out */
+    for (i = 1; i <= 12; i++) {
+      a = i * 30 * Math.PI / 180;
+      x = 100 + 66 * Math.sin(a);
+      y = 100 - 66 * Math.cos(a);
+      var t = el('text', { x: x, y: y + 7.5, 'text-anchor': 'middle', 'class': 'num', 'font-size': 21 }, svg);
+      t.textContent = i;
+      var hit = el('circle', { cx: x, cy: y, r: 13, 'class': 'numHit', 'data-num': i }, svg);
+      hit.addEventListener('click', onNumber);
+    }
+
+    /* the hands: a wide invisible line on each one makes it easy to grab */
+    hourGroup = el('g', { 'data-hand': 'hour' }, svg);
+    hourHand = el('line', { x1: 100, y1: 110, x2: 100, y2: 57, 'class': 'hand hour', 'stroke-width': 9.5 }, hourGroup);
+    el('line', { x1: 100, y1: 100, x2: 100, y2: 57, 'class': 'handHit', 'data-hand': 'hour' }, hourGroup);
+    minuteGroup = el('g', { 'data-hand': 'minute' }, svg);
+    minuteHand = el('line', { x1: 100, y1: 114, x2: 100, y2: 20, 'class': 'hand minute', 'stroke-width': 5 }, minuteGroup);
+    el('line', { x1: 100, y1: 100, x2: 100, y2: 22, 'class': 'handHit', 'data-hand': 'minute' }, minuteGroup);
+    el('circle', { cx: 100, cy: 100, r: 7, fill: '#1e293b' }, svg);
+    el('circle', { cx: 100, cy: 100, r: 2.6, fill: '#fde047' }, svg);
+  }
+
+  /* hands from a time; t may be fractional while animating */
+  function drawHands(t) {
+    var m = ((t % 60) + 60) % 60;
+    var minuteAngle = m * 6;
+    var hourAngle = ((t / 60) % 12) * 30;
+    minuteGroup.setAttribute('transform', 'rotate(' + minuteAngle + ' 100 100)');
+    hourGroup.setAttribute('transform', 'rotate(' + hourAngle + ' 100 100)');
+  }
+
+  function setShown(t) {
+    shown = ((Math.round(t) % 720) + 720) % 720;
+    drawHands(shown);
+  }
+
+  /* turn the hands the short way round to `target`, like a real clock */
+  function animateTo(target, ms, done) {
+    var from = shown, delta = target - from;
+    if (delta > 360) delta -= 720;
+    if (delta < -360) delta += 720;
+    var start = null;
+    function frame(ts) {
+      if (start === null) start = ts;
+      var k = Math.min(1, (ts - start) / ms);
+      var e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      drawHands(from + delta * e);
+      if (k < 1) requestAnimationFrame(frame);
+      else { setShown(target); if (done) done(); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* the clock is as big as the room it is given, never bigger */
+  function fitClock() {
+    var w = els.clockWrap.clientWidth, h = els.clockWrap.clientHeight;
+    var size = Math.max(140, Math.floor(Math.min(w, h, 640)));
+    els.clock.setAttribute('width', size);
+    els.clock.setAttribute('height', size);
+  }
+
+  function onNumber(ev) {
+    var n = parseInt(ev.currentTarget.getAttribute('data-num'), 10);
+    if (n >= 1 && n <= 12) speak(WORDS[n], 0.95);
+  }
+
+  /* ================= Dragging the hands ================= */
+  var drag = null;   /* { hand: 'hour'|'minute', id: pointerId } */
+
+  function svgPoint(ev) {
+    var svg = els.clock, pt = svg.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    var p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return { x: p.x - 100, y: p.y - 100 };
+  }
+
+  /* 0 at twelve, clockwise, in degrees */
+  function angleOf(p) {
+    var a = Math.atan2(p.x, -p.y) * 180 / Math.PI;
+    return (a + 360) % 360;
+  }
+
+  function angleGap(a, b) {
+    var d = Math.abs(a - b) % 360;
+    return d > 180 ? 360 - d : d;
+  }
+
+  function pickHand(ev, p) {
+    var t = ev.target && ev.target.getAttribute && ev.target.getAttribute('data-hand');
+    if (t) return t;
+    var a = angleOf(p), r = Math.sqrt(p.x * p.x + p.y * p.y);
+    var hourA = ((shown / 60) % 12) * 30, minA = (shown % 60) * 6;
+    var gh = angleGap(a, hourA), gm = angleGap(a, minA);
+    /* out beyond the short hand's tip it can only be the long hand */
+    if (r > 58) return 'minute';
+    return gh <= gm ? 'hour' : 'minute';
+  }
+
+  function moveHand(hand, p) {
+    var a = angleOf(p), m = shown % 60;
+    if (hand === 'minute') {
+      /* quarters only; going over the twelve carries into the next hour */
+      var nm = (Math.round(a / 90) * 15) % 60;
+      var d = nm - m;
+      if (d > 30) d -= 60;
+      if (d < -30) d += 60;
+      if (d) setShown(shown + d);
+    } else {
+      var h = Math.round((a - m * 0.5) / 30);
+      h = ((h % 12) + 12) % 12;
+      var nt = h * 60 + m;
+      if (nt !== shown) setShown(nt);
+    }
+  }
+
+  els.clock.addEventListener('pointerdown', function (ev) {
+    if (current().t !== 'set' || busy || drag) return;
+    var p = svgPoint(ev);
+    if (Math.sqrt(p.x * p.x + p.y * p.y) > 100) return;
+    ev.preventDefault();
+    drag = { hand: pickHand(ev, p), id: ev.pointerId, from: shown };
+    els.clock.classList.add('dragging');
+    els.clock.classList.remove('nudge');
+    hourGroup.classList.remove('nudge');
+    minuteGroup.classList.remove('nudge');
+    try { els.clock.setPointerCapture(ev.pointerId); } catch (e) {}
+    moveHand(drag.hand, p);
+  });
+  els.clock.addEventListener('pointermove', function (ev) {
+    if (!drag || ev.pointerId !== drag.id) return;
+    ev.preventDefault();
+    moveHand(drag.hand, svgPoint(ev));
+  });
+  function endDrag(ev) {
+    if (!drag || ev.pointerId !== drag.id) return;
+    var moved = drag.from !== shown;
+    drag = null;
+    els.clock.classList.remove('dragging');
+    /* say what the clock shows now — the words come with the picture */
+    if (moved) speak(timeWords(shown), 1);
+  }
+  els.clock.addEventListener('pointerup', endDrag);
+  els.clock.addEventListener('pointercancel', endDrag);
+
+  /* ================= Distractors =================
+     The mistakes children really make: half past read one hour on (the short
+     hand is already near the next number), past and to swapped, the long hand
+     read as the hour. Never the right answer twice. */
+  function optionsFor(t) {
+    var h = hourOf(t), m = t % 60, H = nextHour(h);
+    var sure = [], maybe = [];
+    if (m === 0) {
+      maybe = [at(H, 0), at(prevHour(h), 0), at(h, 30)];
+    } else if (m === 30) {
+      sure = [at(H, 30)];
+      maybe = [at(h, 0), at(6, 0), at(prevHour(h), 30)];
+    } else if (m === 15) {
+      sure = [at(prevHour(h), 45)];             /* quarter to h — past and to swapped */
+      maybe = [at(H, 15), at(h, 30), at(3, 0)];
+    } else {
+      sure = [at(H, 15)];                       /* quarter past h+1 — past and to swapped */
+      maybe = [at(prevHour(h), 45), at(h, 30), at(9, 0)];
+    }
+    var out = [t];
+    function tryAdd(v) { if (out.indexOf(v) === -1) out.push(v); }
+    sure.forEach(tryAdd);
+    shuffle(maybe).forEach(function (v) { if (out.length < 3) tryAdd(v); });
+    return out.slice(0, 3);
+  }
+
+  /* ================= Play ================= */
+  function current() { return PROBLEMS[probIndex]; }
+
+  function enterPlay() {
+    var p = current();
+    misses = 0;
+    busy = false;
+    els.endOverlay.classList.add('hidden');
+    els.hint.textContent = '';
+    renderProgress();
+
+    els.clock.classList.toggle('quarters', !!STEPS[p.step].quarters);
+    els.clock.classList.toggle('setting', p.t === 'set');
+    hourGroup.classList.remove('nudge');
+    minuteGroup.classList.remove('nudge');
+
+    var warm = [introText(p), answerWord(p), answerSentence(p), 'Try again'];
+
+    if (p.t === 'read') {
+      els.problem.textContent = 'What time is it?';
+      setShown(p.time);
+      var opts = shuffle(optionsFor(p.time));
+      els.tiles.innerHTML = '';
+      opts.forEach(function (t, i) {
+        var tile = document.createElement('button');
+        tile.className = 'tile';
+        tile.textContent = timeLabel(t);
+        tile.style.background = TILE_COLORS[i % TILE_COLORS.length];
+        tile.addEventListener('click', function () { onTile(tile, t); });
+        els.tiles.appendChild(tile);
+        warm.push(timeWords(t));
+      });
+      warm.push('Look at the long hand first.');
+      show('read');
+    } else {
+      els.problem.innerHTML = '';
+      els.problem.appendChild(document.createTextNode('Make it '));
+      var span = document.createElement('span');
+      span.className = 'target';
+      span.textContent = timeLabel(p.time);
+      els.problem.appendChild(span);
+      /* start somewhere else: an o'clock time a few hours away */
+      var startH = ((hourOf(p.time) + 4 + (probIndex % 5)) % 12) || 12;
+      var start = at(startH, 0);
+      if (start === p.time) start = at(nextHour(startH), 0);
+      setShown(start);
+      warm.push(minuteRule(p.time % 60), hourRule(p.time));
+      for (var i = 0; i < 720; i += 15) warm.push(timeWords(i));
+      show('set');
+    }
+
+    fitClock();
+    preload(warm);
+    speak(introText(p), 0.9);
+  }
+
+  function onTile(tile, t) {
+    var p = current();
+    if (tile.disabled || busy) return;
+    if (t === p.time) {
+      goal();
+    } else {
+      streak = 0;
+      tile.disabled = true;
+      tile.classList.remove('shake');
+      void tile.offsetWidth;
+      tile.classList.add('shake');
+      showFeedback('Try again 🙂');
+      speak('Try again. Look at the long hand first.', 0.95);
+    }
+  }
+
+  function nudge(group) {
+    group.classList.remove('nudge');
+    void group.getBoundingClientRect();
+    group.classList.add('nudge');
+  }
+
+  function onCheck() {
+    var p = current();
+    if (busy || drag) return;
+    if (shown === p.time) { goal(); return; }
+
+    streak = 0;
+    misses++;
+    if (misses >= 3) {
+      /* three goes is enough: show him, then on to the next one */
+      busy = true;
+      els.hint.textContent = '👀 Look!';
+      speak('Look!', 0.95);
+      animateTo(p.time, 1400, function () { enterAnswer(false); });
+      return;
+    }
+    var hint, line;
+    if (shown % 60 !== p.time % 60) {
+      hint = minuteRule(p.time % 60);
+      nudge(minuteGroup);
+    } else {
+      hint = hourRule(p.time);
+      nudge(hourGroup);
+    }
+    els.hint.textContent = hint;
+    line = 'Try again. ' + hint;
+    showFeedback('Try again 🙂');
+    speak(line, 0.92);
+  }
+
+  function goal() {
+    footballs++;
+    streak++;
+    save();
+    renderScore(true);
+    busy = true;
+    if (streak > 0 && streak % 5 === 0) {
+      showFeedback('On fire! 🔥');
+      speak('On fire!', 0.95);
+      setTimeout(function () { enterAnswer(true); }, 900);
+    } else {
+      setTimeout(function () { enterAnswer(true); }, 250);
+    }
+  }
+
+  /* ================= The answer ================= */
+  function enterAnswer(scored) {
+    var p = current();
+    busy = true;
+    setShown(p.time);
+    els.clock.classList.remove('setting');
+
+    if (scored) celebrate(28);
+
+    els.equation.innerHTML = '';
+    var span = document.createElement('span');
+    span.className = scored ? 'rainbow' : '';
+    span.textContent = timeLabel(p.time);
+    els.equation.appendChild(span);
+    var dig = document.createElement('span');
+    dig.className = 'digital';
+    dig.textContent = digital(p.time);
+    els.equation.appendChild(dig);
+
+    var isLast = probIndex === PROBLEMS.length - 1;
+    if (isLast) els.cheer.textContent = '🏆 That was the last one!';
+    else els.cheer.textContent = scored ? 'GOAL! ⚽ Well done, Jack!' : '👀 Look! Next one is yours.';
+    els.nextBtn.textContent = isLast ? 'Full time ➜ 🏁' : 'Next ➜ ⚽';
+
+    show('answer');
+    fitClock();
+    speak((scored ? answerWord(p) + ' ' : '') + answerSentence(p), 0.9);
+  }
+
+  function nextProblem() {
+    if (probIndex >= PROBLEMS.length - 1) {
+      probIndex = PROBLEMS.length;
+      renderProgress();
+      probIndex = PROBLEMS.length - 1;
+      save();
+      enterFullTime();
+      return;
+    }
+    probIndex++;
+    save();
+    enterPlay();
+  }
+
+  function enterFullTime() {
+    els.endScore.textContent = '⚽ ' + footballs;
+    els.endOverlay.classList.remove('hidden');
+    celebrate(50);
+    speak('Full time! Well done, Jack!', 0.9);
+  }
+
+  function jumpTo(i) {
+    probIndex = i;
+    streak = 0;
+    save();
+    els.settingsPanel.classList.add('hidden');
+    els.endOverlay.classList.add('hidden');
+    enterPlay();
+  }
+
+  /* ================= Wiring ================= */
+  buildClock();
+  setShown(at(10, 0));
+
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasTTS) pickVoice();
+    els.startOverlay.remove();
+    speak("Jack's Clock. Let's go!", 0.9);
+    setTimeout(function () { enterPlay(); }, 1600);
+  });
+
+  els.problem.addEventListener('click', function () { speak(questionText(current()), 0.9); });
+  els.hint.addEventListener('click', function () { if (els.hint.textContent) speak(els.hint.textContent, 0.92); });
+  els.hearBtn.addEventListener('click', function () { speak(questionText(current()), 0.9); });
+  els.checkBtn.addEventListener('click', onCheck);
+  els.legendHour.addEventListener('click', function () { nudge(hourGroup); speak('The short hand shows the hour.', 0.92); });
+  els.legendMinute.addEventListener('click', function () { nudge(minuteGroup); speak('The long hand shows the minutes.', 0.92); });
+  els.equation.addEventListener('click', function () { speak(answerSentence(current()), 0.9); });
+  els.hearAnswerBtn.addEventListener('click', function () { speak(answerSentence(current()), 0.9); });
+  els.nextBtn.addEventListener('click', nextProblem);
+
+  els.playAgainBtn.addEventListener('click', function () { jumpTo(0); });
+
+  STEPS.forEach(function (s, si) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = (si + 1) + '. ' + s.name;
+    b.addEventListener('click', function () {
+      for (var i = 0; i < PROBLEMS.length; i++) if (PROBLEMS[i].step === si) { jumpTo(i); return; }
+    });
+    els.stepButtons.appendChild(b);
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Clear the footballs and start from the first clock?')) {
+      footballs = 0;
+      renderScore(false);
+      jumpTo(0);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!els.clockWrap.classList.contains('hidden')) fitClock();
+  });
+
+  window.__game = { problems: PROBLEMS, options: optionsFor, words: timeWords, label: timeLabel,
+                    shown: function () { return shown; }, set: setShown, check: onCheck,
+                    index: function () { return probIndex; } };
+
+  renderScore(false);
+  renderProgress();
+})();
+</script>
+</body>
+</html>

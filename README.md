@@ -13,6 +13,7 @@ Browser games for Jack. No build tools needed — every game is a single self-co
 | ✏️ Jack's Letters | [`letters-game/`](letters-game/) | Trace lowercase letters with a finger. Each letter is SVG stroke paths; the checker samples points along each stroke with `getPointAtLength()` and requires them to be hit in order, so the letter has to be formed the way it is written. Taught in movement families (`c a d g o q`, `i l t u`, …), not a–z. An accuracy meter under the board scores how closely the finger hugged the line, red to green; 95% or more pays a bonus football and leaves a ⭐ on that letter. |
 | 🍎 Jack's Apples | [`apples-game/`](apples-game/) | Trace the numbers 1–20 with a finger, then fill the missing numbers into a 4×5 grid of apples (homework sheet „Practice Numbers 1–20"). The tracing half has the same accuracy meter as Letters — red to green, a bonus football at 95% and a ⭐ on the number. |
 | 👀 Jack's Sight Words | [`sight-words/`](sight-words/) | The twenty most common English words (DfE „first 100 high frequency words", rank 1–20) on twenty big cards. Tap one and it is read out in the same neural voice; the card gets a ✓ and counts as read. „Read all" walks the whole list, „Mix" reshuffles the cards so the position is not what he memorises, and a ten-round quiz reads a word out and he taps it. |
+| ⏰ Jack's Clock | [`clock-game/`](clock-game/) | Learning to tell the time on a real clock face. Forty clocks in six steps: read o'clock, set o'clock, read half past, set half past, read quarter past / quarter to, set them all. Reading: the clock shows a time and he picks one of three tiles; the wrong tiles are the real mistakes (half past read one hour on, past and to swapped, the long hand read as the hour). Setting: he drags the hands, which are geared like a real clock (the long hand going round twelve carries the short hand on), stop on the quarters and say the time when he lets go; ✓ Check gives a spoken hint about the hand that is wrong, and after three tries the clock shows him. In the quarter steps the right half of the face is green "past", the left half orange "to". |
 | ♟️ Jackies Schach | [`chess/`](chess/) | Chess with a spoken German coach (piece + from → to, gold arrow on the board), big status line, captured pieces, XP and streaks. |
 
 ## Start page
@@ -47,6 +48,7 @@ edit a game here, then run `./tools/sync-game-repos.sh` to push the copies.
 | 💯 Jack's Big Numbers | [jacks-games/big-numbers](https://github.com/jacks-games/big-numbers) | [play](https://jacks-games.github.io/big-numbers/) |
 | 🍎 Jack's Apples | [jacks-games/apples](https://github.com/jacks-games/apples) | [play](https://jacks-games.github.io/apples/) |
 | 👀 Jack's Sight Words | [jacks-games/sight-words](https://github.com/jacks-games/sight-words) | [play](https://jacks-games.github.io/sight-words/) |
+| ⏰ Jack's Clock | [jacks-games/clock](https://github.com/jacks-games/clock) | [play](https://jacks-games.github.io/clock/) |
 | ♟️ Jackies Schach | [jacks-games/chess](https://github.com/jacks-games/chess) | [play](https://jacks-games.github.io/chess/) |
 
 ## Where it runs
