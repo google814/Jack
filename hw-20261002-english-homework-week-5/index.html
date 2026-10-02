@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1e3a8a">
+<title>Tin Dog's Words ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Tin Dog">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #172554 0%, #1d4ed8 52%, #1e3a8a 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(0,0,0,.22);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.7rem); flex: 0 1 auto; min-width: 0; }
+  /* on a phone the round/score pills matter more than the title */
+  @media (max-width: 560px) { header h1 { display: none; } }
+  #phase {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.28);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    font-size: 1.5rem;
+    min-height: 1.8rem;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.4rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    justify-content: safe center;
+    gap: clamp(12px, 2.6vh, 26px);
+    padding: clamp(12px, 3vh, 26px) 14px calc(clamp(12px, 3vh, 26px) + env(safe-area-inset-bottom));
+    text-align: center;
+    overflow-y: auto;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1rem, 2.6vmin, 1.4rem); opacity: .92; max-width: 26ch; }
+
+  /* ---------- The word he has to find ---------- */
+  #wordCard {
+    display: flex;
+    align-items: center;
+    gap: clamp(10px, 2.4vmin, 20px);
+    background: #fffbeb;
+    color: #1e3a8a;
+    padding: clamp(8px, 1.6vh, 14px) clamp(18px, 5vw, 36px);
+    border-radius: 22px;
+    border-bottom: 7px solid rgba(0,0,0,.25);
+    cursor: pointer;
+  }
+  #wordCard .w {
+    font-size: clamp(2.4rem, 11vmin, 5.6rem);
+    font-weight: 800;
+    letter-spacing: .04em;
+    line-height: 1.05;
+  }
+  #wordCard .ear { font-size: clamp(1.8rem, 6vmin, 3rem); }
+  #wordCard:active { transform: translateY(4px); border-bottom-width: 3px; }
+
+  /* ---------- Picture cards ---------- */
+  #pics {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(10px, 2.6vmin, 24px);
+    width: 100%;
+    max-width: 820px;
+  }
+  #pics.sheet {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 640px;
+  }
+  .pic {
+    position: relative;
+    flex: 0 1 clamp(130px, 28vw, 230px);
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-bottom: 8px solid rgba(0,0,0,.25);
+    border-radius: 26px;
+    background: #f8fafc;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+    transition: transform .12s ease;
+  }
+  #pics.sheet .pic { flex: none; width: 100%; border-radius: 20px; }
+  .pic:active { transform: translateY(5px); border-bottom-width: 3px; }
+  .pic .main { font-size: clamp(3.6rem, 15vmin, 7.4rem); line-height: 1; }
+  #pics.sheet .pic .main { font-size: clamp(2.6rem, 11vmin, 5.4rem); }
+  .pic .badge {
+    position: absolute;
+    top: 6%; right: 7%;
+    font-size: clamp(1.5rem, 6vmin, 3rem);
+    line-height: 1;
+  }
+  #pics.sheet .pic .badge { font-size: clamp(1.1rem, 4.4vmin, 2.2rem); }
+  .pic .label {
+    position: absolute;
+    left: 50%; bottom: 6%;
+    transform: translateX(-50%);
+    background: #16a34a;
+    color: #fff;
+    font-size: clamp(.9rem, 3.2vmin, 1.5rem);
+    font-weight: 800;
+    padding: 2px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .pic.right { outline: 6px solid #86efac; }
+  .pic.wrong { outline: 6px solid #fca5a5; }
+  .pic.done { opacity: .55; pointer-events: none; }
+  .shake { animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(12px, 2.2vh, 18px) clamp(22px, 5vw, 42px);
+    font-size: clamp(1rem, 2.8vmin, 1.5rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.quiet { background: rgba(0,0,0,.3); box-shadow: none; font-size: clamp(.9rem, 2.2vmin, 1.1rem); }
+
+  /* ---------- After a goal ---------- */
+  #cheerPic {
+    position: relative;
+    width: clamp(150px, 34vmin, 260px);
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+    border-radius: 28px;
+    background: #f8fafc;
+    animation: pop .5s ease;
+  }
+  #cheerPic .main { font-size: clamp(4.4rem, 18vmin, 8.4rem); line-height: 1; }
+  #cheerPic .badge { position: absolute; top: 6%; right: 7%; font-size: clamp(1.8rem, 7vmin, 3.4rem); }
+  @keyframes pop {
+    0% { transform: scale(.4) rotate(-12deg); }
+    60% { transform: scale(1.15) rotate(6deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #cheer { font-size: clamp(1.8rem, 6vmin, 3.2rem); font-weight: 800; }
+  #cheer .lit { color: #fde047; }
+  #sentence { font-size: clamp(1.1rem, 3.4vmin, 2rem); line-height: 1.4; max-width: 24ch; cursor: pointer; }
+  #sentence .lit { color: #fde047; }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #172554 0%, #1d4ed8 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); }
+  #startOverlay .words { font-size: clamp(1.1rem, 4vmin, 2rem); font-weight: 800; max-width: 22ch; line-height: 1.5; }
+  #startOverlay .words .v { color: #fde047; }
+  #startOverlay p { max-width: 30ch; opacity: .9; font-size: clamp(.95rem, 2.4vmin, 1.15rem); }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 60px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  #feedback {
+    position: fixed;
+    left: 50%; bottom: 10vh;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,.75);
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-size: clamp(1rem, 2.6vmin, 1.3rem);
+    z-index: 50;
+    pointer-events: none;
+    max-width: 90vw;
+  }
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Tin Dog's Words</h1>
+  <span id="phase">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead hidden" id="lead"></p>
+
+  <!-- the word to find: tap it to hear it again -->
+  <div id="wordCard" class="hidden" role="button" aria-label="Say the word again">
+    <span class="w" id="wordText"></span><span class="ear">🔊</span>
+  </div>
+
+  <!-- picture cards (three in a round, the whole sheet in extra time) -->
+  <div id="pics" class="hidden"></div>
+
+  <!-- after a goal -->
+  <div id="cheerPic" class="hidden"></div>
+  <div id="cheer" class="hidden"></div>
+  <div id="sentence" class="hidden"></div>
+  <button class="btn big hidden" id="nextBtn">Next ➜ ⚽</button>
+
+  <!-- half time / extra time / full time -->
+  <div id="breakBox" class="hidden">
+    <div id="breakTitle" style="font-size:clamp(1.6rem,6vmin,3rem);font-weight:800"></div>
+    <p id="breakText" class="lead" style="margin:12px auto 20px"></p>
+    <button class="btn big" id="breakBtn"></button>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>🐶✉️ Tin Dog's Words ⚽</h2>
+  <div class="words">
+    <span class="v">cross · upset · glad · cheerful · sad</span><br>
+    dust · letter · plans · stuck · zoom · eager
+  </div>
+  <p>English homework, week 5. Hear a word from Tin Dog's letter and find its picture.</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower voice</label>
+  <button id="resetBtn">Reset footballs</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Today's homework =================
+     English week 5: vocabulary from Tin Dog's letter, matched to pictures.
+     Page 2 of the sheet is five feelings, page 3 is six words from the
+     letter — exactly those eleven words, nothing else. The pictures copy the
+     sheet as far as emoji allow (grumpy bear, cross squirrel, chick under a
+     rain cloud, cream bunny, pink bunny / runner, broom, plane, class with a
+     teacher, woman on a stool, letter). */
+  var FEELINGS = [
+    { w: 'cross',    pic: '🐻',   badge: '💢', bg: '#fde68a',
+      m: 'Cross means angry.',              s: 'The bear is cross. Grrr!' },
+    { w: 'upset',    pic: '🐿️',  badge: '😣', bg: '#fed7aa',
+      m: 'Upset means not happy at all.',   s: 'The squirrel is upset.' },
+    { w: 'glad',     pic: '🐰',   badge: '🙂', bg: '#fef3c7',
+      m: 'Glad means happy.',               s: 'The bunny is glad.' },
+    { w: 'cheerful', pic: '🐰',   badge: '😄', bg: '#fbcfe8',
+      m: 'Cheerful means happy and smiley.', s: 'The pink bunny is cheerful.' },
+    { w: 'sad',      pic: '🐥',   badge: '🌧️', bg: '#bfdbfe',
+      m: 'Sad means unhappy.',              s: 'The little chick is sad in the rain.' }
+  ];
+  var LETTER_WORDS = [
+    { w: 'dust',   pic: '🧹',   badge: '💨', bg: '#e7e5e4',
+      m: 'Dust is tiny bits of dirt.',              s: 'We sweep up the dust.' },
+    { w: 'letter', pic: '✉️',   badge: '🐶', bg: '#fef9c3',
+      m: 'A letter is a message you send.',         s: 'Tin Dog wrote a letter.' },
+    { w: 'plans',  pic: '🧑‍🏫', badge: '👧', bg: '#dcfce7',
+      m: 'Plans are things we are going to do.',    s: 'The class make plans with the teacher.' },
+    { w: 'stuck',  pic: '🧍‍♀️', badge: '🪑', bg: '#ede9fe',
+      m: 'Stuck means you cannot move.',            s: 'She is stuck up on the stool.' },
+    { w: 'zoom',   pic: '✈️',   badge: '💨', bg: '#cffafe',
+      m: 'Zoom means go very fast.',                s: 'The plane can zoom across the sky.' },
+    { w: 'eager',  pic: '🏃',   badge: '💦', bg: '#ffedd5',
+      m: 'Eager means you really, really want to.', s: 'He runs, eager to get there.' }
+  ];
+
+  /* Some of the feelings mean nearly the same thing. A round never puts two
+     right-looking answers next to each other: glad and cheerful are both
+     happy, and upset sits between sad and cross. */
+  var CLASH = {
+    cross: ['upset'], upset: ['sad', 'cross'], sad: ['upset'],
+    glad: ['cheerful'], cheerful: ['glad']
+  };
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💙', '✉️'];
+
+  var SCORE_KEY = 'jackHw_hw20261002englishhomeworkweek5';
+  var BEST_KEY  = 'jackHw_hw20261002englishhomeworkweek5_best';
+  var SLOW_KEY  = 'jackHw_hw20261002englishhomeworkweek5_slow';
+
+  /* ================= State ================= */
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var best      = parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var phase = 1;         /* 1 feelings, 2 letter words, 3 the whole sheet */
+  var round = 0;
+  var goals = 0;
+  var queue = [];        /* the words for the current phase */
+  var sheet = [];        /* phase 3: every picture on one page of the sheet */
+  var missed = false;    /* phase 3: a wrong tap on this word, so no football */
+  var busy = false;      /* ignore taps while an answer plays back */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    phase: $('phase'), score: $('score'), lead: $('lead'),
+    wordCard: $('wordCard'), wordText: $('wordText'), pics: $('pics'),
+    cheerPic: $('cheerPic'), cheer: $('cheer'), sentence: $('sentence'), nextBtn: $('nextBtn'),
+    breakBox: $('breakBox'), breakTitle: $('breakTitle'), breakText: $('breakText'), breakBtn: $('breakBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(BEST_KEY, String(best));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Voice =================
+     The browser's own voice sounds like a computer, so every line these
+     games say is pre-rendered with a neural en-GB voice (tools/build-audio.py)
+     and played back through Web Audio. speechSynthesis is only the fallback
+     for a line that has no clip. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/hw-20261002-english-homework-week-5/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment: "cat! ... The cat sat on the mat."
+     is the word clip followed by the sentence clip. Written out by hand
+     because a lookbehind regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    var BREAK = /^\s*(?:!\s*\.\.\.\s*|\.\.\.\s*)/;
+    while (i < t.length) {
+      var m = BREAK.exec(t.slice(i));
+      if (m && m[0].length) {
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+        i += m[0].length;
+        continue;
+      }
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?' || ch === ':') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips for the screen he is about to tap on, so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var f = clipFor(list[i]);
+        if (f && !buffers[f]) loadClip(f).catch(function () {});
+      }
+    });
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Samantha|Martha|Serena|Kate|Karen|Moira|Zira|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) || find(en, good) ||
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(gb, female) ||
+      find(en, /female|woman/i) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  /* the fallback: only used for a line that has no clip */
+  function say(text, rate, pitch, my, done) {
+    if (!hasSpeech) { if (done) done(); return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = (rate || 0.95) * (slow ? 0.8 : 1);
+      u.pitch = pitch || 1;
+      u.onend = function () { if (my === speakToken && done) done(); };
+      u.onerror = u.onend;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { if (done) done(); }
+  }
+
+  function speak(text, rate, pitch) {
+    if (!hasTTS) return;
+    stopSpeaking();
+    var my = speakToken;
+    var parts = segments(text);
+    if (!parts.length) return;
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken || i >= parts.length) return;
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) onward();
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            src.start(0);
+          }, function () { say(parts[i], rate, pitch, my, onward); });
+        } else {
+          say(parts[i], rate, pitch, my, onward);
+        }
+      })(0);
+    });
+  }
+
+  window.__speak = speak;    /* lets a browser check drive the voice from outside */
+
+  if (hasSpeech) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  /* ================= Small helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1900);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function scored() {
+    footballs++;
+    goals++;
+    if (goals > best) best = goals;
+    save();
+    renderScore(true);
+  }
+
+  function shake(el) {
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+  }
+
+  /* The picture: a big emoji with a small one in the corner (the face, the
+     rain cloud, the puff of dust) on the colour of the sheet's card. */
+  function picMarkup(item) {
+    return '<span class="main">' + item.pic + '</span><span class="badge">' + item.badge + '</span>';
+  }
+
+  /* ================= Screens ================= */
+  var SCREENS = {
+    find:  ['lead', 'wordCard', 'pics'],
+    cheer: ['cheerPic', 'cheer', 'sentence', 'nextBtn'],
+    pause: ['breakBox']
+  };
+  var ALL = ['lead', 'wordCard', 'pics', 'cheerPic', 'cheer', 'sentence', 'nextBtn', 'breakBox'];
+
+  function show(name) {
+    ALL.forEach(function (id) { els[id].classList.add('hidden'); });
+    SCREENS[name].forEach(function (id) { els[id].classList.remove('hidden'); });
+  }
+
+  function askFor(item) {
+    speak('Find: ' + item.w + '.', 0.8);
+  }
+
+  /* ================= Halves 1 and 2: three pictures, one word ================= */
+  function pickChoices(item, pool) {
+    var avoid = CLASH[item.w] || [];
+    var others = pool.filter(function (o) { return o.w !== item.w && avoid.indexOf(o.w) === -1; });
+    return shuffle([item].concat(shuffle(others).slice(0, 2)));
+  }
+
+  function phaseLabel() {
+    return phase === 1 ? 'Feelings' : 'Tin Dog\'s letter';
+  }
+
+  function enterFind() {
+    busy = false;
+    var item = queue[round];
+    var pool = phase === 1 ? FEELINGS : LETTER_WORDS;
+    els.phase.textContent = phaseLabel() + ' · ' + (round + 1) + '/' + queue.length;
+    els.lead.textContent = 'Listen. Tap the right picture.';
+    els.wordText.textContent = item.w;
+    els.pics.className = '';
+    els.pics.innerHTML = '';
+    pickChoices(item, pool).forEach(function (o) {
+      var b = document.createElement('button');
+      b.className = 'pic';
+      b.type = 'button';
+      b.style.background = o.bg;
+      b.setAttribute('aria-label', o.w);
+      b.innerHTML = picMarkup(o);
+      b.addEventListener('click', function () { answerFind(o, b); });
+      els.pics.appendChild(b);
+    });
+    show('find');
+    preload(['Find: ' + item.w + '.', item.m, item.s]);
+    setTimeout(function () { askFor(item); }, 350);
+  }
+
+  function answerFind(picked, btn) {
+    if (busy) return;
+    var item = queue[round];
+    if (picked.w === item.w) {
+      busy = true;
+      btn.classList.add('right');
+      scored();
+      celebrate(20);
+      speak(item.w + '!', 0.8);
+      setTimeout(enterCheer, 900);
+    } else {
+      btn.classList.add('wrong');
+      shake(btn);
+      showFeedback('That one is ' + picked.w + '.');
+      speak('That one is ' + picked.w + '. Find: ' + item.w + '.', 0.8);
+      setTimeout(function () { btn.classList.remove('wrong'); }, 1400);
+    }
+  }
+
+  /* ================= After a goal ================= */
+  function enterCheer() {
+    var item = queue[round];
+    els.cheerPic.style.background = item.bg;
+    els.cheerPic.innerHTML = picMarkup(item);
+    els.cheer.innerHTML = 'GOAL! <span class="lit">' + item.w + '</span> ⚽';
+    var bits = item.s.split(item.w);
+    els.sentence.innerHTML = bits.length > 1
+      ? bits[0] + '<span class="lit">' + item.w + '</span>' + bits.slice(1).join(item.w)
+      : item.s;
+    show('cheer');
+    setTimeout(function () { speak(item.m + ' ' + item.s, 0.8); }, 400);
+  }
+
+  /* ================= Extra time: the whole homework sheet =================
+     All the pictures of one page at once, like on paper. A word is called,
+     he taps its picture, the word label sticks to it. A football only for a
+     first try, so guessing round the sheet does not pay. */
+  function enterSheet() {
+    busy = false;
+    missed = false;
+    var item = queue[round];
+    els.phase.textContent = 'Extra time · ' + (round + 1) + '/' + queue.length;
+    els.lead.textContent = 'Match the word to its picture.';
+    els.wordText.textContent = item.w;
+    show('find');
+    setTimeout(function () { askFor(item); }, 350);
+  }
+
+  function renderSheet() {
+    els.pics.className = 'sheet';
+    els.pics.innerHTML = '';
+    sheet.forEach(function (o) {
+      var b = document.createElement('button');
+      b.className = 'pic';
+      b.type = 'button';
+      b.style.background = o.bg;
+      b.setAttribute('aria-label', o.w);
+      b.innerHTML = picMarkup(o);
+      b.addEventListener('click', function () { answerSheet(o, b); });
+      o.btn = b;
+      els.pics.appendChild(b);
+    });
+  }
+
+  function answerSheet(picked, btn) {
+    if (busy) return;
+    var item = queue[round];
+    if (picked.w === item.w) {
+      busy = true;
+      btn.classList.add('right', 'done');
+      var lab = document.createElement('span');
+      lab.className = 'label';
+      lab.textContent = item.w;
+      btn.appendChild(lab);
+      if (!missed) { scored(); celebrate(14); }
+      showFeedback(missed ? 'Yes! ' + item.w : 'Goal! ' + item.w + ' ⚽');
+      speak(item.w + '! ' + item.s, 0.8);
+      setTimeout(function () { btn.classList.remove('right'); nextRound(); }, 2600);
+    } else {
+      missed = true;
+      btn.classList.add('wrong');
+      shake(btn);
+      showFeedback('That one is ' + picked.w + '.');
+      speak('That one is ' + picked.w + '. Find: ' + item.w + '.', 0.8);
+      setTimeout(function () { btn.classList.remove('wrong'); }, 1400);
+    }
+  }
+
+  /* ================= Flow ================= */
+  function enterRound() {
+    if (phase === 3) enterSheet();
+    else enterFind();
+  }
+
+  function nextRound() {
+    round++;
+    if (round >= queue.length) {
+      if (phase === 1) { breakTime(2); return; }
+      if (phase === 2) { breakTime(3); return; }
+      fullTime();
+      return;
+    }
+    enterRound();
+  }
+
+  function breakTime(next) {
+    phase = next;
+    round = 0;
+    var title, text, btn, line;
+    if (next === 2) {
+      queue = shuffle(LETTER_WORDS);
+      els.phase.textContent = 'Half time';
+      title = '📣 Half time!';
+      text = goals + ' ' + (goals === 1 ? 'goal' : 'goals') + '. Now the words from Tin Dog\'s letter.';
+      btn = 'Second half ➜';
+      line = 'Half time! ' + goals + ' goals. Now the words from Tin Dog\'s letter.';
+    } else {
+      /* one page of the sheet, picked at random each match */
+      var page = Math.random() < 0.5 ? FEELINGS : LETTER_WORDS;
+      sheet = shuffle(page);
+      queue = shuffle(page);
+      renderSheet();
+      els.phase.textContent = 'Extra time';
+      title = '⏱️ Extra time!';
+      text = 'The whole homework page. Match every word to its picture.';
+      btn = 'Extra time ➜';
+      line = 'Extra time! Now the whole homework page. Match every word to its picture.';
+    }
+    els.breakTitle.textContent = title;
+    els.breakText.textContent = text;
+    els.breakBtn.textContent = btn;
+    show('pause');
+    speak(line, 0.85);
+  }
+
+  function fullTime() {
+    phase = 4;
+    els.phase.textContent = 'Full time';
+    els.breakTitle.textContent = '🏆 Full time!';
+    els.breakText.textContent = goals + ' ' + (goals === 1 ? 'goal' : 'goals') + ' this match. Best: ' + best +
+      '. Now match the words on your homework sheet!';
+    els.breakBtn.textContent = 'Play again ⚽';
+    show('pause');
+    celebrate(45);
+    speak('Full time! You scored ' + goals + ' goals! Now match the words on your homework sheet.', 0.85);
+  }
+
+  function startMatch() {
+    phase = 1;
+    round = 0;
+    goals = 0;
+    queue = shuffle(FEELINGS);
+    enterRound();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasTTS) { pickVoice(); speak('Kick off! Tin Dog\'s words.', 0.9); }
+    els.startOverlay.remove();
+    setTimeout(startMatch, 1300);
+    els.phase.textContent = 'Kick off';
+  });
+
+  els.wordCard.addEventListener('click', function () {
+    var item = queue[round];
+    if (item) speak(item.w, 0.75);
+  });
+  els.sentence.addEventListener('click', function () {
+    var item = queue[round];
+    if (item) speak(item.s, 0.8);
+  });
+
+  els.nextBtn.addEventListener('click', nextRound);
+  els.breakBtn.addEventListener('click', function () {
+    if (phase === 4) startMatch();
+    else enterRound();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      best = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>

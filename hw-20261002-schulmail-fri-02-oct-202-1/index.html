@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#065f46">
+<title>Ten Frames &amp; Tin Dog ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Ten Frames">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #064e3b 0%, #059669 52%, #064e3b 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    padding-top: max(10px, env(safe-area-inset-top));
+    background: rgba(0,0,0,.24);
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.6rem); min-width: 0; }
+  @media (max-width: 620px) { header h1 { display: none; } }
+  #phase {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score {
+    margin-left: auto;
+    font-size: 1.5rem;
+    font-weight: 800;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score.bump { animation: bump .5s; }
+  @keyframes bump { 50% { transform: scale(1.35); } }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 2.4vmin, 22px);
+    padding: 14px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+  .hidden { display: none !important; }
+
+  .sum {
+    display: flex;
+    align-items: center;
+    gap: .35em;
+    font-size: clamp(2.4rem, 10vmin, 5rem);
+    font-weight: 900;
+    background: rgba(0,0,0,.22);
+    padding: .1em .55em;
+    border-radius: 22px;
+    cursor: pointer;
+  }
+  .sum .a { color: #fca5a5; }
+  .sum .b { color: #93c5fd; }
+  .sum .q {
+    min-width: 1.2em;
+    text-align: center;
+    color: #fde68a;
+  }
+
+  .frames { display: flex; flex-direction: column; gap: clamp(8px, 2vmin, 16px); align-items: center; }
+  .frame {
+    display: grid;
+    grid-template-columns: repeat(5, var(--cell));
+    grid-template-rows: repeat(2, var(--cell));
+    gap: 0;
+    background: #fff;
+    border: 5px solid #0f172a;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    --cell: min(15vw, 11vh, 96px);
+  }
+  .frames.two .frame { --cell: min(14vw, 8.5vh, 84px); }
+  .cell {
+    width: var(--cell);
+    height: var(--cell);
+    border: 2px solid #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dot {
+    width: 74%;
+    height: 74%;
+    border-radius: 50%;
+    box-shadow: inset 0 -5px 0 rgba(0,0,0,.22);
+    animation: pop .25s ease-out;
+  }
+  .dot.red  { background: #ef4444; }
+  .dot.blue { background: #3b82f6; }
+  .dot.lit  { outline: 5px solid #facc15; outline-offset: 2px; }
+  @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+  .frame.nudge { animation: nudge 1.2s ease-in-out infinite; }
+  @keyframes nudge { 50% { box-shadow: 0 0 0 8px rgba(250,204,21,.8); } }
+
+  .hint {
+    font-size: clamp(1rem, 3.4vmin, 1.5rem);
+    font-weight: 700;
+    text-align: center;
+    background: rgba(0,0,0,.22);
+    padding: 8px 16px;
+    border-radius: 14px;
+    cursor: pointer;
+  }
+
+  .row { display: flex; gap: clamp(10px, 3vmin, 24px); flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font: inherit;
+    font-weight: 900;
+    color: #0f172a;
+    background: #fde68a;
+    border: none;
+    border-radius: 22px;
+    box-shadow: 0 6px 0 #b45309;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #b45309; }
+  .tile {
+    min-width: clamp(84px, 20vmin, 140px);
+    min-height: clamp(84px, 20vmin, 140px);
+    font-size: clamp(2.4rem, 9vmin, 4.4rem);
+  }
+  .tool { font-size: clamp(1.1rem, 3.6vmin, 1.6rem); padding: 12px 22px; background: #bae6fd; box-shadow: 0 6px 0 #0369a1; }
+  .tool:active { box-shadow: 0 2px 0 #0369a1; }
+  .tile.wrong { animation: shake .45s; background: #fecaca; }
+  .tile.right { background: #86efac; box-shadow: 0 6px 0 #15803d; }
+  @keyframes shake { 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+
+  /* ---------- Tin Dog half ---------- */
+  .say {
+    font-size: clamp(3rem, 14vmin, 6rem);
+    width: clamp(110px, 26vmin, 180px);
+    height: clamp(110px, 26vmin, 180px);
+    border-radius: 50%;
+    background: #fde68a;
+    box-shadow: 0 8px 0 #b45309;
+  }
+  .pics { display: flex; gap: clamp(10px, 3vmin, 26px); flex-wrap: wrap; justify-content: center; }
+  .pic {
+    position: relative;
+    width: clamp(130px, 28vmin, 220px);
+    height: clamp(130px, 28vmin, 220px);
+    border-radius: 26px;
+    border: 5px solid rgba(255,255,255,.6);
+    font-size: clamp(3.6rem, 13vmin, 6.6rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #0f172a;
+    touch-action: manipulation;
+  }
+  .pic .badge { position: absolute; right: 8%; bottom: 6%; font-size: .45em; }
+  .pic .word {
+    position: absolute;
+    left: 0; right: 0; top: 6%;
+    text-align: center;
+    font-size: .3em;
+    font-weight: 900;
+  }
+  .pic.wrong { animation: shake .45s; opacity: .45; }
+  .pic.right { border-color: #facc15; box-shadow: 0 0 0 8px rgba(250,204,21,.6); }
+
+  /* ---------- Overlays ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 24px;
+    text-align: center;
+    background: linear-gradient(160deg, #064e3b 0%, #059669 60%, #064e3b 100%);
+  }
+  .overlay h2 { font-size: clamp(1.6rem, 6vmin, 2.8rem); }
+  .overlay p { max-width: 30ch; opacity: .92; font-size: clamp(.95rem, 2.6vmin, 1.25rem); line-height: 1.5; }
+  .play {
+    font-size: clamp(3rem, 14vmin, 6rem);
+    width: clamp(130px, 30vmin, 200px);
+    height: clamp(130px, 30vmin, 200px);
+    border-radius: 50%;
+  }
+  .big { font-size: clamp(1.4rem, 5vmin, 2.2rem); padding: 16px 32px; }
+
+  .confetti {
+    position: fixed;
+    top: -60px;
+    z-index: 80;
+    pointer-events: none;
+    font-size: 2rem;
+    animation: fall linear forwards;
+  }
+  @keyframes fall { to { transform: translateY(115vh) rotate(540deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" aria-label="Home">🏠</a>
+  <h1>Ten Frames &amp; Tin Dog</h1>
+  <span id="phase">Kick off</span>
+  <span id="score">⚽ 0</span>
+</header>
+
+<main>
+  <!-- First half: addition with ten frames -->
+  <section id="maths" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2.4vmin,22px)">
+    <div class="sum" id="sum"><span class="a" id="numA">3</span><span>+</span><span class="b" id="numB">4</span><span>=</span><span class="q" id="ans">?</span></div>
+    <div class="frames" id="frames"></div>
+    <div class="hint" id="hint">Tap the ten frame!</div>
+    <div class="row" id="tiles"></div>
+    <div class="row"><button class="btn tool" id="countBtn">🔢 Count them</button></div>
+  </section>
+
+  <!-- Second half: Tin Dog's letter words -->
+  <section id="words" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:clamp(14px,3vmin,28px)">
+    <button class="btn say" id="sayBtn" aria-label="Hear the word">🔊</button>
+    <div class="pics" id="pics"></div>
+  </section>
+</main>
+
+<div class="overlay" id="start">
+  <h2>🔟⚽ Ten Frames &amp; Tin Dog</h2>
+  <p>Homework, Friday 2 October. First half: add with ten frames. Second half: match the pictures to the words from Tin Dog's letter.</p>
+  <button class="btn play" id="playBtn" aria-label="Start">▶</button>
+</div>
+
+<div class="overlay hidden" id="pause">
+  <h2 id="pauseTitle">⏱️ Half time!</h2>
+  <p id="pauseText"></p>
+  <button class="btn big" id="pauseBtn">Second half ⚽</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Content ================= */
+  /* The same six words from Tin Dog's letter as in "Tin Dog's Words",
+     so both games drill the same Seesaw sheet. */
+  var LETTER_WORDS = [
+    { w: 'dust',   pic: '🧹',   badge: '💨', bg: '#e7e5e4', s: 'We sweep up the dust.' },
+    { w: 'letter', pic: '✉️',   badge: '🐶', bg: '#fef9c3', s: 'Tin Dog wrote a letter.' },
+    { w: 'plans',  pic: '🧑‍🏫', badge: '👧', bg: '#dcfce7', s: 'The class make plans with the teacher.' },
+    { w: 'stuck',  pic: '🧍‍♀️', badge: '🪑', bg: '#ede9fe', s: 'She is stuck up on the stool.' },
+    { w: 'zoom',   pic: '✈️',   badge: '💨', bg: '#cffafe', s: 'The plane can zoom across the sky.' },
+    { w: 'eager',  pic: '🏃',   badge: '💦', bg: '#ffedd5', s: 'He runs, eager to get there.' }
+  ];
+  var NUMBERS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten',
+    'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🔟', '✉️'];
+  var SCORE_KEY = 'jackHw_hw20261002schulmailfri02oct2021';
+  var SUMS_PER_MATCH = 8;
+
+  /* ================= State ================= */
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var goals = 0;
+  var half = 1;
+  var sums = [], words = [], round = 0;
+  var cur = null;          /* current sum: {a, b, blue, done, tries} */
+  var counting = false;
+  var timers = [];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    phase: $('phase'), score: $('score'), maths: $('maths'), words: $('words'),
+    numA: $('numA'), numB: $('numB'), ans: $('ans'), sum: $('sum'),
+    frames: $('frames'), hint: $('hint'), tiles: $('tiles'), countBtn: $('countBtn'),
+    sayBtn: $('sayBtn'), pics: $('pics'),
+    start: $('start'), playBtn: $('playBtn'),
+    pause: $('pause'), pauseTitle: $('pauseTitle'), pauseText: $('pauseText'), pauseBtn: $('pauseBtn')
+  };
+
+  /* ================= Speech ================= */
+  var hasTTS = 'speechSynthesis' in window;
+  var voice = null;
+  function pickVoice() {
+    if (!hasTTS) return;
+    var vs = speechSynthesis.getVoices();
+    voice = vs.find(function (v) { return v.lang === 'en-GB' && /Sonia|Libby|Serena|Kate|Female|Google UK English Female/i.test(v.name); }) ||
+            vs.find(function (v) { return v.lang === 'en-GB'; }) ||
+            vs.find(function (v) { return /^en/.test(v.lang); }) || null;
+  }
+  if (hasTTS) {
+    pickVoice();
+    speechSynthesis.onvoiceschanged = pickVoice;
+  }
+  function speak(text, rate, onend) {
+    if (!hasTTS) { if (onend) setTimeout(onend, 600); return; }
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-GB';
+    if (voice) u.voice = voice;
+    u.rate = rate || 0.85;
+    u.pitch = 1.05;
+    if (onend) {
+      var fired = false;
+      var fire = function () { if (!fired) { fired = true; onend(); } };
+      u.onend = fire;
+      /* Safari sometimes never fires onend */
+      later(fire, 900 + text.length * 90);
+    }
+    speechSynthesis.speak(u);
+  }
+
+  /* ================= Helpers ================= */
+  function later(fn, ms) { var t = setTimeout(fn, ms); timers.push(t); return t; }
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+  function rnd(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function save() { localStorage.setItem(SCORE_KEY, String(footballs)); }
+  function renderScore(bump) {
+    els.score.textContent = '⚽ ' + footballs;
+    if (bump) {
+      els.score.classList.remove('bump');
+      void els.score.offsetWidth;
+      els.score.classList.add('bump');
+    }
+  }
+  function goal() {
+    footballs++;
+    goals++;
+    save();
+    renderScore(true);
+    celebrate(14);
+  }
+  function celebrate(n) {
+    for (var i = 0; i < n; i++) {
+      var c = document.createElement('div');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[i % CONFETTI.length];
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+      c.style.animationDelay = (Math.random() * .4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (el) { el.remove(); }.bind(null, c), 3800);
+    }
+  }
+
+  /* ================= First half: ten frames ================= */
+  /* Six sums inside one ten frame (one of them always makes ten), then two
+     that spill into a second frame. */
+  function makeSums() {
+    var list = [], seen = {};
+    function add(a, b) {
+      var k = a + '+' + b;
+      if (seen[k]) return false;
+      seen[k] = true;
+      list.push({ a: a, b: b });
+      return true;
+    }
+    var a = rnd(1, 9); add(a, 10 - a);
+    while (list.length < 6) { a = rnd(1, 8); add(a, rnd(1, 10 - a)); }
+    var big = [];
+    while (big.length < 2) {
+      a = rnd(6, 9);
+      var b = rnd(11 - a, Math.min(9, 18 - a));
+      var k = a + '+' + b;
+      if (!seen[k]) { seen[k] = true; big.push({ a: a, b: b }); }
+    }
+    return shuffle(list).concat(big);
+  }
+
+  function buildFrames(total) {
+    var n = total > 10 ? 2 : 1;
+    els.frames.innerHTML = '';
+    els.frames.classList.toggle('two', n === 2);
+    for (var f = 0; f < n; f++) {
+      var fr = document.createElement('div');
+      fr.className = 'frame';
+      for (var i = 0; i < 10; i++) {
+        var c = document.createElement('div');
+        c.className = 'cell';
+        fr.appendChild(c);
+      }
+      fr.addEventListener('click', addBlue);
+      els.frames.appendChild(fr);
+    }
+  }
+  function cells() { return els.frames.querySelectorAll('.cell'); }
+  function putDot(i, colour) {
+    var c = cells()[i];
+    if (!c) return;
+    var d = document.createElement('div');
+    d.className = 'dot ' + colour;
+    c.appendChild(d);
+  }
+  function nudge(on) {
+    els.frames.querySelectorAll('.frame').forEach(function (f) { f.classList.toggle('nudge', on); });
+  }
+
+  function enterSum() {
+    clearTimers();
+    counting = false;
+    var s = sums[round];
+    cur = { a: s.a, b: s.b, blue: 0, done: false, tries: 0 };
+    els.phase.textContent = 'Sum ' + (round + 1) + ' of ' + sums.length;
+    els.numA.textContent = s.a;
+    els.numB.textContent = s.b;
+    els.ans.textContent = '?';
+    els.tiles.innerHTML = '';
+    els.countBtn.classList.add('hidden');
+    buildFrames(s.a + s.b);
+    for (var i = 0; i < s.a; i++) later(putDot.bind(null, i, 'red'), 120 * i);
+    els.hint.textContent = '👆 Add ' + s.b + ' blue';
+    speak(NUMBERS[s.a] + ' add ' + NUMBERS[s.b] + '. Here are ' + NUMBERS[s.a] + ' red. Tap the ten frame to add ' + NUMBERS[s.b] + ' blue.', 0.85);
+    later(function () { nudge(true); }, 120 * s.a + 300);
+  }
+
+  function addBlue() {
+    if (!cur || cur.done || counting || cur.blue >= cur.b) return;
+    nudge(false);
+    putDot(cur.a + cur.blue, 'blue');
+    cur.blue++;
+    if (cur.blue < cur.b) {
+      speak(NUMBERS[cur.blue], 1);
+    } else {
+      speak(NUMBERS[cur.blue] + '! How many altogether?', 0.9);
+      showTiles();
+    }
+  }
+
+  function showTiles() {
+    var total = cur.a + cur.b;
+    var opts = [total];
+    var cand = shuffle([total - 1, total + 1, total - 2, total + 2, total + 10 > 20 ? total - 10 : total + 10]);
+    for (var i = 0; i < cand.length && opts.length < 3; i++) {
+      var v = cand[i];
+      if (v >= 1 && v <= 20 && opts.indexOf(v) < 0) opts.push(v);
+    }
+    els.tiles.innerHTML = '';
+    shuffle(opts).forEach(function (v) {
+      var b = document.createElement('button');
+      b.className = 'btn tile';
+      b.textContent = v;
+      b.addEventListener('click', function () { pickNumber(v, b); });
+      els.tiles.appendChild(b);
+    });
+    els.hint.textContent = '❓ How many altogether?';
+    els.countBtn.classList.remove('hidden');
+  }
+
+  function pickNumber(v, btn) {
+    if (!cur || cur.done || counting) return;
+    var total = cur.a + cur.b;
+    if (v === total) {
+      cur.done = true;
+      btn.classList.add('right');
+      els.ans.textContent = total;
+      els.hint.textContent = '✅ ' + cur.a + ' + ' + cur.b + ' = ' + total;
+      goal();
+      var line = 'Goal! ' + NUMBERS[cur.a] + ' add ' + NUMBERS[cur.b] + ' makes ' + NUMBERS[total] + '!';
+      if (total === 10) line += ' The ten frame is full!';
+      speak(line, 0.85, function () { later(nextSum, 500); });
+    } else {
+      cur.tries++;
+      btn.classList.remove('wrong');
+      void btn.offsetWidth;
+      btn.classList.add('wrong');
+      if (cur.tries >= 2) {
+        speak('Not quite. Let\'s count them together.', 0.9, countAll);
+      } else if (total > 10) {
+        speak('Not quite. One ten frame is full. That is ten. Count on from ten.', 0.85);
+      } else {
+        speak('Not quite. Look at the ten frame. ' + (10 - total === 0 ? 'Is it full?' : 'How many empty boxes?'), 0.85);
+      }
+    }
+  }
+
+  /* Count every counter out loud, lighting each one up. */
+  function countAll() {
+    if (!cur || counting) return;
+    counting = true;
+    var dots = els.frames.querySelectorAll('.dot');
+    var i = 0;
+    (function step() {
+      if (i > 0) dots[i - 1].classList.remove('lit');
+      if (i >= dots.length) {
+        counting = false;
+        if (!cur.done) speak(NUMBERS[dots.length] + ' altogether!', 0.85);
+        return;
+      }
+      dots[i].classList.add('lit');
+      speak(NUMBERS[i + 1], 1.05);
+      i++;
+      later(step, 650);
+    })();
+  }
+
+  function nextSum() {
+    round++;
+    if (round < sums.length) enterSum();
+    else halfTime();
+  }
+
+  /* ================= Second half: Tin Dog's words ================= */
+  function enterWord() {
+    clearTimers();
+    var item = words[round];
+    els.phase.textContent = 'Word ' + (round + 1) + ' of ' + words.length;
+    var others = shuffle(LETTER_WORDS.filter(function (x) { return x !== item; })).slice(0, 2);
+    var choices = shuffle([item].concat(others));
+    els.pics.innerHTML = '';
+    choices.forEach(function (c) {
+      var b = document.createElement('button');
+      b.className = 'pic';
+      b.style.background = c.bg;
+      b.setAttribute('aria-label', 'picture');
+      b.innerHTML = c.pic + '<span class="badge">' + c.badge + '</span>';
+      b.addEventListener('click', function () { pickPicture(c, b); });
+      els.pics.appendChild(b);
+    });
+    item.solved = false;
+    speak('Find the picture for: ' + item.w + '.', 0.8);
+  }
+
+  function pickPicture(c, btn) {
+    var item = words[round];
+    if (item.solved) return;
+    if (c === item) {
+      item.solved = true;
+      btn.classList.add('right');
+      var lbl = document.createElement('span');
+      lbl.className = 'word';
+      lbl.textContent = item.w;
+      btn.appendChild(lbl);
+      goal();
+      speak('Goal! ' + item.w + '. ' + item.s, 0.8, function () { later(nextWord, 600); });
+    } else {
+      btn.classList.add('wrong');
+      speak('That is ' + c.w + '. Find: ' + item.w + '.', 0.8);
+    }
+  }
+
+  function nextWord() {
+    round++;
+    if (round < words.length) enterWord();
+    else fullTime();
+  }
+
+  /* ================= Match flow ================= */
+  function show(which) {
+    els.maths.classList.toggle('hidden', which !== 'maths');
+    els.words.classList.toggle('hidden', which !== 'words');
+    els.pause.classList.toggle('hidden', which !== 'pause');
+  }
+
+  function startMatch() {
+    half = 1;
+    round = 0;
+    goals = 0;
+    sums = makeSums().slice(0, SUMS_PER_MATCH);
+    show('maths');
+    enterSum();
+  }
+
+  function halfTime() {
+    clearTimers();
+    half = 2;
+    els.phase.textContent = 'Half time';
+    els.pauseTitle.textContent = '⏱️ Half time!';
+    els.pauseText.textContent = goals + ' goals! Now the words from Tin Dog\'s letter.';
+    els.pauseBtn.textContent = 'Second half ⚽';
+    show('pause');
+    celebrate(24);
+    speak('Half time! ' + goals + ' goals! Now the words from Tin Dog\'s letter.', 0.85);
+  }
+
+  function startSecondHalf() {
+    round = 0;
+    words = shuffle(LETTER_WORDS);
+    show('words');
+    enterWord();
+  }
+
+  function fullTime() {
+    clearTimers();
+    half = 3;
+    els.phase.textContent = 'Full time';
+    els.pauseTitle.textContent = '🏆 Full time!';
+    els.pauseText.textContent = goals + ' goals this match! Now do your homework sheets with the ten frames.';
+    els.pauseBtn.textContent = 'Play again ⚽';
+    show('pause');
+    celebrate(45);
+    speak('Full time! You scored ' + goals + ' goals! Now use the ten frames for your homework sums. Next week is International Week, all about Madagascar!', 0.85);
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    /* iOS: speech has to start inside this tap */
+    if (hasTTS) { pickVoice(); speak('Kick off! Adding with ten frames.', 0.9); }
+    els.start.remove();
+    setTimeout(startMatch, 1600);
+  });
+  els.pauseBtn.addEventListener('click', function () {
+    if (half === 2) startSecondHalf();
+    else startMatch();
+  });
+  els.countBtn.addEventListener('click', countAll);
+  els.sum.addEventListener('click', function () {
+    if (!cur || counting) return;
+    var total = cur.a + cur.b;
+    speak(NUMBERS[cur.a] + ' add ' + NUMBERS[cur.b] + (cur.done ? ' makes ' + NUMBERS[total] : ' makes what?'), 0.85);
+  });
+  els.hint.addEventListener('click', function () {
+    if (!cur || cur.done || counting) return;
+    if (cur.blue < cur.b) speak('Tap the ten frame to add ' + NUMBERS[cur.b - cur.blue] + ' more blue.', 0.85);
+    else speak('How many altogether?', 0.85);
+  });
+  els.sayBtn.addEventListener('click', function () {
+    var item = words[round];
+    if (item) speak(item.w, 0.7);
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>

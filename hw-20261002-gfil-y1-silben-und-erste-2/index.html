@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#5b21b6">
+<title>Ma Mi Mo · German Homework ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Ma Mi Mo">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #3b0764 0%, #5b21b6 52%, #4c1d95 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    padding-top: calc(12px + env(safe-area-inset-top));
+    background: rgba(0,0,0,.22);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.7rem); flex: 0 1 auto; min-width: 0; }
+  @media (max-width: 560px) { header h1 { display: none; } }
+  #phase {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.28);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    font-size: 1.5rem;
+    min-height: 1.8rem;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.4rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    justify-content: safe center;
+    gap: clamp(12px, 2.8vh, 28px);
+    padding: clamp(12px, 3vh, 26px) 14px calc(clamp(12px, 3vh, 26px) + env(safe-area-inset-bottom));
+    text-align: center;
+    overflow-y: auto;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1rem, 2.8vmin, 1.5rem); opacity: .92; max-width: 26ch; }
+
+  /* ---------- Syllables with arcs (Silbenbögen) ---------- */
+  .word { display: inline-flex; align-items: flex-end; gap: 2px; }
+  .syl {
+    display: inline-block;
+    position: relative;
+    padding: 0 .06em .32em;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .syl::after {
+    content: "";
+    position: absolute;
+    left: 6%; right: 6%; bottom: 0;
+    height: .26em;
+    border: .07em solid currentColor;
+    border-top: none;
+    border-radius: 0 0 999px 999px;
+  }
+  .syl.s0 { color: #1d4ed8; }
+  .syl.s1 { color: #dc2626; }
+  .syl.lit { animation: lit .55s ease; }
+  @keyframes lit {
+    0% { transform: translateY(0) scale(1); }
+    40% { transform: translateY(-10px) scale(1.15); }
+    100% { transform: translateY(0) scale(1); }
+  }
+
+  /* ---------- Big white cards (syllables and words) ---------- */
+  .choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(10px, 2.6vmin, 22px);
+    justify-content: center;
+    width: 100%;
+    max-width: 820px;
+  }
+  .card {
+    flex: 0 1 auto;
+    min-width: clamp(120px, 26vmin, 210px);
+    padding: clamp(12px, 2.6vh, 24px) clamp(14px, 3vw, 28px);
+    font-family: inherit;
+    font-size: clamp(2.6rem, 11vmin, 5.2rem);
+    background: #fffbeb;
+    border: none;
+    border-bottom: 9px solid rgba(0,0,0,.28);
+    border-radius: 24px;
+    cursor: pointer;
+    transition: transform .12s ease;
+  }
+  .card.words { font-size: clamp(2rem, 8vmin, 3.8rem); min-width: clamp(140px, 36vw, 300px); }
+  .card:active { transform: translateY(5px); border-bottom-width: 4px; }
+  .card.right { background: #86efac; }
+  .card.wrong { background: #fecaca; }
+  .shake { animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* ---------- Build the word ---------- */
+  #slots { display: flex; gap: clamp(8px, 2vmin, 16px); justify-content: center; }
+  .slot {
+    min-width: clamp(96px, 24vmin, 170px);
+    height: clamp(90px, 20vmin, 150px);
+    display: grid;
+    place-items: center;
+    font-size: clamp(2.4rem, 10vmin, 4.6rem);
+    border-radius: 18px;
+    border: 4px dashed rgba(255,255,255,.55);
+    background: rgba(0,0,0,.18);
+  }
+  .slot.filled { border-style: solid; border-color: #fff; background: #fffbeb; }
+  .slot.right { border-color: #86efac; background: #dcfce7; }
+  .slot.wrong { border-color: #fca5a5; background: rgba(239,68,68,.4); }
+  .slot .syl::after { display: none; }
+
+  #tiles { display: flex; gap: clamp(8px, 2vmin, 16px); justify-content: center; flex-wrap: wrap; }
+  .tile {
+    min-width: clamp(84px, 19vmin, 140px);
+    height: clamp(76px, 16vmin, 120px);
+    padding: 0 12px;
+    font-family: inherit;
+    font-size: clamp(2rem, 8vmin, 3.6rem);
+    font-weight: 800;
+    color: #3b0764;
+    background: #fde68a;
+    border: none;
+    border-bottom: 8px solid rgba(0,0,0,.25);
+    border-radius: 16px;
+    cursor: pointer;
+  }
+  .tile:active { transform: translateY(4px); border-bottom-width: 4px; }
+  .tile.used { opacity: .25; pointer-events: none; }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(12px, 2.2vh, 18px) clamp(22px, 5vw, 42px);
+    font-size: clamp(1rem, 2.8vmin, 1.5rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.quiet { background: rgba(0,0,0,.3); box-shadow: none; font-size: clamp(1rem, 2.6vmin, 1.3rem); }
+
+  #cheerPic { font-size: clamp(3.4rem, 14vmin, 7rem); line-height: 1; }
+  #cheerWord {
+    background: #fffbeb;
+    border-radius: 24px;
+    padding: clamp(10px, 2vh, 20px) clamp(24px, 6vw, 48px);
+    font-size: clamp(3rem, 13vmin, 6rem);
+    border-bottom: 9px solid rgba(0,0,0,.25);
+  }
+  #cheerWord .syl { cursor: pointer; }
+  #cheer { font-size: clamp(1.6rem, 5vmin, 3rem); font-weight: 800; }
+
+  /* ---------- The homework page at full time ---------- */
+  #pageBox { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2.4vh, 20px); width: 100%; }
+  #pageBox h2 { font-size: clamp(1.4rem, 5vmin, 2.4rem); }
+  .sheet {
+    background: #fffbeb;
+    color: #1f2937;
+    border-radius: 20px;
+    padding: clamp(10px, 2vh, 18px) clamp(14px, 3vw, 28px);
+    width: min(100%, 640px);
+    border-bottom: 7px solid rgba(0,0,0,.2);
+  }
+  .sheet .label { font-size: clamp(.85rem, 2.2vmin, 1.05rem); font-weight: 700; color: #6b7280; text-align: left; }
+  .sheet .row { display: flex; flex-wrap: wrap; gap: clamp(8px, 3vw, 28px); justify-content: center; }
+  .sheet .item {
+    font-size: clamp(2.2rem, 9vmin, 4rem);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 4px 8px;
+    border-radius: 12px;
+  }
+  .sheet .item:active { background: #fde68a; }
+
+  #breakBox h3 { font-size: clamp(1.6rem, 6vmin, 3rem); }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #3b0764 0%, #6d28d9 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); }
+  #startOverlay .preview {
+    background: #fffbeb;
+    border-radius: 20px;
+    padding: 12px 22px;
+    font-size: clamp(1.6rem, 6vmin, 2.8rem);
+    line-height: 1.5;
+  }
+  #startOverlay p { max-width: 30ch; opacity: .9; font-size: clamp(.95rem, 2.4vmin, 1.15rem); }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 60px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  #feedback {
+    position: fixed;
+    left: 50%; bottom: 10vh;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,.75);
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-size: clamp(1rem, 2.6vmin, 1.3rem);
+    z-index: 50;
+    pointer-events: none;
+    max-width: 90vw;
+  }
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Ma Mi Mo · German</h1>
+  <span id="phase">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead hidden" id="lead"></p>
+
+  <!-- 1st half: which syllable did you hear? / 2nd half: which word? -->
+  <div class="choices hidden" id="choices"></div>
+
+  <!-- extra time: build the word from its syllables -->
+  <div id="slots" class="hidden"></div>
+  <div id="tiles" class="hidden"></div>
+
+  <button class="btn quiet hidden" id="againBtn">🔊 Listen again</button>
+
+  <!-- after a built word -->
+  <div id="cheerPic" class="hidden"></div>
+  <div id="cheerWord" class="hidden"></div>
+  <div id="cheer" class="hidden"></div>
+  <button class="btn big hidden" id="nextBtn">Next ➜ ⚽</button>
+
+  <!-- half time -->
+  <div id="breakBox" class="hidden">
+    <h3 id="breakTitle"></h3>
+    <p id="breakText" class="lead" style="margin:12px auto 20px"></p>
+    <button class="btn big" id="breakBtn"></button>
+  </div>
+
+  <!-- full time: the homework page, every bit tappable -->
+  <div id="pageBox" class="hidden">
+    <h2>📖 Now read your page!</h2>
+    <div class="sheet">
+      <div class="label">Seite 1</div>
+      <div class="row" id="page1"></div>
+    </div>
+    <div class="sheet">
+      <div class="label">Seite 2</div>
+      <div class="row" id="page2"></div>
+    </div>
+    <button class="btn quiet" id="readPageBtn">🔊 Read it all to me</button>
+    <button class="btn big" id="playAgainBtn">Play again ⚽</button>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>⚽ German: syllables &amp; first words ⚽</h2>
+  <div class="preview" id="preview"></div>
+  <p>Today's German homework. Hear it, find it, build it.</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower voice</label>
+  <button id="resetBtn">Reset footballs</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Today's homework =================
+     GFiL Y1 „Silben und erste Wörter lesen". Exactly the sheet:
+     Seite 1 — Ma, Mi, Mo. Seite 2 — Mama, Milo, Momo, Oma.
+     Each word is stored split into its syllables, the way the sheet
+     draws them with syllable arcs. */
+  var SYLLABLES = ['Ma', 'Mi', 'Mo'];
+  var WORDS = [
+    { w: 'Mama', parts: ['Ma', 'ma'], pic: '👩' },
+    { w: 'Milo', parts: ['Mi', 'lo'], pic: '👦' },
+    { w: 'Momo', parts: ['Mo', 'mo'], pic: '👧' },
+    { w: 'Oma',  parts: ['O', 'ma'],  pic: '👵' }
+  ];
+
+  /* Every syllable piece the build round can offer as a tile. */
+  var PIECES = ['Ma', 'ma', 'Mi', 'lo', 'Mo', 'mo', 'O'];
+
+  /* If the device has no German voice, the English one says these instead,
+     so "Mi" is not read as "my". */
+  var EN_SAYS = {
+    Ma: 'mah', ma: 'mah', Mi: 'mee', Mo: 'moh', mo: 'moh', O: 'oh', lo: 'loh',
+    Mama: 'Mama', Milo: 'Meelo', Momo: 'Mohmo', Oma: 'Ohma'
+  };
+
+  var ROUNDS_1 = 6;   /* hear a syllable, tap it */
+  var ROUNDS_2 = 4;   /* hear a word, find it — each word once */
+  var ROUNDS_3 = 4;   /* build each word from its syllables */
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💜', '🌈'];
+
+  var SCORE_KEY = 'jackHw_hw20261002gfily1silbenunderste2';
+  var SLOW_KEY  = 'jackHw_hw20261002gfily1silbenunderste2_slow';
+
+  /* ================= State ================= */
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var phase = 1;
+  var round = 0;
+  var goals = 0;
+  var queue = [];
+  var built = [];
+  var busy = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    phase: $('phase'), score: $('score'), lead: $('lead'),
+    choices: $('choices'), slots: $('slots'), tiles: $('tiles'),
+    againBtn: $('againBtn'),
+    cheerPic: $('cheerPic'), cheerWord: $('cheerWord'), cheer: $('cheer'), nextBtn: $('nextBtn'),
+    breakBox: $('breakBox'), breakTitle: $('breakTitle'), breakText: $('breakText'), breakBtn: $('breakBtn'),
+    pageBox: $('pageBox'), page1: $('page1'), page2: $('page2'),
+    readPageBtn: $('readPageBtn'), playAgainBtn: $('playAgainBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'), preview: $('preview'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Voice =================
+     Instructions are spoken in English (en-GB); the homework itself —
+     syllables and words — in German, because that is how the teacher
+     will say them. A line is a list of pieces: a plain string is English,
+     { de: 'Mama' } is German. Pieces play one after the other. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var enVoice = null, deVoice = null;
+  var speakToken = 0;
+
+  function pickVoices() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var good = /(Enhanced|Premium|Natural|Neural)/i;
+
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var female = /(Sonia|Libby|Hazel|Samantha|Martha|Serena|Kate|Karen|Moira|Zira|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    enVoice =
+      find(gb, good) || find(en, good) ||
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(gb, female) ||
+      find(en, /female|woman/i) || find(en, female) ||
+      gb[0] || en[0] || null;
+
+    var de = vs.filter(function (v) { return /^de([-_]|$)/i.test(v.lang); });
+    var deDE = de.filter(function (v) { return /DE/i.test(v.lang); });
+    deVoice =
+      find(deDE, good) || find(de, good) ||
+      find(de, /(Anna|Petra|Katja|Helena|Marlene|Vicki|Hedda|Amala|Google Deutsch)/i) ||
+      deDE[0] || de[0] || null;
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  /* speak(pieces, done): pieces is a string, { de: '…' }, or an array of both. */
+  function speak(pieces, done) {
+    stopSpeaking();
+    var my = speakToken;
+    var list = [].concat(pieces);
+    if (!hasSpeech) { if (done) setTimeout(done, 600); return; }
+    (function step(i) {
+      if (my !== speakToken) return;
+      if (i >= list.length) { if (done) done(); return; }
+      var p = list[i];
+      var german = typeof p === 'object';
+      var text = german ? p.de : String(p);
+      var u = new SpeechSynthesisUtterance();
+      var rate;
+      if (german && deVoice) {
+        u.text = text; u.voice = deVoice; u.lang = deVoice.lang; rate = 0.75;
+      } else if (german) {
+        u.text = EN_SAYS[text] || text; u.lang = enVoice ? enVoice.lang : 'en-GB';
+        if (enVoice) u.voice = enVoice; rate = 0.7;
+      } else {
+        u.text = text; u.lang = enVoice ? enVoice.lang : 'en-GB';
+        if (enVoice) u.voice = enVoice; rate = 0.92;
+      }
+      u.rate = rate * (slow ? 0.8 : 1);
+      /* some phones never fire onend — a watchdog keeps the line moving */
+      var moved = false;
+      var onward = function () {
+        if (moved) return;
+        moved = true;
+        clearTimeout(dog);
+        if (my === speakToken) setTimeout(function () { step(i + 1); }, german ? 220 : 120);
+      };
+      var dog = setTimeout(onward, 1600 + u.text.length * 110);
+      u.onend = onward;
+      u.onerror = onward;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    })(0);
+  }
+
+  if (hasSpeech) {
+    pickVoices();
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', pickVoices);
+  }
+
+  /* ================= Small helpers ================= */
+  function de(t) { return { de: t }; }
+
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1900);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function scored() {
+    footballs++;
+    goals++;
+    save();
+    renderScore(true);
+  }
+
+  function bounce(el) {
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+  }
+
+  /* A word as syllables with arcs underneath, blue then red. */
+  function wordEl(parts) {
+    var w = document.createElement('span');
+    w.className = 'word';
+    parts.forEach(function (p, i) {
+      var s = document.createElement('span');
+      s.className = 'syl s' + (i % 2);
+      s.textContent = p;
+      w.appendChild(s);
+    });
+    return w;
+  }
+
+  /* Say a word syllable by syllable, lighting each arc, then the whole word. */
+  function sayInSyllables(item, wordNode, done) {
+    var kids = wordNode ? wordNode.querySelectorAll('.syl') : [];
+    var i = 0;
+    (function next() {
+      if (i < item.parts.length) {
+        if (kids[i]) { kids[i].classList.remove('lit'); void kids[i].offsetWidth; kids[i].classList.add('lit'); }
+        var p = item.parts[i++];
+        speak(de(p), next);
+      } else {
+        speak(de(item.w), done);
+      }
+    })();
+  }
+
+  /* ================= Screens ================= */
+  var SCREENS = {
+    pick:  ['lead', 'choices', 'againBtn'],
+    build: ['lead', 'slots', 'tiles', 'againBtn'],
+    cheer: ['cheerPic', 'cheerWord', 'cheer', 'nextBtn'],
+    pause: ['breakBox'],
+    page:  ['pageBox']
+  };
+  var ALL = ['lead', 'choices', 'slots', 'tiles', 'againBtn',
+             'cheerPic', 'cheerWord', 'cheer', 'nextBtn', 'breakBox', 'pageBox'];
+
+  function show(name) {
+    ALL.forEach(function (id) { els[id].classList.add('hidden'); });
+    SCREENS[name].forEach(function (id) { els[id].classList.remove('hidden'); });
+  }
+
+  /* ================= 1st half: Seite 1 — Ma, Mi, Mo ================= */
+  /* The very first round waits for the kick-off line to finish instead. */
+  var intro = false;
+  function autoSay() {
+    if (intro) { intro = false; return; }
+    setTimeout(sayTarget, 350);
+  }
+
+  function sayTarget() {
+    var t = queue[round];
+    if (phase === 1) speak(['Find', de(t)]);
+    else if (phase === 2) speak(['Find the word', de(t.w)]);
+    else speak(['Build', de(t.w)]);
+  }
+
+  function enterSyllable() {
+    busy = false;
+    var target = queue[round];
+    els.phase.textContent = '1st half · ' + (round + 1) + '/' + queue.length;
+    els.lead.textContent = 'Listen. Tap what you hear.';
+    els.choices.innerHTML = '';
+    shuffle(SYLLABLES).forEach(function (s) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'card';
+      b.appendChild(wordEl([s]));
+      b.addEventListener('click', function () { answerSyllable(s, b, target); });
+      els.choices.appendChild(b);
+    });
+    show('pick');
+    autoSay();
+  }
+
+  function answerSyllable(s, btn, target) {
+    if (busy) return;
+    if (s === target) {
+      busy = true;
+      btn.classList.add('right');
+      scored();
+      celebrate(16);
+      showFeedback('Goal! ' + s + ' ⚽');
+      speak(['Yes!', de(s)], function () { setTimeout(nextRound, 350); });
+    } else {
+      btn.classList.add('wrong');
+      bounce(btn);
+      showFeedback('That says ' + s + '. Listen again.');
+      speak(['That says', de(s), 'Listen.', de(target)]);
+      setTimeout(function () { btn.classList.remove('wrong'); }, 1400);
+    }
+  }
+
+  /* ================= 2nd half: Seite 2 — find the word ================= */
+  function enterFind() {
+    busy = false;
+    var target = queue[round];
+    els.phase.textContent = '2nd half · ' + (round + 1) + '/' + queue.length;
+    els.lead.textContent = 'Which word did I say?';
+    els.choices.innerHTML = '';
+    shuffle(WORDS).forEach(function (o) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'card words';
+      b.appendChild(wordEl(o.parts));
+      b.addEventListener('click', function () { answerFind(o, b, target); });
+      els.choices.appendChild(b);
+    });
+    show('pick');
+    autoSay();
+  }
+
+  function answerFind(o, btn, target) {
+    if (busy) return;
+    if (o.w === target.w) {
+      busy = true;
+      btn.classList.add('right');
+      scored();
+      celebrate(20);
+      showFeedback('Goal! ' + o.w + ' ⚽');
+      speak('Yes!', function () {
+        sayInSyllables(o, btn, function () { setTimeout(nextRound, 400); });
+      });
+    } else {
+      btn.classList.add('wrong');
+      bounce(btn);
+      showFeedback('That says ' + o.w + '. Listen again.');
+      speak(['That says', de(o.w), 'Listen.', de(target.w)]);
+      setTimeout(function () { btn.classList.remove('wrong'); }, 1600);
+    }
+  }
+
+  /* ================= Extra time: build the word ================= */
+  function renderSlots(marks) {
+    var item = queue[round];
+    els.slots.innerHTML = '';
+    for (var i = 0; i < item.parts.length; i++) {
+      var s = document.createElement('div');
+      s.className = 'slot' + (built[i] ? ' filled' : '');
+      if (marks && marks[i]) s.className += ' ' + marks[i];
+      if (built[i]) {
+        var syl = document.createElement('span');
+        syl.className = 'syl s' + (i % 2);
+        syl.textContent = built[i];
+        s.appendChild(syl);
+      }
+      els.slots.appendChild(s);
+    }
+  }
+
+  function renderTiles() {
+    var item = queue[round];
+    /* his two syllables plus two that belong to the other words */
+    var decoys = shuffle(PIECES.filter(function (p) { return item.parts.indexOf(p) === -1; })).slice(0, 2);
+    els.tiles.innerHTML = '';
+    shuffle(item.parts.concat(decoys)).forEach(function (p) {
+      var t = document.createElement('button');
+      t.type = 'button';
+      t.className = 'tile';
+      t.textContent = p;
+      t.addEventListener('click', function () { tapTile(p, t); });
+      els.tiles.appendChild(t);
+    });
+  }
+
+  function enterBuild() {
+    busy = false;
+    built = [];
+    els.phase.textContent = 'Extra time · ' + (round + 1) + '/' + queue.length;
+    els.lead.textContent = 'Build the word. Tap a piece to hear it.';
+    renderSlots(null);
+    renderTiles();
+    show('build');
+    autoSay();
+  }
+
+  function tapTile(part, tile) {
+    if (busy) return;
+    var item = queue[round];
+    var want = item.parts[built.length];
+    if (part === want) {
+      built.push(part);
+      tile.classList.add('used');
+      renderSlots(null);
+      if (built.length === item.parts.length) {
+        busy = true;
+        renderSlots(item.parts.map(function () { return 'right'; }));
+        scored();
+        celebrate(24);
+        speak(de(part), function () { speak(de(item.w), enterCheer); });
+      } else {
+        speak(de(part));
+      }
+    } else {
+      bounce(tile);
+      var marks = item.parts.map(function (_, i) { return i === built.length ? 'wrong' : ''; });
+      renderSlots(marks);
+      showFeedback('That says ' + part + '. We need ' + want + '.');
+      speak(['That says', de(part), 'We need', de(want)]);
+      setTimeout(function () { if (!busy) renderSlots(null); }, 900);
+    }
+  }
+
+  function enterCheer() {
+    var item = queue[round];
+    els.cheerPic.textContent = item.pic;
+    els.cheerWord.innerHTML = '';
+    var w = wordEl(item.parts);
+    els.cheerWord.appendChild(w);
+    w.querySelectorAll('.syl').forEach(function (s) {
+      s.addEventListener('click', function () { speak(de(s.textContent)); });
+    });
+    els.cheer.textContent = 'GOAL! ⚽';
+    show('cheer');
+    setTimeout(function () { sayInSyllables(item, w); }, 300);
+  }
+
+  /* ================= Flow ================= */
+  function buildQueue() {
+    if (phase === 1) {
+      /* every syllable twice, never the same one twice in a row */
+      var q;
+      do {
+        q = shuffle(SYLLABLES.concat(SYLLABLES)).slice(0, ROUNDS_1);
+      } while (q.some(function (s, i) { return i > 0 && q[i - 1] === s; }));
+      queue = q;
+    } else if (phase === 2) {
+      queue = shuffle(WORDS).slice(0, ROUNDS_2);
+    } else {
+      queue = shuffle(WORDS).slice(0, ROUNDS_3);
+    }
+  }
+
+  function enterRound() {
+    if (phase === 1) enterSyllable();
+    else if (phase === 2) enterFind();
+    else enterBuild();
+  }
+
+  function nextRound() {
+    round++;
+    if (round >= queue.length) {
+      if (phase < 3) { halfTime(phase + 1); return; }
+      fullTime();
+      return;
+    }
+    enterRound();
+  }
+
+  function halfTime(next) {
+    phase = next;
+    round = 0;
+    buildQueue();
+    var goalsTxt = goals + ' ' + (goals === 1 ? 'goal' : 'goals');
+    if (next === 2) {
+      els.phase.textContent = 'Half time';
+      els.breakTitle.textContent = '📣 Half time!';
+      els.breakText.textContent = goalsTxt + '! Now the words: Mama, Milo, Momo, Oma.';
+      els.breakBtn.textContent = 'Second half ➜';
+      speak(['Half time! ' + goalsTxt + '. Now the words.', de('Mama'), de('Milo'), de('Momo'), de('Oma')]);
+    } else {
+      els.phase.textContent = 'Extra time';
+      els.breakTitle.textContent = '⏱️ Extra time!';
+      els.breakText.textContent = goalsTxt + '! Now build each word from its pieces.';
+      els.breakBtn.textContent = 'Extra time ➜';
+      speak('Extra time! ' + goalsTxt + '. Now build each word from its pieces.');
+    }
+    show('pause');
+  }
+
+  function pageItem(item, container) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'item';
+    var w = wordEl(item.parts);
+    b.appendChild(w);
+    b.addEventListener('click', function () {
+      if (item.parts.length > 1) sayInSyllables(item, w);
+      else speak(de(item.w));
+    });
+    container.appendChild(b);
+  }
+
+  function renderPage() {
+    els.page1.innerHTML = '';
+    els.page2.innerHTML = '';
+    SYLLABLES.forEach(function (s) { pageItem({ w: s, parts: [s] }, els.page1); });
+    WORDS.forEach(function (o) { pageItem(o, els.page2); });
+  }
+
+  function readPage() {
+    var line = ['Seite 1.'];
+    SYLLABLES.forEach(function (s) { line.push(de(s)); });
+    line.push('Seite 2.');
+    WORDS.forEach(function (o) { line.push(de(o.w)); });
+    speak(line);
+  }
+
+  function fullTime() {
+    els.phase.textContent = 'Full time';
+    renderPage();
+    show('page');
+    celebrate(45);
+    speak('Full time! ' + goals + ' goals! Now read your page out loud. Tap a word if you need help.');
+  }
+
+  function startMatch() {
+    phase = 1;
+    round = 0;
+    goals = 0;
+    buildQueue();
+    enterRound();
+  }
+
+  /* ================= Wiring ================= */
+  (function preview() {
+    var row1 = document.createElement('div');
+    SYLLABLES.forEach(function (s, i) {
+      if (i) row1.appendChild(document.createTextNode('  '));
+      row1.appendChild(wordEl([s]));
+    });
+    var row2 = document.createElement('div');
+    WORDS.forEach(function (o, i) {
+      if (i) row2.appendChild(document.createTextNode('  '));
+      row2.appendChild(wordEl(o.parts));
+    });
+    els.preview.appendChild(row1);
+    els.preview.appendChild(row2);
+  })();
+
+  els.playBtn.addEventListener('click', function () {
+    pickVoices();
+    els.startOverlay.remove();
+    intro = true;
+    startMatch();
+    speak(['Kick off! German.', de('Ma'), de('Mi'), de('Mo')], function () { setTimeout(sayTarget, 200); });
+  });
+
+  /* while a goal plays out its line carries the game on, so don't talk over it */
+  els.againBtn.addEventListener('click', function () { if (!busy) sayTarget(); });
+  els.nextBtn.addEventListener('click', nextRound);
+  els.breakBtn.addEventListener('click', enterRound);
+  els.playAgainBtn.addEventListener('click', startMatch);
+  els.readPageBtn.addEventListener('click', readPage);
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>
