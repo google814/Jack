@@ -612,6 +612,7 @@
   var clips = null;          /* exact line -> mp3 file */
   var clipsLoose = null;     /* the same without a final . ! ? */
   var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
   var loading = {};          /* file -> in-flight promise */
   var actx = null;
   var sources = [];          /* clips still playing */
@@ -661,6 +662,24 @@
   document.addEventListener('pointerdown', audioReady, true);
   document.addEventListener('touchstart', audioReady, true);
 
+  /* Every clip comes with about 0.2 s of silence in front and up to 1.3 s
+     behind. Played back to back that is a robot pause between two halves of
+     one sentence, so only the speech is played, and the gap between two
+     segments is a breath, the way a person reads (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));        /* keep a soft first "f" or "h" */
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* and the fade of the last word */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+  window.__spans = spans;
+
   function loadClip(file) {
     if (buffers[file]) return Promise.resolve(buffers[file]);
     if (loading[file]) return loading[file];
@@ -678,7 +697,7 @@
           if (p && p.then) p.then(res, rej);
         });
       })
-      .then(function (buf) { buffers[file] = buf; delete loading[file]; return buf; },
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
             function (e) { delete loading[file]; throw e; });
     return loading[file];
   }
@@ -763,11 +782,12 @@
             src.onended = function () {
               var k = sources.indexOf(src);
               if (k >= 0) sources.splice(k, 1);
-              if (my === speakToken) onward();
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
             };
             sources.push(src);
             window.__clipPlays++;
-            src.start(0);
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
           }, function () { say(parts[i], rate, my, onward); });
         } else {
           say(parts[i], rate, my, onward);
