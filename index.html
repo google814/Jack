@@ -193,6 +193,7 @@
   .apples  { background: linear-gradient(160deg, #ef4444, #991b1b); }
   .sight   { background: linear-gradient(160deg, #7c3aed, #4c1d95); }
   .clock   { background: linear-gradient(160deg, #ec4899, #9d174d); }
+  .frames  { background: linear-gradient(160deg, #84cc16, #3f6212); }
   .chess {
     color: var(--chess-deep);
     background:
@@ -541,6 +542,14 @@
       <span class="what">Maths</span>
     </a>
 
+    <a class="card frames" href="ten-frames/" data-group="practice" data-new="2026-10-03" data-say="Jack's Ten Frames. Adding with ten frames.">
+      <span class="score" id="score-frames" hidden></span>
+      <button class="say" type="button" aria-label="Say: Jack's Ten Frames">🔊</button>
+      <span class="icon" aria-hidden="true">🔟</span>
+      <span class="name">Jack's Ten Frames</span>
+      <span class="what">Make ten</span>
+    </a>
+
     <a class="card big" href="big-numbers/" data-group="practice" data-new="2026-09-06" data-say="Jack's Big Numbers. Maths to one hundred.">
       <span class="score" id="score-big" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Big Numbers">🔊</button>
@@ -602,6 +611,7 @@
 
   /* Adding a game: add a card with data-group + data-new, and a WHATS_NEW entry. */
   var WHATS_NEW = [
+    { date: '2026-10-03', icon: '🔟', text: "Jack's Ten Frames", href: 'ten-frames/', say: "New: Jack's Ten Frames. Adding with ten frames." },
     { date: '2026-10-01', icon: '⏰', text: "Jack's Clock", href: 'clock-game/', say: "New: Jack's Clock. Tell the time." },
     { date: '2026-09-26', icon: '🔠', text: 'Write it Right! Capital letters', href: 'hw-20260926-capital-letters/', say: 'New homework: Write it Right! Capital letters.' },
     { date: '2026-09-06', icon: '💯', text: "Jack's Big Numbers", href: 'big-numbers/', say: "New: Jack's Big Numbers. Maths to one hundred." },
@@ -640,6 +650,7 @@
     var big     = num('jackBigFootballs');
     var sight   = num('jackSightStars');
     var clock   = num('jackClockFootballs');
+    var frames  = num('jackFramesFootballs');
     var letters = (localStorage.getItem('jackLettersDone') || '').length;
     badge('score-words',   read,    '⚽ ' + read);
     badge('score-match',   match,   '⚽ ' + match);
@@ -649,6 +660,7 @@
     badge('score-apples',  apples,  '⚽ ' + apples);
     badge('score-sight',   sight,   '⭐ ' + sight);
     badge('score-clock',   clock,   '⚽ ' + clock);
+    badge('score-frames',  frames,  '⚽ ' + frames);
     badge('score-chess',   xp,      '⭐ ' + xp);
     document.querySelectorAll('.card[data-hw]').forEach(function (c) {
       var v = num(c.getAttribute('data-hw'));

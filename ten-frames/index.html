@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#14532d">
+<title>Jack's Ten Frames 🔟</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Ten Frames">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 6%, transparent 6% 12%),
+      linear-gradient(160deg, #14532d, #166534 55%, #14532d);
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;          /* the whole game always fits on one screen */
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  a:focus-visible, button:focus-visible { outline: 3px solid #fde047; outline-offset: 2px; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(0,0,0,.26);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none; color: #f1f5f9;
+    font-size: 1.5rem; line-height: 1;
+    min-width: 44px; min-height: 44px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    background: rgba(255,255,255,.13);
+  }
+  header h1 { font-size: clamp(1rem, 2.8vw, 1.5rem); white-space: nowrap; }
+  /* on a phone the score matters more than the title */
+  @media (max-width: 560px) { header h1 { display: none; } }
+  #score {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1px;
+    font-size: 1.25rem;
+    justify-content: flex-end;
+    overflow: hidden;
+    max-height: 2.2rem;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.2rem; margin-left: 6px; }
+  #settingsBtn {
+    background: none; border: none; color: #f1f5f9;
+    font-size: 1.2rem; opacity: .5; cursor: pointer;
+    min-width: 44px; min-height: 44px;
+  }
+
+  /* how far through the forty sums he is */
+  #progress { flex: 0 0 auto; height: 6px; background: rgba(255,255,255,.12); }
+  #progressBar { height: 100%; width: 0; background: #fde047; transition: width .4s ease; }
+
+  /* ---------- stage ---------- */
+  main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 1.6vh, 18px);
+    padding: clamp(8px, 1.6vh, 18px) 10px calc(clamp(8px, 1.6vh, 18px) + env(safe-area-inset-bottom));
+    text-align: center;
+    overflow: hidden;
+  }
+  .hidden { display: none !important; }
+
+  #problem {
+    flex: 0 0 auto;
+    font-size: clamp(1.5rem, 5.6vmin, 3rem);
+    font-weight: 900;
+    line-height: 1.15;
+    cursor: pointer;
+    padding: .05em .35em;
+    border-radius: 18px;
+    text-shadow: 0 5px 16px rgba(0,0,0,.35);
+  }
+  #problem:hover { background: rgba(255,255,255,.1); }
+  #problem .r { color: #fca5a5; }
+  #problem .y { color: #fde047; }
+  #problem .ear { font-size: .55em; vertical-align: middle; opacity: .75; margin-left: .3em; }
+
+  #hint {
+    flex: 0 0 auto;
+    font-size: clamp(.95rem, 2.8vmin, 1.4rem);
+    font-weight: 700;
+    color: #fde047;
+    max-width: 34ch;
+    min-height: 1.3em;
+    cursor: pointer;
+  }
+
+  /* ---------- the ten frames ---------- */
+  /* --cell is set by fitFrames(): the frames are as big as the room they get */
+  #framesWrap {
+    --cell: 60px;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--cell) * .45);
+    cursor: pointer;
+  }
+  #framesWrap.stack { flex-direction: column; }
+  .frame {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, var(--cell));
+    grid-template-rows: repeat(2, var(--cell));
+    gap: calc(var(--cell) * .08);
+    padding: calc(var(--cell) * .12);
+    background: #0f172a;           /* the gaps between the cells are the lines */
+    border-radius: calc(var(--cell) * .18);
+    box-shadow: 0 10px 24px rgba(0,0,0,.4);
+    transition: box-shadow .3s ease;
+  }
+  .cell {
+    position: relative;
+    background: #f8fafc;
+    border-radius: calc(var(--cell) * .08);
+  }
+  /* a full frame is ten: it glows and wears a 10 */
+  .frame.full { box-shadow: 0 0 0 calc(var(--cell) * .07) #fde047, 0 0 calc(var(--cell) * .5) rgba(253,224,71,.65); }
+  .frame .ten {
+    position: absolute;
+    top: calc(var(--cell) * -.34); right: calc(var(--cell) * -.3);
+    min-width: calc(var(--cell) * .66); height: calc(var(--cell) * .66);
+    padding: 0 calc(var(--cell) * .1);
+    border-radius: 999px;
+    background: #fde047; color: #0f172a;
+    font-weight: 900; font-size: calc(var(--cell) * .36);
+    display: none; align-items: center; justify-content: center;
+    box-shadow: 0 3px 0 rgba(0,0,0,.3);
+    z-index: 3;
+  }
+  .frame.full .ten { display: flex; animation: pop .45s ease; }
+
+  /* quick look: the frame is covered after a moment */
+  .frame .cover {
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 12px, transparent 12px 24px),
+      linear-gradient(160deg, #3b82f6, #1e3a8a);
+    color: #fff;
+    font-weight: 900; font-size: calc(var(--cell) * 1.3);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s ease;
+    z-index: 4;
+  }
+  .frame.covered .cover { opacity: 1; }
+
+  /* the counters: red and yellow, like the double-sided ones at school */
+  .counter {
+    position: absolute; inset: 9%;
+    border-radius: 50%;
+    box-shadow: inset 0 calc(var(--cell) * -.05) 0 rgba(0,0,0,.22), 0 2px 3px rgba(0,0,0,.3);
+    transition: transform .5s cubic-bezier(.3,1.25,.5,1);
+  }
+  .counter.r { background: radial-gradient(circle at 35% 30%, #fecaca, #ef4444 45%, #b91c1c); }
+  .counter.y { background: radial-gradient(circle at 35% 30%, #fef9c3, #facc15 45%, #ca8a04); }
+  .counter.pop { animation: pop .35s ease backwards; }
+  .counter.drop { animation: drop .4s ease backwards; }
+  .counter.flying { z-index: 5; }
+
+  /* hints point at the part of the frame they talk about */
+  .frame.showRow .cell:nth-child(-n+5) { animation: nudge .45s ease-in-out 4; }
+  .frame.showEmpty .cell:empty { animation: nudge .45s ease-in-out 4; }
+  .frame.showAll .counter { animation: nudge .45s ease-in-out 4; }
+  .nudge { animation: wiggle .6s ease-in-out 3; }
+
+  /* ---------- the dock: the tray of yellow counters, then the answer tiles ---------- */
+  #dock {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: clamp(58px, 10vmin, 86px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #tray {
+    --tcell: 50px;
+    display: flex;
+    gap: calc(var(--tcell) * .15);
+    padding: calc(var(--tcell) * .12) calc(var(--tcell) * .2);
+    border-radius: 999px;
+    background: rgba(0,0,0,.22);
+    cursor: pointer;
+  }
+  .tslot {
+    position: relative;
+    width: var(--tcell); height: var(--tcell);
+    border-radius: 50%;
+    border: 2px dashed rgba(255,255,255,.25);
+  }
+  .tslot .counter { inset: 4%; }
+
+  #tiles {
+    display: flex;
+    gap: clamp(8px, 2vmin, 16px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .tile {
+    min-width: clamp(64px, 13vmin, 110px); min-height: 44px;
+    padding: 0 clamp(12px, 2.4vmin, 22px);
+    height: clamp(58px, 10vmin, 86px);
+    border: none;
+    border-radius: 18px;
+    font-family: inherit;
+    font-size: clamp(1.5rem, 5vmin, 2.6rem);
+    font-weight: 900;
+    color: #0f172a;
+    cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .tile:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .tile.shake { animation: shake .35s ease; }
+  .tile:disabled { opacity: .3; cursor: default; box-shadow: none; }
+
+  /* ---------- buttons ---------- */
+  .row { flex: 0 0 auto; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit; font-weight: 800; color: #0f172a;
+    border: none; border-radius: 999px; cursor: pointer;
+    min-height: 44px;
+    padding: clamp(9px, 1.6vh, 14px) clamp(18px, 4vw, 30px);
+    font-size: clamp(.9rem, 2.4vmin, 1.2rem);
+    background: #fde047;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .btn.ghost { background: rgba(255,255,255,.14); color: #f1f5f9; box-shadow: none; }
+
+  /* ---------- the answer ---------- */
+  #cheer { flex: 0 0 auto; font-size: clamp(1.2rem, 4vmin, 2.1rem); font-weight: 900; animation: pop .5s ease; }
+  #equation {
+    flex: 0 0 auto;
+    font-size: clamp(1.8rem, 6.6vmin, 3.8rem);
+    font-weight: 900;
+    line-height: 1.2;
+    cursor: pointer;
+    padding: .1em .3em;
+    border-radius: 22px;
+  }
+  #equation:hover { background: rgba(255,255,255,.1); }
+  #equation .sub {
+    display: block;
+    font-size: .45em;
+    font-weight: 800;
+    color: #fde047;
+    margin-top: .2em;
+  }
+  #equation .sub span { white-space: nowrap; margin: 0 .5em; }
+  .rainbow {
+    display: inline-block;
+    background: linear-gradient(90deg, #ff3b6b, #ff9f1a, #ffd60a, #2ecc71, #34d399, #8b5cf6, #ff3b6b);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 900;
+    animation: rainbowShift 2.5s linear infinite, pulseWord 1s ease-in-out infinite;
+  }
+
+  /* ---------- overlays ---------- */
+  #startOverlay, #endOverlay {
+    position: fixed; inset: 0; z-index: 70;
+    background: linear-gradient(160deg, #14532d, #166534 55%, #14532d);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: clamp(16px, 4vh, 32px); text-align: center; padding: 24px;
+  }
+  #startOverlay h2, #endOverlay h2 { font-size: clamp(1.5rem, 5.5vmin, 2.8rem); }
+  #startOverlay p, #endOverlay p { max-width: 30ch; opacity: .9; font-size: clamp(.95rem, 2.4vmin, 1.2rem); }
+  #endScore { font-size: clamp(1.4rem, 5vmin, 2.4rem); font-weight: 900; opacity: 1; }
+  #playBtn {
+    width: clamp(120px, 26vmin, 190px);
+    height: clamp(120px, 26vmin, 190px);
+    border-radius: 50%;
+    font-size: clamp(3rem, 10vmin, 5rem);
+    padding: 0;
+    animation: pulseWord 1.6s ease-in-out infinite;
+  }
+
+  /* ---------- settings ---------- */
+  #settingsPanel {
+    position: fixed; top: 56px; right: 12px; z-index: 60;
+    background: #fff; color: #0f172a;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+    max-width: calc(100vw - 24px);
+  }
+  #settingsPanel .lbl { font-weight: 700; }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; min-height: 44px; padding: 8px 14px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+    text-align: left;
+  }
+
+  /* ---------- toast + confetti ---------- */
+  #feedback {
+    position: fixed; left: 50%; bottom: 9vh; transform: translateX(-50%);
+    background: rgba(15,23,42,.92); color: #f1f5f9;
+    font-size: clamp(1rem, 2.8vmin, 1.4rem); font-weight: 700;
+    padding: .55em 1.15em; border-radius: 999px;
+    z-index: 50; pointer-events: none; white-space: nowrap;
+    animation: pop .3s ease;
+  }
+  .confetti { position: fixed; top: -6vh; font-size: 1.8rem; animation: fall linear forwards; pointer-events: none; z-index: 80; }
+
+  /* ---------- keyframes ---------- */
+  @keyframes pop { 0% { transform: scale(.5); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  @keyframes drop { 0% { transform: translateY(-80%); opacity: 0; } 70% { transform: translateY(6%); opacity: 1; } 100% { transform: none; } }
+  @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+  @keyframes wiggle { 25% { transform: rotate(-3deg) scale(1.03); } 75% { transform: rotate(3deg) scale(1.03); } }
+  @keyframes rainbowShift { to { background-position: 300% 0; } }
+  @keyframes pulseWord { 50% { transform: scale(1.1); } }
+  @keyframes nudge { 50% { opacity: .25; } }
+  @keyframes bounceIn {
+    0% { transform: translateY(-40px) scale(.3); opacity: 0; }
+    55% { transform: translateY(6px) scale(1.15); opacity: 1; }
+    75% { transform: translateY(-4px) scale(.95); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  @keyframes fall { to { transform: translateY(115vh) rotate(400deg); } }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Jack's Ten Frames</h1>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+<div id="progress"><div id="progressBar"></div></div>
+
+<main>
+  <div id="cheer" class="hidden"></div>
+  <div id="problem" class="hidden"></div>
+  <div id="hint" class="hidden"></div>
+  <div id="peekRow" class="row hidden">
+    <button id="peekBtn" class="btn ghost" type="button">👀 Look again</button>
+  </div>
+  <div id="framesWrap" class="hidden"></div>
+  <div id="dock" class="hidden">
+    <div id="tray" class="hidden"></div>
+    <div id="tiles" class="hidden"></div>
+  </div>
+
+  <!-- the answer -->
+  <div id="equation" class="hidden"></div>
+  <div id="answerRow" class="row hidden">
+    <button id="hearAnswerBtn" class="btn ghost">🔊 Hear it</button>
+    <button id="nextBtn" class="btn">Next ➜ ⚽</button>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>🔟 Jack's Ten Frames</h2>
+  <p>See how many at a glance, fill the frame to ten, then add up past ten.</p>
+  <button id="playBtn" class="btn">▶</button>
+</div>
+
+<div id="endOverlay" class="hidden">
+  <h2>🏁 Full time!</h2>
+  <p id="endScore"></p>
+  <button id="playAgainBtn" class="btn">▶ Play again</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <span class="lbl">Jump to</span>
+  <div id="stepButtons" style="display:flex;flex-direction:column;gap:6px"></div>
+  <button id="resetBtn">Start again</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say lives in here and nowhere else. It touches no
+     DOM, so tools/phrases/ten-frames.txt is generated straight out of this
+     block (tools/gen-phrases-ten-frames.js) and can never drift. */
+
+  var WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+               'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
+               'seventeen', 'eighteen', 'nineteen', 'twenty'];
+
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  /* Forty sums in five steps, always in this order. A ten frame is there so
+     he stops counting one by one: first he sees a number as "five and two
+     more", then what is missing to ten, then adding inside one frame, and
+     last the Year 1 trick for going past ten — fill the first frame, the
+     rest spill into the next one. */
+  var STEPS = [
+    { name: 'Quick look', t: 'look' },
+    { name: 'Fill it up', t: 'fill' },
+    { name: 'Add them up', t: 'add' },
+    { name: 'Make ten first', t: 'bridge' },
+    { name: 'Swap to make ten', t: 'swap' }
+  ];
+  var PROBLEMS = (function () {
+    var plan = [
+      /* 1 how many?        */ [5, 7, 3, 10, 6, 8, 4, 9],
+      /* 2 how many more?   */ [8, 5, 6, 9, 3, 7, 4, 2],
+      /* 3 a + b, up to 10  */ [[4, 2], [5, 3], [3, 4], [6, 3], [2, 5], [7, 3], [5, 4], [4, 4]],
+      /* 4 a + b, past 10   */ [[9, 2], [8, 4], [9, 5], [7, 4], [8, 5], [6, 6], [9, 7], [7, 8]],
+      /* 5 two full frames  */ [[9, 3], [8, 4], [9, 6], [7, 6], [8, 5], [9, 8], [7, 5], [8, 8]]
+    ];
+    var out = [], s, i, x, a, b;
+    for (s = 0; s < plan.length; s++) {
+      for (i = 0; i < plan[s].length; i++) {
+        x = plan[s][i];
+        if (typeof x === 'number') { a = x; b = STEPS[s].t === 'fill' ? 10 - x : 0; }
+        else { a = x[0]; b = x[1]; }
+        out.push({ t: STEPS[s].t, step: s, a: a, b: b, first: i === 0 });
+      }
+    }
+    return out;
+  })();
+
+  /* the number he has to find */
+  function answerOf(p) { return p.t === 'look' ? p.a : p.t === 'fill' ? p.b : p.a + p.b; }
+
+  var INTRO = {
+    look: 'A ten frame has two rows of five. Look quickly.',
+    fill: 'A full ten frame is ten.',
+    add: 'Here are the red ones. Tap the ten frame to add the yellow ones.',
+    bridge: 'Fill the first frame first. Then the rest go in the next frame.',
+    swap: 'Tap the yellow ones. They jump into the first frame. Fill it up to ten!'
+  };
+  var BUILD_HINT = { add: 'Tap the ten frame.', bridge: 'Tap the ten frame.', swap: 'Tap the yellow ones.' };
+  var ALTOGETHER = 'How many altogether?';
+  var FULL = 'The first frame is full!';
+
+  function sumWords(p) { return cap(WORDS[p.a]) + ' add ' + WORDS[p.b] + '.'; }
+
+  function questionText(p) {
+    if (p.t === 'look') return 'How many?';
+    if (p.t === 'fill') return 'How many more to make ten?';
+    if (p.t === 'swap') return sumWords(p) + ' Fill the first frame.';
+    return sumWords(p) + ' Tap to add ' + WORDS[p.b] + ' yellow.';
+  }
+
+  /* the first sum of a step also says how the step works */
+  function introText(p) { return p.first ? INTRO[p.t] + ' ' + questionText(p) : questionText(p); }
+
+  /* the answer on its own, the way it is cheered: "Thirteen!" */
+  function answerWord(p) { return cap(WORDS[answerOf(p)]) + (p.t === 'fill' ? ' more!' : '!'); }
+
+  /* how the frame shows it, said the way a teacher says it */
+  function answerSentence(p) {
+    var a = p.a, b = p.b, t = a + b;
+    if (p.t === 'look') {
+      if (a === 10) return 'Two full rows. That is ten.';
+      if (a === 5) return 'One full row. That is five.';
+      if (a < 5) return cap(WORDS[a]) + ' in the top row.';
+      return 'Five in the top row and ' + WORDS[a - 5] + ' more. That is ' + WORDS[a] + '.';
+    }
+    if (p.t === 'fill') return cap(WORDS[a]) + ' and ' + WORDS[b] + ' make ten.';
+    if (p.t === 'add') return cap(WORDS[a]) + ' add ' + WORDS[b] + ' makes ' + WORDS[t] + '.' + (t === 10 ? ' The ten frame is full!' : '');
+    return cap(WORDS[a]) + ' and ' + WORDS[10 - a] + ' make ten. Ten and ' + WORDS[t - 10] + ' make ' + WORDS[t] + '.';
+  }
+
+  /* after a wrong tile: what to look at. The second one says a bit more. */
+  function hintText(p, miss) {
+    if (p.t === 'look') return p.a >= 5 ? 'A full row is five.' : 'Look again.';
+    if (p.t === 'fill') return 'Count the empty spaces.';
+    if (p.t === 'add') return p.a + p.b > 5 ? 'A full row is five.' : 'Count them all.';
+    return miss < 1 ? 'The first frame is full. That is ten.' : 'Ten and ' + WORDS[p.a + p.b - 10] + ' more.';
+  }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim(), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i, p;
+    function add(s) { if (s && !seen[s]) { seen[s] = 1; out.push(s); } }
+    function addAll(text) { var parts = segments(text); for (var k = 0; k < parts.length; k++) add(parts[k]); }
+    add("Jack's Ten Frames.");
+    add("Let's go!");
+    add('Try again.');
+    add('On fire!');
+    add('Full time!');
+    add('Well done, Jack!');
+    add(ALTOGETHER);
+    add(FULL);
+    add(BUILD_HINT.add);
+    add(BUILD_HINT.swap);
+    for (i = 1; i <= 20; i++) add(WORDS[i]);      /* counting the yellow ones in */
+    for (i = 0; i < PROBLEMS.length; i++) {
+      p = PROBLEMS[i];
+      addAll(introText(p));
+      add(answerWord(p));
+      addAll(answerSentence(p));
+      addAll(hintText(p, 0));
+      addAll(hintText(p, 1));
+    }
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') { return; }
+  window.__phrases = phraseList;
+
+  var TILE_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4', '#fdba74', '#c4b5fd'];
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🔟', '💛'];
+  var LOOK_MS = 3000;        /* quick look: how long the frame shows the first time */
+  var PEEK_MS = 2000;        /* ...and on every "look again" */
+
+  /* ================= State ================= */
+  function load(key) {
+    try { return parseInt(localStorage.getItem(key) || '0', 10) || 0; } catch (e) { return 0; }
+  }
+  var footballs = load('jackFramesFootballs');
+  var probIndex = load('jackFramesIndex');
+  if (!(probIndex >= 0) || probIndex >= PROBLEMS.length) probIndex = 0;
+  var streak = 0;
+  var misses = 0;            /* wrong tiles on the sum in front of him */
+  var moved = 0;             /* yellow counters he has tapped in so far */
+  var built = false;         /* every counter is in, the question is up */
+  var busy = false;          /* the answer is up */
+  var coverTimer = null;
+  var nudgeTimer = null;
+  var frames = [];           /* frames[f][i] = '' | 'r' | 'y', top row first */
+  var frameEls = [];
+  var trayEls = [];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), progressBar: $('progressBar'),
+    cheer: $('cheer'), problem: $('problem'), hint: $('hint'),
+    peekRow: $('peekRow'), peekBtn: $('peekBtn'),
+    framesWrap: $('framesWrap'), dock: $('dock'), tray: $('tray'), tiles: $('tiles'),
+    equation: $('equation'), answerRow: $('answerRow'),
+    hearAnswerBtn: $('hearAnswerBtn'), nextBtn: $('nextBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    endOverlay: $('endOverlay'), endScore: $('endScore'), playAgainBtn: $('playAgainBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    stepButtons: $('stepButtons'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    try {
+      localStorage.setItem('jackFramesFootballs', String(footballs));
+      localStorage.setItem('jackFramesIndex', String(probIndex));
+    } catch (e) { /* private mode: the game still plays */ }
+  }
+
+  /* ================= Voice =================
+     The browser's own voice sounds like a computer, so every line these
+     games say is pre-rendered with a neural en-GB voice (tools/build-audio.py)
+     and played back through Web Audio. speechSynthesis is only the fallback
+     for a line that has no clip. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/ten-frames/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips for the screen he is about to tap on, so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Samantha|Martha|Serena|Kate|Karen|Moira|Zira|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) || find(en, good) ||
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(gb, female) ||
+      find(en, /female|woman/i) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  /* the fallback: only used for a line that has no clip */
+  function say(text, rate, my, done) {
+    window.__clipMisses.push(text);
+    if (!hasSpeech) { if (done) done(); return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = (rate || 0.95);
+      u.onend = function () { if (my === speakToken && done) done(); };
+      u.onerror = u.onend;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { if (done) done(); }
+  }
+
+  function speak(text, rate) {
+    if (!hasTTS) return;
+    stopSpeaking();
+    var my = speakToken;
+    var parts = segments(text);
+    if (!parts.length) return;
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken || i >= parts.length) return;
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) onward();
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            src.start(0);
+          }, function () { say(parts[i], rate, my, onward); });
+        } else {
+          say(parts[i], rate, my, onward);
+        }
+      })(0);
+    });
+  }
+
+  window.__speak = speak;    /* lets a browser check drive the voice from outside */
+
+  if (hasSpeech) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+  if (!hasTTS) els.hearAnswerBtn.style.display = 'none';
+
+  /* ================= Small helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1600);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+      c.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 12) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function renderProgress() {
+    els.progressBar.style.width = (100 * probIndex / PROBLEMS.length) + '%';
+  }
+
+  var STATE_ELS = {
+    look:   ['problem', 'peekRow', 'framesWrap', 'dock', 'tiles'],
+    fill:   ['problem', 'framesWrap', 'dock', 'tiles'],
+    build:  ['problem', 'hint', 'framesWrap', 'dock', 'tray'],
+    sum:    ['problem', 'hint', 'framesWrap', 'dock', 'tiles'],
+    answer: ['cheer', 'framesWrap', 'equation', 'answerRow']
+  };
+  var ALL_STATE_ELS = ['cheer', 'problem', 'hint', 'peekRow', 'framesWrap', 'dock', 'tray', 'tiles', 'equation', 'answerRow'];
+  function show(state) {
+    ALL_STATE_ELS.forEach(function (id) { els[id].classList.add('hidden'); });
+    STATE_ELS[state].forEach(function (id) { els[id].classList.remove('hidden'); });
+  }
+
+  function setHint(text) {
+    els.hint.textContent = text ? text.icon + ' ' + text.say : '';
+    els.hint.setAttribute('data-say', text ? text.say : '');
+  }
+
+  /* ================= The ten frames ================= */
+  function buildFrames(n) {
+    els.framesWrap.innerHTML = '';
+    frames = [];
+    frameEls = [];
+    for (var f = 0; f < n; f++) {
+      var fr = document.createElement('div');
+      fr.className = 'frame';
+      for (var i = 0; i < 10; i++) {
+        var c = document.createElement('div');
+        c.className = 'cell';
+        fr.appendChild(c);
+      }
+      var cover = document.createElement('div');
+      cover.className = 'cover';
+      cover.textContent = '?';
+      fr.appendChild(cover);
+      var ten = document.createElement('div');
+      ten.className = 'ten';
+      ten.textContent = '10';
+      fr.appendChild(ten);
+      els.framesWrap.appendChild(fr);
+      frameEls.push(fr);
+      frames.push(['', '', '', '', '', '', '', '', '', '']);
+    }
+  }
+
+  function cellEl(f, i) { return frameEls[f].children[i]; }
+  function firstEmpty(f) { return frames[f].indexOf(''); }
+  function lastFilled(f) {
+    for (var i = 9; i >= 0; i--) if (frames[f][i]) return i;
+    return -1;
+  }
+  function markFull(f) { frameEls[f].classList.toggle('full', firstEmpty(f) === -1); }
+
+  function counter(colour, anim, delay) {
+    var d = document.createElement('div');
+    d.className = 'counter ' + colour + (anim ? ' ' + anim : '');
+    if (delay) d.style.animationDelay = delay + 'ms';
+    return d;
+  }
+
+  function put(f, i, colour, anim, delay) {
+    frames[f][i] = colour;
+    cellEl(f, i).appendChild(counter(colour, anim, delay));
+    markFull(f);
+  }
+
+  /* move a counter into another cell and let it fly there from where it was */
+  function fly(node, toCell) {
+    var a = node.getBoundingClientRect();
+    node.classList.remove('pop', 'drop');
+    node.style.animationDelay = '';
+    toCell.appendChild(node);
+    var b = node.getBoundingClientRect();
+    var dx = (a.left + a.width / 2) - (b.left + b.width / 2);
+    var dy = (a.top + a.height / 2) - (b.top + b.height / 2);
+    var s = b.width ? a.width / b.width : 1;
+    node.style.transition = 'none';
+    node.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')';
+    node.classList.add('flying');
+    void node.offsetWidth;
+    node.style.transition = '';
+    node.style.transform = '';
+    setTimeout(function () { node.classList.remove('flying'); }, 600);
+  }
+
+  function buildTray(n) {
+    els.tray.innerHTML = '';
+    trayEls = [];
+    for (var i = 0; i < n; i++) {
+      var slot = document.createElement('div');
+      slot.className = 'tslot';
+      slot.appendChild(counter('y', 'pop', 300 + 60 * i));
+      els.tray.appendChild(slot);
+      trayEls.push(slot);
+    }
+  }
+
+  /* quick look: show the frame for a moment, then cover it */
+  function setCovered(on) {
+    for (var f = 0; f < frameEls.length; f++) frameEls[f].classList.toggle('covered', on);
+  }
+  function flash(ms) {
+    clearTimeout(coverTimer);
+    setCovered(false);
+    coverTimer = setTimeout(function () { setCovered(true); }, ms);
+  }
+
+  /* point at one part of a frame for a couple of seconds */
+  function pointAt(f, cls) {
+    var fr = frameEls[f];
+    if (!fr) return;
+    fr.classList.remove('showRow', 'showEmpty', 'showAll');
+    void fr.offsetWidth;
+    fr.classList.add(cls);
+    setTimeout(function () { fr.classList.remove(cls); }, 2000);
+  }
+
+  function nudge(el) {
+    el.classList.remove('nudge');
+    void el.offsetWidth;
+    el.classList.add('nudge');
+  }
+
+  /* The frames are as big as the room they get, never bigger. Two frames sit
+     side by side when the screen is wide and one above the other when tall —
+     whichever makes the counters bigger. */
+  function fitFrames() {
+    var n = frameEls.length;
+    if (!n) return;
+    var w = els.framesWrap.clientWidth, h = els.framesWrap.clientHeight;
+    var FW = 5.56, FH = 2.32, GAP = 0.45;    /* a frame in cells, padding included */
+    var side = Math.min(w / (n * FW + (n - 1) * GAP + 0.4), h / (FH + 0.4));
+    var stack = Math.min(w / (FW + 0.4), h / (n * FH + (n - 1) * GAP + 0.4));
+    var c = Math.floor(Math.max(28, Math.min(Math.max(side, stack), 118)));
+    els.framesWrap.style.setProperty('--cell', c + 'px');
+    els.framesWrap.classList.toggle('stack', n > 1 && stack > side);
+    return c;
+  }
+
+  function fitTray(c) {
+    if (els.tray.classList.contains('hidden') || !trayEls.length) return;
+    var w = els.dock.clientWidth, h = els.dock.clientHeight;
+    var t = Math.floor(Math.min(c * 0.8, h * 0.82, (w - 24) / (trayEls.length * 1.2)));
+    els.tray.style.setProperty('--tcell', Math.max(22, t) + 'px');
+  }
+
+  function fit() {
+    var c = fitFrames() || 60;
+    fitTray(c);
+  }
+
+  /* ================= Distractors =================
+     The mistakes children really make: one out, reading the empty spaces
+     instead of the counters, giving the number just counted instead of the
+     total, and forgetting the full frame is a ten. Never the right answer
+     twice. */
+  function optionsFor(p) {
+    var v = answerOf(p), sure, maybe;
+    var hi = (p.t === 'bridge' || p.t === 'swap') ? 20 : 10;
+    if (p.t === 'look') { sure = [10 - v]; maybe = [v - 1, v + 1]; }
+    else if (p.t === 'fill') { sure = [p.a]; maybe = [v - 1, v + 1]; }
+    else if (p.t === 'add') { sure = [p.b]; maybe = [v - 1, v + 1]; }
+    else { sure = [v - 10]; maybe = [v - 1, v + 1, 10]; }
+    var out = [v];
+    function tryAdd(x) { if (out.length < 3 && x >= 1 && x <= hi && out.indexOf(x) === -1) out.push(x); }
+    sure.forEach(tryAdd);
+    shuffle(maybe).forEach(tryAdd);
+    for (var d = 2; out.length < 3 && d < 20; d++) { tryAdd(v + d); tryAdd(v - d); }
+    return out;
+  }
+
+  function showTiles(p) {
+    els.tiles.innerHTML = '';
+    shuffle(optionsFor(p)).forEach(function (v, i) {
+      var tile = document.createElement('button');
+      tile.className = 'tile';
+      tile.textContent = v;
+      tile.style.background = TILE_COLORS[i % TILE_COLORS.length];
+      tile.addEventListener('click', function () { onTile(tile, v); });
+      els.tiles.appendChild(tile);
+    });
+  }
+
+  /* ================= Play ================= */
+  function current() { return PROBLEMS[probIndex]; }
+
+  function renderProblem(p) {
+    els.problem.innerHTML = '';
+    if (p.t === 'look') {
+      els.problem.appendChild(document.createTextNode('How many?'));
+    } else if (p.t === 'fill') {
+      els.problem.appendChild(document.createTextNode('How many more to make 10?'));
+    } else {
+      var r = document.createElement('span'); r.className = 'r'; r.textContent = p.a;
+      var y = document.createElement('span'); y.className = 'y'; y.textContent = p.b;
+      els.problem.appendChild(r);
+      els.problem.appendChild(document.createTextNode(' + '));
+      els.problem.appendChild(y);
+      els.problem.appendChild(document.createTextNode(' = ?'));
+    }
+    var ear = document.createElement('span');
+    ear.className = 'ear';
+    ear.textContent = '🔊';
+    els.problem.appendChild(ear);
+  }
+
+  function enterPlay() {
+    var p = current(), i;
+    misses = 0;
+    moved = 0;
+    built = false;
+    busy = false;
+    clearTimeout(coverTimer);
+    clearTimeout(nudgeTimer);
+    els.endOverlay.classList.add('hidden');
+    renderProgress();
+    renderProblem(p);
+    setHint(null);
+
+    var two = p.t === 'bridge' || p.t === 'swap';
+    buildFrames(two ? 2 : 1);
+    var warm = [introText(p), answerWord(p) + ' ' + answerSentence(p),
+                'Try again. ' + hintText(p, 0), 'Try again. ' + hintText(p, 1)];
+
+    if (p.t === 'look' || p.t === 'fill') {
+      /* all at once: these are for seeing, not for counting */
+      for (i = 0; i < p.a; i++) put(0, i, 'r');
+      showTiles(p);
+      show(p.t);
+      fit();
+      if (p.t === 'look') flash(LOOK_MS);
+    } else {
+      for (i = 0; i < p.a; i++) put(0, i, 'r', 'pop', 60 * i);
+      if (p.t === 'swap') {
+        for (i = 0; i < p.b; i++) put(1, i, 'y', 'pop', 60 * (p.a + i));
+      } else {
+        buildTray(p.b);
+      }
+      setHint({ icon: '👆', say: BUILD_HINT[p.t] });
+      show('build');
+      fit();
+      /* nothing tapped yet: wiggle the thing to tap */
+      nudgeTimer = setTimeout(function () {
+        if (moved === 0 && !built) nudge(p.t === 'swap' ? frameEls[1] : els.tray);
+      }, 5000);
+      warm.push(sumWords(p) + ' ' + ALTOGETHER, FULL, BUILD_HINT[p.t]);
+      for (i = 1; i <= p.b; i++) warm.push(WORDS[i]);
+    }
+
+    preload(warm);
+    speak(introText(p), 0.9);
+  }
+
+  /* a tap on the frames or the tray brings the next yellow counter in */
+  function onBuildTap() {
+    var p = current();
+    if (built || busy) return;
+    if (p.t !== 'add' && p.t !== 'bridge' && p.t !== 'swap') return;
+    clearTimeout(nudgeTimer);
+    var line, f, i, node;
+
+    if (p.t === 'swap') {
+      /* the last yellow one in the second frame jumps into the first */
+      i = firstEmpty(0);
+      var from = lastFilled(1);
+      if (i < 0 || from < 0) return;
+      node = cellEl(1, from).querySelector('.counter');
+      frames[1][from] = '';
+      frames[0][i] = 'y';
+      fly(node, cellEl(0, i));
+      markFull(0);
+      markFull(1);
+      moved++;
+      if (firstEmpty(0) < 0) {
+        line = WORDS[moved] + '. ' + FULL + ' ' + ALTOGETHER;
+        askSum(p);
+      } else {
+        line = WORDS[moved];
+      }
+    } else {
+      if (moved >= p.b) return;
+      f = firstEmpty(0) >= 0 ? 0 : 1;
+      i = firstEmpty(f);
+      node = trayEls[moved].querySelector('.counter');
+      frames[f][i] = 'y';
+      fly(node, cellEl(f, i));
+      markFull(f);
+      moved++;
+      if (moved === p.b) {
+        line = WORDS[moved] + '. ' + ALTOGETHER;
+        askSum(p);
+      } else if (p.t === 'bridge' && f === 0 && firstEmpty(0) < 0) {
+        line = WORDS[moved] + '. ' + FULL;
+      } else {
+        line = WORDS[moved];
+      }
+    }
+    speak(line, 1);
+  }
+
+  /* every counter is in: now the question */
+  function askSum(p) {
+    built = true;
+    showTiles(p);
+    setHint({ icon: '❓', say: ALTOGETHER });
+    show('sum');
+    fit();
+  }
+
+  function onTile(tile, v) {
+    var p = current();
+    if (tile.disabled || busy) return;
+    if (v === answerOf(p)) { goal(); return; }
+
+    streak = 0;
+    var hint = hintText(p, misses);
+    misses++;
+    tile.disabled = true;
+    tile.classList.remove('shake');
+    void tile.offsetWidth;
+    tile.classList.add('shake');
+    showFeedback('Try again 🙂');
+    speak('Try again. ' + hint, 0.92);
+
+    /* and show him where to look */
+    if (p.t === 'look') flash(PEEK_MS);
+    else if (p.t === 'fill') pointAt(0, 'showEmpty');
+    else if (p.t === 'add') pointAt(0, p.a + p.b > 5 ? 'showRow' : 'showAll');
+    else pointAt(misses < 2 ? 0 : 1, 'showAll');
+  }
+
+  function goal() {
+    footballs++;
+    streak++;
+    save();
+    renderScore(true);
+    busy = true;
+    var toast = $('feedback');       /* a "try again" must not sit on the answer */
+    if (toast) toast.remove();
+    if (streak > 0 && streak % 5 === 0) {
+      showFeedback('On fire! 🔥');
+      speak('On fire!', 0.95);
+      setTimeout(enterAnswer, 900);
+    } else {
+      setTimeout(enterAnswer, 250);
+    }
+  }
+
+  /* ================= The answer ================= */
+  function equationParts(p) {
+    var a = p.a, b = p.b, t = a + b;
+    if (p.t === 'look') return { main: String(a), sub: a > 5 ? ['5 + ' + (a - 5) + ' = ' + a] : [] };
+    if (p.t === 'fill') return { main: a + ' + ' + b + ' = 10', sub: [] };
+    if (p.t === 'add') return { main: a + ' + ' + b + ' = ' + t, sub: [] };
+    return { main: a + ' + ' + b + ' = ' + t, sub: [a + ' + ' + (10 - a) + ' = 10', '10 + ' + (t - 10) + ' = ' + t] };
+  }
+
+  function enterAnswer() {
+    var p = current(), i, k = 0;
+    busy = true;
+    clearTimeout(coverTimer);
+    setCovered(false);
+    for (i = 0; i < frameEls.length; i++) frameEls[i].classList.remove('showRow', 'showEmpty', 'showAll');
+
+    /* fill it up: the missing ones drop in, and the frame is ten */
+    if (p.t === 'fill') {
+      for (i = 0; i < 10; i++) if (!frames[0][i]) put(0, i, 'y', 'drop', 140 * k++);
+    }
+    celebrate(28);
+
+    var eq = equationParts(p);
+    els.equation.innerHTML = '';
+    var main = document.createElement('span');
+    main.className = 'rainbow';
+    main.textContent = eq.main;
+    els.equation.appendChild(main);
+    if (eq.sub.length) {
+      var sub = document.createElement('span');
+      sub.className = 'sub';
+      eq.sub.forEach(function (s) {
+        var part = document.createElement('span');
+        part.textContent = s;
+        sub.appendChild(part);
+      });
+      els.equation.appendChild(sub);
+    }
+
+    var isLast = probIndex === PROBLEMS.length - 1;
+    els.cheer.textContent = isLast ? '🏆 That was the last one!' : 'GOAL! ⚽ Well done, Jack!';
+    els.nextBtn.textContent = isLast ? 'Full time ➜ 🏁' : 'Next ➜ ⚽';
+
+    show('answer');
+    fit();
+    speak(answerWord(p) + ' ' + answerSentence(p), 0.9);
+  }
+
+  function nextProblem() {
+    if (probIndex >= PROBLEMS.length - 1) {
+      probIndex = PROBLEMS.length;
+      renderProgress();
+      probIndex = PROBLEMS.length - 1;
+      save();
+      enterFullTime();
+      return;
+    }
+    probIndex++;
+    save();
+    enterPlay();
+  }
+
+  function enterFullTime() {
+    els.endScore.textContent = '⚽ ' + footballs;
+    els.endOverlay.classList.remove('hidden');
+    celebrate(50);
+    speak('Full time! Well done, Jack!', 0.9);
+  }
+
+  function jumpTo(i) {
+    probIndex = i;
+    streak = 0;
+    save();
+    els.settingsPanel.classList.add('hidden');
+    els.endOverlay.classList.add('hidden');
+    enterPlay();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasTTS) pickVoice();
+    els.startOverlay.remove();
+    speak("Jack's Ten Frames. Let's go!", 0.9);
+    setTimeout(function () { enterPlay(); }, 1600);
+  });
+
+  els.problem.addEventListener('click', function () {
+    var p = current();
+    speak(built ? sumWords(p) + ' ' + ALTOGETHER : questionText(p), 0.9);
+  });
+  els.hint.addEventListener('click', function () {
+    var line = els.hint.getAttribute('data-say');
+    if (line) speak(line, 0.92);
+  });
+  els.peekBtn.addEventListener('click', function () { flash(PEEK_MS); });
+  els.framesWrap.addEventListener('click', onBuildTap);
+  els.tray.addEventListener('click', onBuildTap);
+  els.equation.addEventListener('click', function () { speak(answerSentence(current()), 0.9); });
+  els.hearAnswerBtn.addEventListener('click', function () { speak(answerSentence(current()), 0.9); });
+  els.nextBtn.addEventListener('click', nextProblem);
+
+  els.playAgainBtn.addEventListener('click', function () { jumpTo(0); });
+
+  STEPS.forEach(function (s, si) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = (si + 1) + '. ' + s.name;
+    b.addEventListener('click', function () {
+      for (var i = 0; i < PROBLEMS.length; i++) if (PROBLEMS[i].step === si) { jumpTo(i); return; }
+    });
+    els.stepButtons.appendChild(b);
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Clear the footballs and start from the first sum?')) {
+      footballs = 0;
+      renderScore(false);
+      jumpTo(0);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!els.framesWrap.classList.contains('hidden')) fit();
+  });
+
+  window.__game = { problems: PROBLEMS, options: optionsFor, answer: function () { return answerOf(current()); },
+                    tap: onBuildTap, index: function () { return probIndex; },
+                    frames: function () { return frames.map(function (f) { return f.join(''); }); },
+                    built: function () { return built; } };
+
+  renderScore(false);
+  renderProgress();
+})();
+</script>
+</body>
+</html>
