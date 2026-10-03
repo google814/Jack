@@ -461,6 +461,10 @@
   var ALTOGETHER = 'How many altogether?';
   var FULL = 'The first frame is full!';
 
+  /* a teacher does not say the same thing every time */
+  var PRAISE = ['Goal!', 'Brilliant!', 'Well done!', 'Yes!', 'Super!', 'Spot on!'];
+  var RETRY = ['Not quite.', 'Have another look.', 'Try again.'];
+
   function sumWords(p) { return cap(WORDS[p.a]) + ' add ' + WORDS[p.b] + '.'; }
 
   function questionText(p) {
@@ -492,7 +496,7 @@
 
   /* after a wrong tile: what to look at. The second one says a bit more. */
   function hintText(p, miss) {
-    if (p.t === 'look') return p.a >= 5 ? 'A full row is five.' : 'Look again.';
+    if (p.t === 'look') return p.a >= 5 ? 'A full row is five.' : 'They are all in the top row.';
     if (p.t === 'fill') return 'Count the empty spaces.';
     if (p.t === 'add') return p.a + p.b > 5 ? 'A full row is five.' : 'Count them all.';
     return miss < 1 ? 'The first frame is full. That is ten.' : 'Ten and ' + WORDS[p.a + p.b - 10] + ' more.';
@@ -524,7 +528,8 @@
     function addAll(text) { var parts = segments(text); for (var k = 0; k < parts.length; k++) add(parts[k]); }
     add("Jack's Ten Frames.");
     add("Let's go!");
-    add('Try again.');
+    for (i = 0; i < PRAISE.length; i++) add(PRAISE[i]);
+    for (i = 0; i < RETRY.length; i++) add(RETRY[i]);
     add('On fire!');
     add('Full time!');
     add('Well done, Jack!');
@@ -561,6 +566,7 @@
   var probIndex = load('jackFramesIndex');
   if (!(probIndex >= 0) || probIndex >= PROBLEMS.length) probIndex = 0;
   var streak = 0;
+  var cheer = '';             /* what the voice shouts on the next answer */
   var misses = 0;            /* wrong tiles on the sum in front of him */
   var moved = 0;             /* yellow counters he has tapped in so far */
   var built = false;         /* every counter is in, the question is up */
@@ -1048,8 +1054,8 @@
 
     var two = p.t === 'bridge' || p.t === 'swap';
     buildFrames(two ? 2 : 1);
-    var warm = [introText(p), answerWord(p) + ' ' + answerSentence(p),
-                'Try again. ' + hintText(p, 0), 'Try again. ' + hintText(p, 1)];
+    var warm = PRAISE.concat(RETRY, [introText(p), answerWord(p) + ' ' + answerSentence(p),
+                                     hintText(p, 0), hintText(p, 1), 'On fire!']);
 
     if (p.t === 'look' || p.t === 'fill') {
       /* all at once: these are for seeing, not for counting */
@@ -1149,7 +1155,7 @@
     void tile.offsetWidth;
     tile.classList.add('shake');
     showFeedback('Try again 🙂');
-    speak('Try again. ' + hint, 0.92);
+    speak(RETRY[(misses - 1) % RETRY.length] + ' ' + hint, 0.92);
 
     /* and show him where to look */
     if (p.t === 'look') flash(PEEK_MS);
@@ -1168,9 +1174,13 @@
     if (toast) toast.remove();
     if (streak > 0 && streak % 5 === 0) {
       showFeedback('On fire! 🔥');
-      speak('On fire!', 0.95);
+      cheer = 'On fire!';
       setTimeout(enterAnswer, 900);
     } else {
+      /* never the same praise twice in a row */
+      var next;
+      do { next = PRAISE[Math.floor(Math.random() * PRAISE.length)]; } while (next === cheer);
+      cheer = next;
       setTimeout(enterAnswer, 250);
     }
   }
@@ -1220,7 +1230,7 @@
 
     show('answer');
     fit();
-    speak(answerWord(p) + ' ' + answerSentence(p), 0.9);
+    speak(cheer + ' ' + answerWord(p) + ' ' + answerSentence(p), 0.9);
   }
 
   function nextProblem() {
