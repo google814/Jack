@@ -1,0 +1,52 @@
+name: Render voice clips
+
+# Renders the neural voice clips for Jack's Ten Frames with the same voice as
+# every other game (tools/build-audio.py, en-GB-SoniaNeural, -5%) and commits
+# them back to the branch. Lives on the claude/ branch only: the cloud session
+# that built the game could not reach the TTS service itself.
+
+on:
+  push:
+    branches: ["claude/**"]
+    paths: ["tools/phrases/ten-frames.txt", ".github/workflows/render-voice.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-voice-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install edge-tts
+        run: pip install edge-tts
+
+      - name: Render the clips that are missing
+        run: python tools/build-audio.py --game ten-frames
+
+      - name: Every phrase has a clip
+        run: python tools/build-audio.py --check ten-frames
+
+      - name: Commit the clips
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898900+github-actions[bot]@users.noreply.github.com"
+          git add audio/ten-frames
+          if git diff --cached --quiet; then
+            echo "no new clips"
+            exit 0
+          fi
+          git commit -m "Voice clips for Jack's Ten Frames (en-GB-SoniaNeural)"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
