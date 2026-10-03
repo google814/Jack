@@ -11,10 +11,10 @@ Browser games for Jack. No build tools needed — every game is a single self-co
 | ⚽💯 Jack's Big Numbers | [`big-numbers/`](big-numbers/) | The harder sequel to Jack's Numbers: two-digit maths to 100 in six steps — reading tens and ones off nets of ten footballs, adding ones without bridging, a whole ten more or less, bridging over the ten, whole tens, and counting on in twos, fives and tens. Sixty sums in a fixed order; the wrong tiles are the mistakes a six-year-old really makes (one out, ten out, digits swapped). |
 | 👀 Jack's Sight Words | [`sight-words/`](sight-words/) | The twenty most common English words (DfE „first 100 high frequency words", rank 1–20) on twenty big cards. Tap one and it is read out in the same neural voice; the card gets a ✓ and counts as read. „Read all" walks the whole list, „Mix" reshuffles the cards so the position is not what he memorises, and a ten-round quiz reads a word out and he taps it. |
 | 🍎 Jack's Apples | [`apples-game/`](apples-game/) | Trace the numbers 1–20 with a finger, then fill the missing numbers into a 4×5 grid of apples (homework sheet „Practice Numbers 1–20"). The tracing half has the same accuracy meter as Letters — red to green, a bonus football at 95% and a ⭐ on the number. |
-| ⚽📖 Jack's Words | [`reading-game/`](reading-game/) | English reading game for Year 1: hear a word, click letters to hear them, build the word from scrambled tiles, then see it rainbow-highlighted in a simple sentence. Every finished word earns a football ⚽. Spoken with a pre-rendered neural English voice (see “Voice” below). |
 | 🥅✍️ Jack's Match | [`match-game/`](match-game/) | Two halves. First half is the phonics screening check idea: a word appears and he decides GOAL (real word) or ALIEN (made-up but decodable — `zat`, `shob`). Nothing is read out first, so he has to sound it out. Second half he hears a word and writes it on an ABC keyboard with no letters given. |
 | ✏️ Jack's Letters | [`letters-game/`](letters-game/) | Trace lowercase letters with a finger. Each letter is SVG stroke paths; the checker samples points along each stroke with `getPointAtLength()` and requires them to be hit in order, so the letter has to be formed the way it is written. Taught in movement families (`c a d g o q`, `i l t u`, …), not a–z. An accuracy meter under the board scores how closely the finger hugged the line, red to green; 95% or more pays a bonus football and leaves a ⭐ on that letter. |
 | ⚽🔢 Jack's Numbers | [`math-game/`](math-game/) | English maths game for Year 1: counting, adding, and taking away up to 10. Every sum is shown with clickable footballs that count out loud; the answer is picked from number tiles and celebrated with a rainbow result and a football ⚽. |
+| ⚽📖 Jack's Words | [`reading-game/`](reading-game/) | English reading game for Year 1: hear a word, click letters to hear them, build the word from scrambled tiles, then see it rainbow-highlighted in a simple sentence. Every finished word earns a football ⚽. Spoken with a pre-rendered neural English voice (see “Voice” below). |
 | ♟️ Jackies Schach | [`chess/`](chess/) | Chess with a spoken German coach (piece + from → to, gold arrow on the board), big status line, captured pieces, XP and streaks. |
 
 ## Start page
@@ -25,10 +25,10 @@ Browser games for Jack. No build tools needed — every game is a single self-co
 
 **What's new** is the ✨ NEW strip between the header and the tabs: up to three chips for the newest things, newest first, each one tappable and speakable, with "more ▸" for the rest. It is fed by the `WHATS_NEW` array at the top of the script in `index.html`; entries older than 21 days drop out by themselves and the strip disappears when nothing is left. A card whose `data-new` date is less than 14 days old also wears a small yellow **NEW** ribbon.
 
-Adding a game: drop a self-contained `new-game/index.html` into the repo and replace one `.slot` in `index.html` with a `.card` (icon, name, one-word description, `data-say`) — plus the two attributes the start page filters on:
+Adding a game: drop a self-contained `new-game/index.html` into the repo and add a `.card` to the `.lineup` in `index.html` (icon, name, one-word description, `data-say`) — plus the two attributes the start page filters and sorts on:
 
 - `data-group="homework" | "practice" | "fun"` — which tab the card belongs to (homework cards are `homework`, chess is `fun`, everything else is `practice`).
-- `data-new="YYYY-MM-DD"` — the day it was added, so it gets the NEW ribbon for two weeks.
+- `data-new="YYYY-MM-DD"` — the day it was added (the day its folder first landed in this repo), so it gets the NEW ribbon for two weeks and sorts into place.
 
 …and a `WHATS_NEW` entry (`date`, `icon`, `text`, `href`, `say`) so it shows up in the NEW strip.
 
@@ -36,9 +36,21 @@ Order rule: **newest first.** Homework cards on top, then the practice games, ea
 
 ## Each game also has its own repo
 
-Every game is mirrored into its own public repo under **[github.com/jacks-games](https://github.com/jacks-games)**,
-with its own README, screenshot and GitHub Pages URL. This repo stays the source of truth —
-edit a game here, then run `./tools/sync-game-repos.sh` to push the copies.
+Every game except the homework games is mirrored into its own public repo under
+**[github.com/jacks-games](https://github.com/jacks-games)**, with its own README, screenshot and
+GitHub Pages URL. This repo stays the source of truth — edit a game here, then run
+`./tools/sync-game-repos.sh` to push the copies.
+
+A new game needs, once: `gh repo create jacks-games/<name> --public` with a description and the
+Pages URL as homepage, topics, Pages switched on with `build_type=workflow` **before** the first push
+(otherwise `configure-pages` fails), `.github/workflows/deploy-pages.yml` copied from `letters`, a
+README in the same shape as the others and a `screenshot.png`, a pair in `GAMES` in the sync script,
+and a row in the "🎈 The other games" table of **every** mirror README and in the org profile
+(`jacks-games/.github`, `profile/README.md` + `profile/img/<name>.png`). A cloud session cannot
+create org repos — that step has to happen on the machine with `gh`.
+
+Everything is listed **newest first**, chess last. GitHub's org repo list sorts by last push, so
+the sync script pushes the oldest game first and the newest last.
 
 | Game | Repo | Own page |
 |------|------|----------|
@@ -47,10 +59,10 @@ edit a game here, then run `./tools/sync-game-repos.sh` to push the copies.
 | 💯 Jack's Big Numbers | [jacks-games/big-numbers](https://github.com/jacks-games/big-numbers) | [play](https://jacks-games.github.io/big-numbers/) |
 | 👀 Jack's Sight Words | [jacks-games/sight-words](https://github.com/jacks-games/sight-words) | [play](https://jacks-games.github.io/sight-words/) |
 | 🍎 Jack's Apples | [jacks-games/apples](https://github.com/jacks-games/apples) | [play](https://jacks-games.github.io/apples/) |
-| 📖 Jack's Words | [jacks-games/words](https://github.com/jacks-games/words) | [play](https://jacks-games.github.io/words/) |
 | 🥅 Jack's Match | [jacks-games/match](https://github.com/jacks-games/match) | [play](https://jacks-games.github.io/match/) |
 | ✏️ Jack's Letters | [jacks-games/letters](https://github.com/jacks-games/letters) | [play](https://jacks-games.github.io/letters/) |
 | 🔢 Jack's Numbers | [jacks-games/numbers](https://github.com/jacks-games/numbers) | [play](https://jacks-games.github.io/numbers/) |
+| 📖 Jack's Words | [jacks-games/words](https://github.com/jacks-games/words) | [play](https://jacks-games.github.io/words/) |
 | ♟️ Jackies Schach | [jacks-games/chess](https://github.com/jacks-games/chess) | [play](https://jacks-games.github.io/chess/) |
 
 ## Where it runs
@@ -92,4 +104,4 @@ Then open <http://localhost:8000/> in a desktop browser (Chrome recommended for 
 
 ## Homework games (automatic)
 
-Every Friday at 07:00 `~/second-brain/scripts/jack_homework.py` reads Jack's Seesaw class (Y1, Frau Tigges), mails the homework to Robert and Maria, and turns each new task into a small self-contained game `hw-YYYYMMDD-<topic>/index.html`. Those cards are inserted at the **top** of the line-up (orange, 📚). **Chess is always the last card, full width at the bottom**, so Jack meets the homework games first. Score key per game: `jackHw_<slug>` in `localStorage`.
+Every day at 07:00 and 17:00 `~/second-brain/scripts/jack_homework.py` reads Jack's Seesaw classes and the school mails and mails new homework to Robert and Maria. On the first Friday of the month at 17:00 (`--games`) it also turns each new task into a small self-contained game `hw-YYYYMMDD-<topic>/index.html`. Its card (orange, 📚) gets `data-group="homework"`, `data-new` and a `WHATS_NEW` entry, takes its name from the game's `<title>`, and sorts to the **top** of the line-up. **Chess is always the last card, full width at the bottom**, so Jack meets the homework games first. Score key per game: `jackHw_<slug>` in `localStorage`.

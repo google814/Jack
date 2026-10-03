@@ -16,7 +16,10 @@ DRY=""
 [ "${1:-}" = "--dry-run" ] && DRY=1
 
 # folder in this repo  ->  repo name in the org
-GAMES="reading-game:words math-game:numbers match-game:match letters-game:letters chess:chess apples-game:apples sight-words:sight-words big-numbers:big-numbers clock-game:clock ten-frames:ten-frames"
+# In push order: GitHub lists the org's repos by last push, so the oldest game
+# goes first and the newest last — the list then reads newest first. Chess
+# goes first of all so it stays at the bottom. A new game goes on the end.
+GAMES="chess:chess reading-game:words math-game:numbers letters-game:letters match-game:match apples-game:apples sight-words:sight-words big-numbers:big-numbers clock-game:clock ten-frames:ten-frames"
 
 for pair in $GAMES; do
   from="${pair%%:*}"
