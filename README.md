@@ -46,6 +46,7 @@ edit a game here, then run `./tools/sync-game-repos.sh` to push the copies.
 | 🥅 Jack's Match | [jacks-games/match](https://github.com/jacks-games/match) | [play](https://jacks-games.github.io/match/) |
 | ✏️ Jack's Letters | [jacks-games/letters](https://github.com/jacks-games/letters) | [play](https://jacks-games.github.io/letters/) |
 | 🔢 Jack's Numbers | [jacks-games/numbers](https://github.com/jacks-games/numbers) | [play](https://jacks-games.github.io/numbers/) |
+| 🔟 Jack's Ten Frames | [jacks-games/ten-frames](https://github.com/jacks-games/ten-frames) | [play](https://jacks-games.github.io/ten-frames/) |
 | 💯 Jack's Big Numbers | [jacks-games/big-numbers](https://github.com/jacks-games/big-numbers) | [play](https://jacks-games.github.io/big-numbers/) |
 | 🍎 Jack's Apples | [jacks-games/apples](https://github.com/jacks-games/apples) | [play](https://jacks-games.github.io/apples/) |
 | 👀 Jack's Sight Words | [jacks-games/sight-words](https://github.com/jacks-games/sight-words) | [play](https://jacks-games.github.io/sight-words/) |
