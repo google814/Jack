@@ -7,13 +7,21 @@
 #
 #   ./tools/sync-game-repos.sh            # copy + commit + push
 #   ./tools/sync-game-repos.sh --dry-run  # just show what would change
+#   ./tools/sync-game-repos.sh --reorder  # push every mirror once more, in GAMES order
+#
+# GitHub lists the org's repos by last push. A sync only pushes the games that
+# changed, so after editing an old game it jumps to the top of that list. Run
+# --reorder afterwards: it pushes what is still unpushed and gives every other
+# mirror an empty commit, oldest game first, so the list reads newest first again.
 set -euo pipefail
 
 ORG=jacks-games
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="${JACK_GAMES_DIR:-$HOME/jack-games}"
 DRY=""
+REORDER=""
 [ "${1:-}" = "--dry-run" ] && DRY=1
+[ "${1:-}" = "--reorder" ] && REORDER=1
 
 # folder in this repo  ->  repo name in the org
 # In push order: GitHub lists the org's repos by last push, so the oldest game
@@ -27,6 +35,19 @@ for pair in $GAMES; do
   dest="$WORK/$name"
 
   [ -d "$dest" ] || { echo "skip $name (no clone at $dest)"; continue; }
+
+  if [ -n "$REORDER" ]; then
+    ( cd "$dest"
+      git fetch -q origin
+      if [ -z "$(git rev-list origin/main..HEAD)" ]; then
+        git commit -q --allow-empty -m "Keep the org's repo list newest first"
+      fi
+      git push -q origin main
+      echo "$name: pushed"
+    )
+    sleep 2   # one push per timestamp, so the order is unambiguous
+    continue
+  fi
 
   cp "$SRC/$from/index.html" "$dest/index.html"
   mkdir -p "$dest/icons"

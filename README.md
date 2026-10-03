@@ -1,6 +1,6 @@
 # Jack's Games
 
-Browser games for Jack. No build tools needed — every game is a single self-contained HTML file.
+Browser games for Jack. No build tools needed — every game is a single HTML file with no build step. Two reach out for one thing: chess loads its rules engine (chess.js) from jsDelivr, and Sight Words its font from Google Fonts.
 
 ## Games
 
@@ -50,7 +50,9 @@ and a row in the "🎈 The other games" table of **every** mirror README and in 
 create org repos — that step has to happen on the machine with `gh`.
 
 Everything is listed **newest first**, chess last. GitHub's org repo list sorts by last push, so
-the sync script pushes the oldest game first and the newest last.
+the sync script pushes the oldest game first and the newest last. It only pushes the games that
+changed, though — after editing one older game, run `./tools/sync-game-repos.sh --reorder` to put
+the list back in order.
 
 | Game | Repo | Own page |
 |------|------|----------|
@@ -77,7 +79,9 @@ On an iPad: open <https://jackbenn.ing>, then Share -> "Add to Home Screen". It 
 Jack found the browser's own voice too robotic on an iPhone, so **every line the
 games say is pre-rendered** as a small MP3 with Microsoft's neural
 `en-GB-SoniaNeural` voice (rate `-5%`) and played back through Web Audio. The
-Web Speech API is only the fallback for a line that has no clip.
+Web Speech API is only the fallback for a line that has no clip. Chess speaks German
+(`de-DE-KatjaNeural`): render it on its own with `--game chess --voice de-DE-KatjaNeural`,
+because `--game all` uses the default English voice for every game.
 
 ```bash
 # once: python3 -m venv tts-venv && tts-venv/bin/pip install edge-tts
