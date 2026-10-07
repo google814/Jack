@@ -51,7 +51,7 @@
     flex: 1;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 1px;
     font-size: 1.25rem;
     justify-content: flex-end;
@@ -60,6 +60,8 @@
   }
   #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
   #score .count { font-weight: 800; font-size: 1.2rem; margin-left: 6px; }
+  /* ten single balls in one line on a phone, none cut off */
+  @media (max-width: 560px) { #score { font-size: 1rem; } }
   #settingsBtn {
     background: none; border: none; color: #f1f5f9;
     font-size: 1.2rem; opacity: .5; cursor: pointer;
@@ -1012,6 +1014,7 @@
 
   /* ---- the quizzes, shared ---- */
   function showBar(ms) {
+    els.lockBar.classList.remove('hidden');   /* a hidden bar never starts its transition */
     els.lockFill.style.transition = 'none';
     els.lockFill.style.width = '100%';
     void els.lockFill.offsetWidth;

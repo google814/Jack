@@ -334,7 +334,7 @@
   /* ---------- filter tabs: what Jack wants to play right now ---------- */
   .filters {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    grid-template-columns: repeat(7, 1fr);   /* all seven tabs in one row */
     gap: clamp(6px, 1.4vmin, 12px);
   }
   .filter-tab {
@@ -415,9 +415,8 @@
   }
 
   /* ---------- iPad mini portrait & phones ---------- */
-  @media (max-width: 700px) {
-    /* phones: icon big, word small, the speaker tucked into the corner */
-    .filters { grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); }
+  @media (max-width: 1100px) {
+    /* iPad and phones: icon big, word small, the speaker tucked into the corner */
     .filter-tab { position: relative; min-height: 64px; border-radius: 18px; }
     .filter {
       flex-direction: column;
@@ -435,6 +434,11 @@
       margin: 0;
       font-size: .7rem;
     }
+  }
+  /* phones: two rows, four and three */
+  @media (max-width: 700px) {
+    .filters { grid-template-columns: repeat(4, 1fr); }
+    .filter { padding-top: 18px; }            /* the icon clears the speaker in the corner */
   }
   @media (max-width: 860px) {
     .lineup, .shelf-grid { grid-template-columns: repeat(4, 1fr); }
