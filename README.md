@@ -21,18 +21,21 @@ Browser games for Jack. No build tools needed — every game is a single HTML fi
 
 `index.html` is the launcher: the games are laid out as a football line-up on a pitch, with a **bench** of empty slots for games we add later. Each card carries a 🔊 badge that reads its name out loud (Jack can't read the labels yet) and a progress badge fed from the game's own `localStorage` score.
 
-**Filter tabs** sit above the line-up: **⚽ All · 📚 Homework · 🎓 Practice · 🎲 Fun**. Each tab has its own 🔊. The choice is remembered in `localStorage` (`jackFilter`), and a URL hash beats the remembered one, so <https://jackbenn.ing/#homework> opens straight on this week's school work. An empty filter shows a "Nothing here yet" slot in the bench style.
+**Subject sections and tabs.** The cards are written once in the `.lineup` of `index.html`; when the page loads, the script sorts them into one section per subject, each with a heading (icon + English word in the display font + its own 🔊): **📚 New homework** (see below) → **📖 Reading** → **✏️ Writing** → **🔢 Maths** → **🇩🇪 Deutsch** (this heading is read out in German) → **♟️ Chess**. Empty sections are hidden. Above them sit the tabs **⚽ All · 📚 Homework · 📖 Reading · ✏️ Writing · 🔢 Maths · 🇩🇪 Deutsch · ♟️ Chess**, each with its own 🔊 (they wrap instead of scrolling; on a phone the icon is big and the word small). **All** shows every section; **Homework** shows all homework cards in one section; a subject tab shows just that subject. The choice is remembered in `localStorage` (`jackFilter`; unknown or old values such as `practice` and `fun` fall back to All), and a URL hash beats the remembered one, so <https://jackbenn.ing/#homework> opens straight on the school work. An empty tab shows a "Nothing here yet" slot in the bench style.
+
+**New homework** is the top section of the All view: the homework cards (`data-group="homework"`) whose `data-new` is less than 14 days old, shown there as **copies**. The originals also stay in their subject section, so a subject never looks empty because its newest game is homework. The copies have no `id` and still show the score badge (it is set from `data-hw`).
 
 **What's new** is the ✨ NEW strip between the header and the tabs: up to three chips for the newest things, newest first, each one tappable and speakable, with "more ▸" for the rest. It is fed by the `WHATS_NEW` array at the top of the script in `index.html`; entries older than 21 days drop out by themselves and the strip disappears when nothing is left. A card whose `data-new` date is less than 14 days old also wears a small yellow **NEW** ribbon.
 
 Adding a game: drop a self-contained `new-game/index.html` into the repo and add a `.card` to the `.lineup` in `index.html` (icon, name, one-word description, `data-say`) — plus the two attributes the start page filters and sorts on:
 
-- `data-group="homework" | "practice" | "fun"` — which tab the card belongs to (homework cards are `homework`, chess is `fun`, everything else is `practice`).
-- `data-new="YYYY-MM-DD"` — the day it was added (the day its folder first landed in this repo), so it gets the NEW ribbon for two weeks and sorts into place.
+- `data-group="homework" | "practice" | "fun"` — homework cards are `homework`, chess is `fun`, everything else is `practice`. Only `homework` matters for the page now: it feeds the Homework tab and New homework.
+- `data-subject="reading" | "writing" | "maths" | "deutsch" | "chess"` — **required**: the section the card sits in. A card without it still shows up (🔢 icon → maths, everything else → reading), but fix it.
+- `data-new="YYYY-MM-DD"` — the day it was added (the day its folder first landed in this repo), so it gets the NEW ribbon for two weeks, sorts into place and (for homework) counts as New homework for 14 days.
 
 …and a `WHATS_NEW` entry (`date`, `icon`, `text`, `href`, `say`) so it shows up in the NEW strip.
 
-Order rule: **newest first.** Homework cards on top, then the practice games, each sorted by `data-new` (newest first; on the same day the order in `index.html` decides), and chess is always the last card. The start page sorts itself when it loads, so a new card can go anywhere in the line-up — but keep `index.html` in the same order so the source reads like the page.
+Order rule: **newest first.** In every section the cards are sorted by `data-new` (newest first; on the same day the order in `index.html` decides), and chess is always the last card, full width. The start page sorts itself when it loads, so a new card can go anywhere at the top of the line-up — but keep `index.html` in the same order so the source reads like the page.
 
 ## Each game also has its own repo
 
@@ -108,4 +111,4 @@ Then open <http://localhost:8000/> in a desktop browser (Chrome recommended for 
 
 ## Homework games (automatic)
 
-Every day at 07:00 and 17:00 `~/second-brain/scripts/jack_homework.py` reads Jack's Seesaw classes and the school mails and mails new homework to Robert and Maria. On the first Friday of the month at 17:00 (`--games`) it also turns each new task into a small self-contained game `hw-YYYYMMDD-<topic>/index.html`. Its card (orange, 📚) gets `data-group="homework"`, `data-new` and a `WHATS_NEW` entry, takes its name from the game's `<title>`, and sorts to the **top** of the line-up. **Chess is always the last card, full width at the bottom**, so Jack meets the homework games first. Score key per game: `jackHw_<slug>` in `localStorage`.
+Every day at 07:00 and 17:00 `~/second-brain/scripts/jack_homework.py` reads Jack's Seesaw classes and the school mails and mails new homework to Robert and Maria. On the first Friday of the month at 17:00 (`--games`) it also turns each new task into a small self-contained game `hw-YYYYMMDD-<topic>/index.html`. Its card (orange, 📚) gets `data-group="homework"`, `data-subject` (guessed from the Seesaw text: GFiL / Leseübung / Silben / Wörter / deutsch → `deutsch`, the maths words → `maths`, write / capital / handwriting / trace → `writing`, otherwise `reading`), `data-new` and a `WHATS_NEW` entry, and takes its name from the game's `<title>`. It appears under **New homework** at the top for 14 days and, for good, in its subject section. **Chess is always the last card, full width at the bottom.** Score key per game: `jackHw_<slug>` in `localStorage`.

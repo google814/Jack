@@ -110,7 +110,7 @@
 
   /* ---------- line-up ---------- */
   /* six columns: game cards sit three across, chess spans the whole last row */
-  .lineup {
+  .lineup, .shelf-grid {
     flex: 1 0 auto;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -118,10 +118,28 @@
     gap: clamp(12px, 2.2vmin, 24px);
     align-content: stretch;
   }
-  .lineup .card { grid-column: span 2; }
+  /* the cards are sorted into one .shelf per subject by the script; the static
+     .lineup then only keeps the "nothing here" slot */
+  .lineup[hidden] { display: none; }
+  .shelves { flex: 1 0 auto; display: flex; flex-direction: column; gap: clamp(14px, 2.6vh, 26px); }
+  .shelf { display: flex; flex-direction: column; gap: clamp(8px, 1.6vh, 14px); }
+  .shelf-grid { grid-auto-rows: auto; }
+  .shelf h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--display);
+    font-size: clamp(.9rem, 2.2vmin, 1.25rem);
+    font-weight: 400;
+    letter-spacing: .1em;
+    color: #ffd400;
+    text-shadow: 0 2px 0 rgba(0,0,0,.35);
+  }
+  .shelf h2 .mini-say { margin: 0; }
+  .lineup .card, .shelf-grid .card { grid-column: span 2; }
   /* chess is the last card and always spans the whole bottom row —
      homework games are added at the TOP, so Jack meets those first */
-  .lineup .card.chess { grid-column: 1 / -1; order: 999; }
+  .lineup .card.chess, .shelf-grid .card.chess { grid-column: 1 / -1; order: 999; }
   /* homework games: this week's school work, always first */
   .homework {
     background:
@@ -316,7 +334,7 @@
   /* ---------- filter tabs: what Jack wants to play right now ---------- */
   .filters {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
     gap: clamp(6px, 1.4vmin, 12px);
   }
   .filter-tab {
@@ -384,7 +402,7 @@
     animation: run-on .5s cubic-bezier(.2,.9,.3,1.2) backwards;
     animation-delay: .3s;
   }
-  .lineup .slot { grid-column: 1 / -1; }
+  .lineup .slot, .shelf-grid .slot { grid-column: 1 / -1; }
   .slot .plus { font-family: var(--display); font-size: clamp(1rem, 2.6vmin, 1.4rem); line-height: 1; }
   .slot .what { font-size: clamp(.75rem, 1.7vmin, .95rem); }
 
@@ -398,18 +416,38 @@
 
   /* ---------- iPad mini portrait & phones ---------- */
   @media (max-width: 700px) {
-    .filters { grid-template-columns: repeat(2, 1fr); }
+    /* phones: icon big, word small, the speaker tucked into the corner */
+    .filters { grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); }
+    .filter-tab { position: relative; min-height: 64px; border-radius: 18px; }
+    .filter {
+      flex-direction: column;
+      gap: 0;
+      padding: 6px 4px;
+      font-size: .72rem;
+      line-height: 1.15;
+      border-radius: 18px;
+    }
+    .filter .f-ico { font-size: 1.9rem; line-height: 1.1; }
+    .filter-tab .mini-say {
+      position: absolute;
+      top: 2px; right: 2px;
+      width: 26px; height: 26px;
+      margin: 0;
+      font-size: .7rem;
+    }
   }
   @media (max-width: 860px) {
-    .lineup { grid-template-columns: repeat(4, 1fr); }
-    .lineup .card { grid-column: span 2; }
-    .lineup .card.chess { grid-column: 1 / -1; }
+    .lineup, .shelf-grid { grid-template-columns: repeat(4, 1fr); }
+    .lineup .card, .shelf-grid .card { grid-column: span 2; }
+    .lineup .card.chess, .shelf-grid .card.chess { grid-column: 1 / -1; }
   }
   @media (max-width: 460px) {
-    .lineup { grid-template-columns: 1fr; }
+    .lineup, .shelf-grid { grid-template-columns: 1fr; }
     .lineup .card,
-    .lineup .card.chess { grid-column: span 1; }
-    .lineup .slot { grid-column: span 1; }
+    .lineup .card.chess,
+    .shelf-grid .card,
+    .shelf-grid .card.chess { grid-column: span 1; }
+    .lineup .slot, .shelf-grid .slot { grid-column: span 1; }
     .bench-row { grid-template-columns: 1fr; }
     .pitch::after { display: none; }
   }
@@ -443,18 +481,38 @@
       <button class="mini-say" type="button" data-say="Homework." aria-label="Say: Homework">🔊</button>
     </div>
     <div class="filter-tab">
-      <button class="filter" type="button" data-filter="practice" aria-pressed="false"><span class="f-ico" aria-hidden="true">🎓</span>Practice</button>
-      <button class="mini-say" type="button" data-say="Practice games." aria-label="Say: Practice games">🔊</button>
+      <button class="filter" type="button" data-filter="reading" aria-pressed="false"><span class="f-ico" aria-hidden="true">📖</span>Reading</button>
+      <button class="mini-say" type="button" data-say="Reading." aria-label="Say: Reading">🔊</button>
     </div>
     <div class="filter-tab">
-      <button class="filter" type="button" data-filter="fun" aria-pressed="false"><span class="f-ico" aria-hidden="true">🎲</span>Fun</button>
-      <button class="mini-say" type="button" data-say="Fun. Chess." aria-label="Say: Fun. Chess">🔊</button>
+      <button class="filter" type="button" data-filter="writing" aria-pressed="false"><span class="f-ico" aria-hidden="true">✏️</span>Writing</button>
+      <button class="mini-say" type="button" data-say="Writing." aria-label="Say: Writing">🔊</button>
+    </div>
+    <div class="filter-tab">
+      <button class="filter" type="button" data-filter="maths" aria-pressed="false"><span class="f-ico" aria-hidden="true">🔢</span>Maths</button>
+      <button class="mini-say" type="button" data-say="Maths." aria-label="Say: Maths">🔊</button>
+    </div>
+    <div class="filter-tab">
+      <button class="filter" type="button" data-filter="deutsch" aria-pressed="false"><span class="f-ico" aria-hidden="true">🇩🇪</span>Deutsch</button>
+      <button class="mini-say" type="button" data-say="Deutsch." data-say-lang="de-DE" aria-label="Say: Deutsch">🔊</button>
+    </div>
+    <div class="filter-tab">
+      <button class="filter" type="button" data-filter="chess" aria-pressed="false"><span class="f-ico" aria-hidden="true">♟️</span>Chess</button>
+      <button class="mini-say" type="button" data-say="Chess." aria-label="Say: Chess">🔊</button>
     </div>
   </nav>
 
   <div class="lineup">
 
-    <a class="card homework" href="hw-20261002-english-homework-week-5/" data-group="homework" data-new="2026-10-02" data-say="Tin Dog's Words. Homework." data-hw="jackHw_hw20261002englishhomeworkweek5">
+    <a class="card homework" href="hw-20261007-lama-alma/" data-group="homework" data-subject="deutsch" data-new="2026-10-07" data-say="Lama Alma. German homework." data-hw="jackHw_hw20261007lamaalma">
+      <span class="score" id="score-hw-20261007-lama-alma" hidden></span>
+      <button class="say" type="button" aria-label="Say: Lama Alma">🔊</button>
+      <span class="icon" aria-hidden="true">🦙</span>
+      <span class="name">Lama Alma</span>
+      <span class="what">Homework</span>
+    </a>
+
+    <a class="card homework" href="hw-20261002-english-homework-week-5/" data-group="homework" data-subject="reading" data-new="2026-10-02" data-say="Tin Dog's Words. Homework." data-hw="jackHw_hw20261002englishhomeworkweek5">
       <span class="score" id="score-hw-20261002-english-homework-week-5" hidden></span>
       <button class="say" type="button" aria-label="Say: Tin Dog's Words">🔊</button>
       <span class="icon" aria-hidden="true">🔤</span>
@@ -462,7 +520,7 @@
       <span class="what">Homework</span>
     </a>
 
-    <a class="card homework" href="hw-20261002-schulmail-fri-02-oct-202-1/" data-group="homework" data-new="2026-10-02" data-say="Ten frames and Tin Dog. Homework." data-hw="jackHw_hw20261002schulmailfri02oct2021">
+    <a class="card homework" href="hw-20261002-schulmail-fri-02-oct-202-1/" data-group="homework" data-subject="maths" data-new="2026-10-02" data-say="Ten frames and Tin Dog. Homework." data-hw="jackHw_hw20261002schulmailfri02oct2021">
       <span class="score" id="score-hw-20261002-schulmail-fri-02-oct-202-1" hidden></span>
       <button class="say" type="button" aria-label="Say: Ten Frames & Tin Dog">🔊</button>
       <span class="icon" aria-hidden="true">🔢</span>
@@ -470,7 +528,7 @@
       <span class="what">Homework</span>
     </a>
 
-    <a class="card homework" href="hw-20261002-gfil-y1-silben-und-erste-2/" data-group="homework" data-new="2026-10-02" data-say="Ma, mi, mo. German homework." data-hw="jackHw_hw20261002gfily1silbenunderste2">
+    <a class="card homework" href="hw-20261002-gfil-y1-silben-und-erste-2/" data-group="homework" data-subject="deutsch" data-new="2026-10-02" data-say="Ma, mi, mo. German homework." data-hw="jackHw_hw20261002gfily1silbenunderste2">
       <span class="score" id="score-hw-20261002-gfil-y1-silben-und-erste-2" hidden></span>
       <button class="say" type="button" aria-label="Say: Ma Mi Mo · German">🔊</button>
       <span class="icon" aria-hidden="true">🔤</span>
@@ -478,7 +536,7 @@
       <span class="what">Homework</span>
     </a>
 
-    <a class="card homework" href="hw-20261002-mathematics-homework-wee-3/" data-group="homework" data-new="2026-10-02" data-say="Part whole model. Homework." data-hw="jackHw_hw20261002mathematicshomeworkwee3">
+    <a class="card homework" href="hw-20261002-mathematics-homework-wee-3/" data-group="homework" data-subject="maths" data-new="2026-10-02" data-say="Part whole model. Homework." data-hw="jackHw_hw20261002mathematicshomeworkwee3">
       <span class="score" id="score-hw-20261002-mathematics-homework-wee-3" hidden></span>
       <button class="say" type="button" aria-label="Say: Part Whole Model">🔊</button>
       <span class="icon" aria-hidden="true">🔢</span>
@@ -486,7 +544,7 @@
       <span class="what">Homework</span>
     </a>
 
-    <a class="card homework" href="hw-20260926-capital-letters/" data-group="homework" data-new="2026-09-26" data-say="Write it Right! Capital letters. Homework." data-hw="jackHw_hw20260926capitalletters">
+    <a class="card homework" href="hw-20260926-capital-letters/" data-group="homework" data-subject="writing" data-new="2026-09-26" data-say="Write it Right! Capital letters. Homework." data-hw="jackHw_hw20260926capitalletters">
       <span class="score" id="score-hw-20260926-capital-letters" hidden></span>
       <button class="say" type="button" aria-label="Say: Write it Right!">🔊</button>
       <span class="icon" aria-hidden="true">🔠</span>
@@ -494,7 +552,7 @@
       <span class="what">Homework</span>
     </a>
 
-    <a class="card homework" href="hw-20260906-phonics-ai-ee-words/" data-group="homework" data-new="2026-09-06" data-say="Ai / Ee Words. Homework." data-hw="jackHw_hw20260906phonicsaieewords">
+    <a class="card homework" href="hw-20260906-phonics-ai-ee-words/" data-group="homework" data-subject="reading" data-new="2026-09-06" data-say="Ai / Ee Words. Homework." data-hw="jackHw_hw20260906phonicsaieewords">
       <span class="score" id="score-hw-20260906-phonics-ai-ee-words" hidden></span>
       <button class="say" type="button" aria-label="Say: Ai / Ee Words">🔊</button>
       <span class="icon" aria-hidden="true">🔤</span>
@@ -502,7 +560,7 @@
       <span class="what">Homework</span>
     </a>
 
-    <a class="card homework" href="hw-20260906-maths-number-bonds-to-10-1/" data-group="homework" data-new="2026-09-06" data-say="Number Bonds To 10. Homework." data-hw="jackHw_hw20260906mathsnumberbondsto101">
+    <a class="card homework" href="hw-20260906-maths-number-bonds-to-10-1/" data-group="homework" data-subject="maths" data-new="2026-09-06" data-say="Number Bonds To 10. Homework." data-hw="jackHw_hw20260906mathsnumberbondsto101">
       <span class="score" id="score-hw-20260906-maths-number-bonds-to-10-1" hidden></span>
       <button class="say" type="button" aria-label="Say: Number Bonds To 10">🔊</button>
       <span class="icon" aria-hidden="true">🔢</span>
@@ -510,7 +568,7 @@
       <span class="what">Homework</span>
     </a>
 
-    <a class="card frames" href="ten-frames/" data-group="practice" data-new="2026-10-03" data-say="Jack's Ten Frames. Adding with ten frames.">
+    <a class="card frames" href="ten-frames/" data-group="practice" data-subject="maths" data-new="2026-10-03" data-say="Jack's Ten Frames. Adding with ten frames.">
       <span class="score" id="score-frames" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Ten Frames">🔊</button>
       <span class="icon" aria-hidden="true">🔟</span>
@@ -518,7 +576,7 @@
       <span class="what">Make ten</span>
     </a>
 
-    <a class="card clock" href="clock-game/" data-group="practice" data-new="2026-10-01" data-say="Jack's Clock. Tell the time.">
+    <a class="card clock" href="clock-game/" data-group="practice" data-subject="maths" data-new="2026-10-01" data-say="Jack's Clock. Tell the time.">
       <span class="score" id="score-clock" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Clock">🔊</button>
       <span class="icon" aria-hidden="true">⏰</span>
@@ -526,7 +584,7 @@
       <span class="what">Tell the time</span>
     </a>
 
-    <a class="card big" href="big-numbers/" data-group="practice" data-new="2026-09-06" data-say="Jack's Big Numbers. Maths to one hundred.">
+    <a class="card big" href="big-numbers/" data-group="practice" data-subject="maths" data-new="2026-09-06" data-say="Jack's Big Numbers. Maths to one hundred.">
       <span class="score" id="score-big" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Big Numbers">🔊</button>
       <span class="icon" aria-hidden="true">💯</span>
@@ -534,7 +592,7 @@
       <span class="what">Maths to 100</span>
     </a>
 
-    <a class="card sight" href="sight-words/" data-group="practice" data-new="2026-09-06" data-say="Jack's Sight Words. Reading.">
+    <a class="card sight" href="sight-words/" data-group="practice" data-subject="reading" data-new="2026-09-06" data-say="Jack's Sight Words. Reading.">
       <span class="score" id="score-sight" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Sight Words">🔊</button>
       <span class="icon" aria-hidden="true">👀</span>
@@ -542,7 +600,7 @@
       <span class="what">Top 20 words</span>
     </a>
 
-    <a class="card apples" href="apples-game/" data-group="practice" data-new="2026-09-06" data-say="Jack's Apples. Numbers to twenty.">
+    <a class="card apples" href="apples-game/" data-group="practice" data-subject="maths" data-new="2026-09-06" data-say="Jack's Apples. Numbers to twenty.">
       <span class="score" id="score-apples" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Apples">🔊</button>
       <span class="icon" aria-hidden="true">🍎</span>
@@ -550,7 +608,7 @@
       <span class="what">Numbers 1–20</span>
     </a>
 
-    <a class="card match" href="match-game/" data-group="practice" data-new="2026-08-22" data-say="Jack's Match. Read and write.">
+    <a class="card match" href="match-game/" data-group="practice" data-subject="reading" data-new="2026-08-22" data-say="Jack's Match. Read and write.">
       <span class="score" id="score-match" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Match">🔊</button>
       <span class="icon" aria-hidden="true">🥅✍️</span>
@@ -558,7 +616,7 @@
       <span class="what">Read &amp; write</span>
     </a>
 
-    <a class="card letters" href="letters-game/" data-group="practice" data-new="2026-08-22" data-say="Jack's Letters. Writing.">
+    <a class="card letters" href="letters-game/" data-group="practice" data-subject="writing" data-new="2026-08-22" data-say="Jack's Letters. Writing.">
       <span class="score" id="score-letters" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Letters">🔊</button>
       <span class="icon" aria-hidden="true">✏️</span>
@@ -566,7 +624,7 @@
       <span class="what">Write with your finger</span>
     </a>
 
-    <a class="card numbers" href="math-game/" data-group="practice" data-new="2026-07-19" data-say="Jack's Numbers. Maths.">
+    <a class="card numbers" href="math-game/" data-group="practice" data-subject="maths" data-new="2026-07-19" data-say="Jack's Numbers. Maths.">
       <span class="score" id="score-numbers" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Numbers">🔊</button>
       <span class="icon" aria-hidden="true">🔢</span>
@@ -574,7 +632,7 @@
       <span class="what">Maths</span>
     </a>
 
-    <a class="card words" href="reading-game/" data-group="practice" data-new="2026-07-19" data-say="Jack's Words. Reading.">
+    <a class="card words" href="reading-game/" data-group="practice" data-subject="reading" data-new="2026-07-19" data-say="Jack's Words. Reading.">
       <span class="score" id="score-words" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Words">🔊</button>
       <span class="icon" aria-hidden="true">📖</span>
@@ -585,7 +643,7 @@
     <div class="slot" id="empty-slot" hidden><span class="plus" aria-hidden="true">+</span><span class="what">Nothing here yet</span></div>
 
     <!-- Chess stays LAST — it is the treat. -->
-    <a class="card chess" href="chess/" data-group="fun" data-new="2026-07-19" data-say="Chess.">
+    <a class="card chess" href="chess/" data-group="fun" data-subject="chess" data-new="2026-07-19" data-say="Chess.">
       <span class="score" id="score-chess" hidden></span>
       <button class="say" type="button" aria-label="Say: Chess">🔊</button>
       <span class="icon" aria-hidden="true">♟️</span>
@@ -594,6 +652,8 @@
     </a>
 
   </div>
+
+  <div class="shelves" id="shelves"></div>
 
   <section class="bench">
     <h2>BENCH</h2>
@@ -609,8 +669,9 @@
 (function () {
   'use strict';
 
-  /* Adding a game: add a card with data-group + data-new, and a WHATS_NEW entry. */
+  /* Adding a game: add a card with data-group + data-subject + data-new, and a WHATS_NEW entry. */
   var WHATS_NEW = [
+    { date: '2026-10-07', icon: '🦙', text: 'Lama Alma · Deutsch', href: 'hw-20261007-lama-alma/', say: 'New homework: Lama Alma. German reading.' },
     { date: '2026-10-03', icon: '🔟', text: "Jack's Ten Frames", href: 'ten-frames/', say: "New: Jack's Ten Frames. Adding with ten frames." },
     { date: '2026-10-02', icon: '🔤', text: "Tin Dog's Words", href: 'hw-20261002-english-homework-week-5/', say: "New homework: Tin Dog's Words." },
     { date: '2026-10-02', icon: '🔢', text: 'Ten Frames & Tin Dog', href: 'hw-20261002-schulmail-fri-02-oct-202-1/', say: 'New homework: ten frames and Tin Dog.' },
@@ -640,7 +701,7 @@
     return isNaN(v) ? 0 : v;
   }
   function badge(id, value, text) {
-    var el = document.getElementById(id);
+    var el = typeof id === 'string' ? document.getElementById(id) : id;
     if (!el || value <= 0) return;
     el.textContent = text;
     el.hidden = false;
@@ -668,32 +729,19 @@
     badge('score-chess',   xp,      '⭐ ' + xp);
     document.querySelectorAll('.card[data-hw]').forEach(function (c) {
       var v = num(c.getAttribute('data-hw'));
-      badge(c.querySelector('.score').id, v, '⚽ ' + v);
+      badge(c.querySelector('.score'), v, '⚽ ' + v);
     });
 
   } catch (e) { /* private mode — badges are a bonus */ }
 
-  /* ---- newest first: homework on top, then practice, each by data-new;
-     chess is the treat and always stays the last card in the line-up ---- */
-  (function () {
-    var lineup = document.querySelector('.lineup'), slot = document.getElementById('empty-slot');
-    var GROUP = { homework: 0, practice: 1, fun: 2 };
-    Array.prototype.slice.call(lineup.querySelectorAll('.card')).map(function (c, i) {
-      var g = c.classList.contains('chess') ? 3 : GROUP[c.getAttribute('data-group')];
-      return { c: c, i: i, g: g === undefined ? 1 : g, d: c.getAttribute('data-new') || '' };
-    }).sort(function (a, b) {
-      return a.g - b.g || (a.d < b.d ? 1 : a.d > b.d ? -1 : 0) || a.i - b.i;
-    }).forEach(function (x) {
-      if (x.g === 3) lineup.appendChild(x.c); else lineup.insertBefore(x.c, slot);
-    });
-  })();
-
   /* ---- speak the card name, same voice as the games ---- */
   var hasTTS = 'speechSynthesis' in window;
   var voice = null;
+  var deVoice = null;
 
   function pickVoice() {
     var vs = speechSynthesis.getVoices();
+    deVoice = vs.filter(function (v) { return /^de([-_]|$)/i.test(v.lang); })[0] || null;
     var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
     var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
     var find = function (list, re) {
@@ -713,13 +761,14 @@
     speechSynthesis.addEventListener('voiceschanged', pickVoice);
   }
 
-  function speak(text, btn) {
+  function speak(text, btn, lang) {
     if (!hasTTS) return;
     try {
       speechSynthesis.cancel();
       var u = new SpeechSynthesisUtterance(text);
-      if (voice) u.voice = voice;
-      u.lang = voice ? voice.lang : 'en-GB';
+      var vo = lang ? deVoice : voice;
+      if (vo) u.voice = vo;
+      u.lang = vo ? vo.lang : (lang || 'en-GB');
       u.rate = 0.85;
       u.pitch = 1.05;
       if (btn) {
@@ -739,7 +788,7 @@
     ev.stopPropagation();
     var card = btn.closest('.card');
     var line = btn.getAttribute('data-say') || (card ? card.getAttribute('data-say') : '');
-    if (line) speak(line, btn);
+    if (line) speak(line, btn, btn.getAttribute('data-say-lang'));
   });
 
   function hideSayButtons() {
@@ -821,25 +870,114 @@
     c.insertBefore(r, c.firstChild);
   });
 
-  /* ---- filter tabs: All / Homework / Practice / Fun ---- */
-  var GROUPS = ['all', 'homework', 'practice', 'fun'];
-  var grid  = document.querySelector('.lineup');
-  var cards = Array.prototype.slice.call(document.querySelectorAll('.lineup .card'));
-  var empty = document.getElementById('empty-slot');
-  var tabs  = Array.prototype.slice.call(document.querySelectorAll('.filter'));
+  /* ---- subject shelves + filter tabs ----
+     The cards are written once in .lineup; render() sorts them into one shelf per
+     subject. A card without data-subject falls back by icon, so none goes missing. */
+  var SUBJECTS = [
+    { key: 'reading', ico: '📖', word: 'Reading', say: 'Reading.' },
+    { key: 'writing', ico: '✏️', word: 'Writing', say: 'Writing.' },
+    { key: 'maths',   ico: '🔢', word: 'Maths',   say: 'Maths.' },
+    { key: 'deutsch', ico: '🇩🇪', word: 'Deutsch', say: 'Deutsch.', lang: 'de-DE' },
+    { key: 'chess',   ico: '♟️', word: 'Chess',   say: 'Chess.' }
+  ];
+  var NEWHW = { key: 'new', ico: '📚', word: 'New homework', say: 'New homework.' };
+  var HW    = { key: 'homework', ico: '📚', word: 'Homework', say: 'Homework.' };
+  var GROUPS = ['all', 'homework'].concat(SUBJECTS.map(function (x) { return x.key; }));
+
+  var grid   = document.querySelector('.lineup');
+  var shelves = document.getElementById('shelves');
+  var empty  = document.getElementById('empty-slot');
+  var tabs   = Array.prototype.slice.call(document.querySelectorAll('.filter'));
+  var store  = document.createDocumentFragment();   /* cards not on screen */
+
+  function subjectOf(c) {
+    var s = c.getAttribute('data-subject');
+    for (var i = 0; i < SUBJECTS.length; i++) if (SUBJECTS[i].key === s) return s;
+    var ico = c.querySelector('.icon');
+    return ico && ico.textContent.indexOf('🔢') >= 0 ? 'maths' : 'reading';
+  }
+
+  /* source order, then newest first (data-new), ties keep source order */
+  var cards = Array.prototype.slice.call(grid.querySelectorAll('.card')).map(function (c, i) {
+    return { c: c, i: i, d: c.getAttribute('data-new') || '', s: subjectOf(c) };
+  });
+  function byNewest(a, b) {
+    return (a.d < b.d ? 1 : a.d > b.d ? -1 : 0) || a.i - b.i;
+  }
+  cards.sort(byNewest);
+
+  function shelf(def, list, clone) {
+    var sec = document.createElement('section');
+    sec.className = 'shelf';
+    sec.setAttribute('aria-label', def.word);
+    var h = document.createElement('h2');
+    var ico = document.createElement('span');
+    ico.setAttribute('aria-hidden', 'true');
+    ico.textContent = def.ico;
+    var word = document.createElement('span');
+    word.textContent = def.word;
+    var say = document.createElement('button');
+    say.className = 'mini-say';
+    say.type = 'button';
+    say.setAttribute('data-say', def.say);
+    if (def.lang) say.setAttribute('data-say-lang', def.lang);
+    say.setAttribute('aria-label', 'Say: ' + def.word);
+    say.textContent = '🔊';
+    if (!hasTTS) say.style.display = 'none';
+    h.appendChild(ico); h.appendChild(word); h.appendChild(say);
+    var g = document.createElement('div');
+    g.className = 'shelf-grid';
+    list.forEach(function (x) {
+      var el = x.c;
+      if (clone) {                       /* a copy: no id, keeps data-hw so the badge shows */
+        el = x.c.cloneNode(true);
+        var ids = el.querySelectorAll('[id]');
+        for (var k = 0; k < ids.length; k++) ids[k].removeAttribute('id');
+        el.classList.remove('run-on');
+      }
+      g.appendChild(el);
+    });
+    sec.appendChild(h);
+    sec.appendChild(g);
+    return sec;
+  }
 
   function applyFilter(group) {
     if (GROUPS.indexOf(group) < 0) group = 'all';
+    cards.forEach(function (x) { x.c.classList.remove('run-on'); store.appendChild(x.c); });
+    shelves.textContent = '';
+
+    var parts = [];
+    if (group === 'all') {
+      parts.push([NEWHW, cards.filter(function (x) {
+        return x.c.getAttribute('data-group') === 'homework' && daysOld(x.d) <= NEW_RIBBON_DAYS;
+      }), true]);
+      SUBJECTS.forEach(function (def) {
+        parts.push([def, cards.filter(function (x) { return x.s === def.key; }), false]);
+      });
+    } else if (group === 'homework') {
+      parts.push([HW, cards.filter(function (x) { return x.c.getAttribute('data-group') === 'homework'; }), false]);
+    } else {
+      SUBJECTS.forEach(function (def) {
+        if (def.key === group) parts.push([def, cards.filter(function (x) { return x.s === group; }), false]);
+      });
+    }
+
     var shown = 0;
-    cards.forEach(function (c) {
-      var on = (group === 'all') || (c.getAttribute('data-group') === group);
-      c.hidden = !on;
-      c.classList.remove('run-on');
-      if (on) { c.style.animationDelay = (0.05 + shown * 0.07).toFixed(2) + 's'; shown++; }
+    parts.forEach(function (p) {
+      if (!p[1].length) return;
+      var sec = shelf(p[0], p[1], p[2]);
+      shelves.appendChild(sec);
     });
+    var live = shelves.querySelectorAll('.card');
+    for (var n = 0; n < live.length; n++) {
+      live[n].style.animationDelay = (0.05 + n * 0.07).toFixed(2) + 's';
+      shown++;
+    }
+    if (grid) grid.hidden = shown > 0;
     if (empty) empty.hidden = shown > 0;
-    if (grid) void grid.offsetWidth;          /* restart the run-on animation */
-    cards.forEach(function (c) { if (!c.hidden) c.classList.add('run-on'); });
+    void shelves.offsetWidth;                 /* restart the run-on animation */
+    for (var m = 0; m < live.length; m++) live[m].classList.add('run-on');
 
     tabs.forEach(function (t) {
       var on = t.getAttribute('data-filter') === group;
