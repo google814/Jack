@@ -82,13 +82,20 @@ On an iPad: open <https://jackbenn.ing>, then Share -> "Add to Home Screen". It 
 Jack found the browser's own voice too robotic on an iPhone, so **every line the
 games say is pre-rendered** as a small MP3 with Microsoft's neural
 `en-GB-SoniaNeural` voice (rate `-5%`) and played back through Web Audio. The
-Web Speech API is only the fallback for a line that has no clip. Chess speaks German
-(`de-DE-KatjaNeural`): render it on its own with `--game chess --voice de-DE-KatjaNeural`,
-because `--game all` uses the default English voice for every game.
+Web Speech API is only the fallback for a line that has no clip.
+
+**Which voice a game gets.** A header line `# voice: de-DE-KatjaNeural` at the top
+of a phrases file sets that game's voice; `--voice` on the command line overrides
+it; without either it is `en-GB-SoniaNeural`. `--check` reports a manifest whose
+voice differs from the one its phrases file asks for. German games:
+chess, Lama Alma (`hw-20261007-lama-alma`) and the German pieces of Ma Mi Mo
+(`hw-20261002-gfil-y1-silben-und-erste-2-de`; its English lines are the game
+without `-de`, spoken by Sonia). Render **one game at a time**
+(`--game <name>`), never `--game all`: it would re-render every game.
 
 ```bash
 # once: python3 -m venv tts-venv && tts-venv/bin/pip install edge-tts
-tts-venv/bin/python tools/build-audio.py --game all      # render what is missing
+tts-venv/bin/python tools/build-audio.py --game reading-game   # render what is missing, one game
 tts-venv/bin/python tools/build-audio.py --check all     # every phrase has a clip?
 ```
 

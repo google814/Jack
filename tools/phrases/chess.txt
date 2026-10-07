@@ -1,3 +1,4 @@
+# voice: de-DE-KatjaNeural
 # chess — every line Jackies Schach speaks, split into the segments
 # the runtime plays one after another (speakParts).
 # Status sentences

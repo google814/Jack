@@ -6,15 +6,18 @@ every line the games say is pre-rendered here with Microsoft's neural
 en-GB voice and shipped as small MP3 files. Web Speech stays in the games
 as a fallback for anything that has no clip.
 
-Usage (needs the edge-tts virtualenv):
+Usage (needs the edge-tts virtualenv; render one game at a time):
 
-    tts-venv/bin/python tools/build-audio.py --game all
+    tts-venv/bin/python tools/build-audio.py --game reading-game
     tts-venv/bin/python tools/build-audio.py --game reading-game --force
     tts-venv/bin/python tools/build-audio.py --check all
 
-The venv used while building lives outside the repo:
-  /tmp/claude-1000/-home-rbenning/369a4608-4217-4b29-8785-67a151a4d3a0/scratchpad/tts-venv
-Any Python 3.9+ with `pip install edge-tts` works just as well.
+The venv lives outside the repo, any Python 3.9+ will do:
+    python3 -m venv <dir> && <dir>/bin/pip install edge-tts
+
+Voice: a header line '# voice: de-DE-KatjaNeural' in a phrases file sets that
+game's voice. --voice overrides it; without either it is en-GB-SoniaNeural.
+--check reports a manifest whose voice differs from the file's voice.
 
 Input : tools/phrases/<game>.txt  — one utterance per line, '#' comments.
 Output: audio/<game>/<sha1(text)[:12]>.mp3 and audio/<game>/manifest.json.
@@ -53,6 +56,21 @@ def games():
     if not os.path.isdir(PHRASE_DIR):
         return []
     return sorted(f[:-4] for f in os.listdir(PHRASE_DIR) if f.endswith('.txt'))
+
+
+VOICE_LINE = re.compile(r'^#\s*voice:\s*(\S+)\s*$', re.I)
+
+
+def file_voice(game):
+    """The voice named in a '# voice: <voice>' header line, or None."""
+    path = os.path.join(PHRASE_DIR, game + '.txt')
+    if os.path.isfile(path):
+        with open(path, encoding='utf-8') as fh:
+            for raw in fh:
+                m = VOICE_LINE.match(raw.strip())
+                if m:
+                    return m.group(1)
+    return None
 
 
 def read_phrases(game):
@@ -96,6 +114,7 @@ async def render_one(sem, text, path, voice, rate):
 
 
 async def build_game(game, voice, rate, force):
+    voice = voice or file_voice(game) or DEFAULT_VOICE
     phrases = read_phrases(game)
     out_dir = os.path.join(AUDIO_DIR, game)
     os.makedirs(out_dir, exist_ok=True)
@@ -145,6 +164,9 @@ def check_game(game):
         with open(man_path, encoding='utf-8') as fh:
             manifest = json.load(fh)
     clips = manifest.get('clips', {})
+    want = file_voice(game) or DEFAULT_VOICE
+    if os.path.isfile(man_path) and manifest.get('voice') != want:
+        problems.append('manifest voice %s, phrases file wants %s' % (manifest.get('voice'), want))
     for text in phrases:
         name = clips.get(text)
         if not name:
@@ -168,7 +190,7 @@ def check_game(game):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--game', default='all', help='game folder name, or "all"')
-    ap.add_argument('--voice', default=DEFAULT_VOICE)
+    ap.add_argument('--voice', default=None, help='overrides the voice header of the phrases file')
     ap.add_argument('--rate', default=DEFAULT_RATE)
     ap.add_argument('--force', action='store_true', help='re-render clips that already exist')
     ap.add_argument('--check', metavar='GAME', help='verify clips exist for every phrase')
