@@ -373,6 +373,12 @@
      Seite 1 — Ma, Mi, Mo. Seite 2 — Mama, Milo, Momo, Oma.
      Each word is stored split into its syllables, the way the sheet
      draws them with syllable arcs. */
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say lives in here and nowhere else. It touches no
+     DOM, so tools/phrases/hw-20261002-gfil-y1-silben-und-erste-2.txt (English)
+     and ...-2-de.txt (German) are generated straight out of this block
+     (tools/gen-phrases-hw-20261002-gfil-y1-silben-und-erste-2.js). */
   var SYLLABLES = ['Ma', 'Mi', 'Mo'];
   var WORDS = [
     { w: 'Mama', parts: ['Ma', 'ma'], pic: '👩' },
@@ -391,9 +397,77 @@
     Mama: 'Mama', Milo: 'Meelo', Momo: 'Mohmo', Oma: 'Ohma'
   };
 
+  /* The German clips are rendered from a respelling where the plain letters
+     come out short or wrong ("Mi" like "my"). The manifest key is the
+     respelling; a piece without an entry is rendered as it stands. */
+  var DE_CLIP = {
+    Mi: 'Mie', Mo: 'Moh', mo: 'moh', lo: 'loh', O: 'Oh'
+  };
+
   var ROUNDS_1 = 6;   /* hear a syllable, tap it */
   var ROUNDS_2 = 4;   /* hear a word, find it — each word once */
   var ROUNDS_3 = 4;   /* build each word from its syllables */
+
+  /* the goals are fixed: every round is one goal */
+  var GOALS_HALF = ROUNDS_1;
+  var GOALS_EXTRA = ROUNDS_1 + ROUNDS_2;
+  var GOALS_FULL = ROUNDS_1 + ROUNDS_2 + ROUNDS_3;
+
+  function goalsText(n) { return n + ' ' + (n === 1 ? 'goal' : 'goals'); }
+  var KICKOFF = 'Kick off! German.';
+  function halfLine(n) { return 'Half time! ' + goalsText(n) + '. Now the words.'; }
+  function extraLine(n) { return 'Extra time! ' + goalsText(n) + '. Now build each word from its pieces.'; }
+  function fullLine(n) {
+    return 'Full time! ' + n + ' goals! Now read your page out loud. Tap a word if you need help.';
+  }
+  var SEITE = ['Seite 1.', 'Seite 2.'];
+
+  /* An English line is spoken segment by segment, split after . ! ? and a
+     space, and every segment is its own clip. Written out by hand because a
+     lookbehind regex would not parse on older phones. */
+  function segments(text) {
+    var t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim(), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every clip the game can play: English segments and German pieces */
+  function phraseList() {
+    var en = [], de = [], seenEn = {}, seenDe = {}, i;
+    function addEn(text) {
+      var parts = segments(text);
+      for (var k = 0; k < parts.length; k++) if (!seenEn[parts[k]]) { seenEn[parts[k]] = 1; en.push(parts[k]); }
+    }
+    function addDe(t) { var c = DE_CLIP[t] || t; if (!seenDe[c]) { seenDe[c] = 1; de.push(c); } }
+    addEn(KICKOFF);
+    for (i = 0; i < SYLLABLES.length; i++) addDe(SYLLABLES[i]);
+    addEn('Find');
+    addEn('Find the word');
+    addEn('Build');
+    addEn('Yes!');
+    addEn('That says');
+    addEn('Listen.');
+    addEn('We need');
+    addEn(halfLine(GOALS_HALF));
+    addEn(extraLine(GOALS_EXTRA));
+    addEn(fullLine(GOALS_FULL));
+    for (i = 0; i < PIECES.length; i++) addDe(PIECES[i]);
+    for (i = 0; i < WORDS.length; i++) addDe(WORDS[i].w);
+    addDe(SEITE[0]);
+    addDe(SEITE[1]);
+    return { en: en, de: de };
+  }
+  /* ==== END TEXT-CORE ==== */
 
   var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💜', '🌈'];
 
@@ -431,13 +505,147 @@
   }
 
   /* ================= Voice =================
-     Instructions are spoken in English (en-GB); the homework itself —
-     syllables and words — in German, because that is how the teacher
-     will say them. A line is a list of pieces: a plain string is English,
+     The browser's own voice sounds like a computer, so every line is
+     pre-rendered with a neural voice (tools/build-audio.py) and played back
+     through Web Audio: English lines with en-GB Sonia, German pieces with
+     de-DE Katja, each language with its own manifest and folder.
+     speechSynthesis is only the fallback for a piece that has no clip.
+     A line is a list of pieces: a plain string is English,
      { de: 'Mama' } is German. Pieces play one after the other. */
   var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
   var enVoice = null, deVoice = null;
-  var speakToken = 0;
+
+  var CLIP_DIR = {
+    en: '../audio/hw-20261002-gfil-y1-silben-und-erste-2/',
+    de: '../audio/hw-20261002-gfil-y1-silben-und-erste-2-de/'
+  };
+  var clips = { en: null, de: null };       /* exact text -> mp3 file */
+  var clipsLoose = { en: null, de: null };  /* the same without a final . ! ? */
+  var buffers = {};          /* dir + file -> decoded AudioBuffer */
+  var spans = {};            /* dir + file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* dir + file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipPlayed = [];  /* dir + file of every clip played */
+  window.__clipMisses = [];  /* 'lang:text' of pieces that had to fall back to speechSynthesis */
+  window.__phrases = phraseList;
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  var clipsReady = (function () {
+    function loadManifest(lang) {
+      if (typeof fetch !== 'function') return Promise.resolve();
+      return fetch(CLIP_DIR[lang] + 'manifest.json')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (m) {
+          if (!m || !m.clips) return;
+          clips[lang] = m.clips;
+          clipsLoose[lang] = {};
+          for (var k in m.clips) {
+            var b = bare(k);
+            if (!(b in clipsLoose[lang])) clipsLoose[lang][b] = m.clips[k];
+          }
+        })
+        .catch(function () { /* no clips: Web Speech carries the game */ });
+    }
+    /* never let a stuck download keep the game silent */
+    return Promise.race([
+      Promise.all([loadManifest('en'), loadManifest('de')]),
+      new Promise(function (res) { setTimeout(res, 3000); })
+    ]);
+  })();
+
+  /* a manifest key straight to its file */
+  function lookup(key, lang) {
+    var t = norm(key);
+    if (!t || !clips[lang]) return null;
+    return clips[lang][t] || (clipsLoose[lang] ? clipsLoose[lang][bare(t)] : null) || null;
+  }
+
+  /* a piece of text to its file; German goes through its respelling */
+  function clipFor(text, lang) {
+    return lookup(lang === 'de' ? (DE_CLIP[norm(text)] || text) : text, lang);
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));        /* keep a soft first "m" */
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* and the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(lang, file) {
+    var key = CLIP_DIR[lang] + file;
+    if (buffers[key]) return Promise.resolve(buffers[key]);
+    if (loading[key]) return loading[key];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(key).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[key] = fetch(key)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[key] = buf; spans[key] = speechSpan(buf); delete loading[key]; return buf; },
+            function (e) { delete loading[key]; throw e; });
+    return loading[key];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload() {
+    var list = phraseList();
+    clipsReady.then(function () {
+      ['en', 'de'].forEach(function (lang) {
+        for (var i = 0; i < list[lang].length; i++) {
+          var f = lookup(list[lang][i], lang);
+          if (f && !buffers[CLIP_DIR[lang] + f]) loadClip(lang, f).catch(function () {});
+        }
+      });
+    });
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
 
   function pickVoices() {
     if (!hasSpeech) return;
@@ -466,49 +674,82 @@
       deDE[0] || de[0] || null;
   }
 
-  function stopSpeaking() {
-    speakToken++;
-    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  /* the fallback: only used for a piece that has no clip */
+  function say(item, my, done) {
+    window.__clipMisses.push((item.german ? 'de:' : 'en:') + item.text);
+    if (!hasSpeech) { setTimeout(done, 600); return; }
+    var u = new SpeechSynthesisUtterance();
+    var rate;
+    if (item.german && deVoice) {
+      u.text = item.text; u.voice = deVoice; u.lang = deVoice.lang; rate = 0.75;
+    } else if (item.german) {
+      u.text = EN_SAYS[item.text] || item.text; u.lang = enVoice ? enVoice.lang : 'en-GB';
+      if (enVoice) u.voice = enVoice; rate = 0.7;
+    } else {
+      u.text = item.text; u.lang = enVoice ? enVoice.lang : 'en-GB';
+      if (enVoice) u.voice = enVoice; rate = 0.92;
+    }
+    u.rate = rate * (slow ? 0.8 : 1);
+    /* some phones never fire onend — a watchdog keeps the line moving */
+    var moved = false;
+    var onward = function () {
+      if (moved) return;
+      moved = true;
+      clearTimeout(dog);
+      if (my === speakToken) setTimeout(function () { if (my === speakToken) done(); }, item.german ? 220 : 120);
+    };
+    var dog = setTimeout(onward, 1600 + u.text.length * 110);
+    u.onend = onward;
+    u.onerror = onward;
+    /* iOS Safari drops an utterance queued in the same tick as cancel() */
+    setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
   }
 
-  /* speak(pieces, done): pieces is a string, { de: '…' }, or an array of both. */
+  /* speak(pieces, done): pieces is a string, { de: '…' }, or an array of both.
+     An English string is cut into its segments, each its own clip. `done`
+     fires after the last piece, unless something talked over it. */
   function speak(pieces, done) {
     stopSpeaking();
     var my = speakToken;
-    var list = [].concat(pieces);
-    if (!hasSpeech) { if (done) setTimeout(done, 600); return; }
-    (function step(i) {
+    var items = [];
+    [].concat(pieces).forEach(function (p) {
+      if (typeof p === 'object') items.push({ german: true, text: p.de });
+      else segments(p).forEach(function (t) { items.push({ german: false, text: t }); });
+    });
+    if (!hasTTS || !items.length) { if (done) setTimeout(done, 600); return; }
+    clipsReady.then(function () {
       if (my !== speakToken) return;
-      if (i >= list.length) { if (done) done(); return; }
-      var p = list[i];
-      var german = typeof p === 'object';
-      var text = german ? p.de : String(p);
-      var u = new SpeechSynthesisUtterance();
-      var rate;
-      if (german && deVoice) {
-        u.text = text; u.voice = deVoice; u.lang = deVoice.lang; rate = 0.75;
-      } else if (german) {
-        u.text = EN_SAYS[text] || text; u.lang = enVoice ? enVoice.lang : 'en-GB';
-        if (enVoice) u.voice = enVoice; rate = 0.7;
-      } else {
-        u.text = text; u.lang = enVoice ? enVoice.lang : 'en-GB';
-        if (enVoice) u.voice = enVoice; rate = 0.92;
-      }
-      u.rate = rate * (slow ? 0.8 : 1);
-      /* some phones never fire onend — a watchdog keeps the line moving */
-      var moved = false;
-      var onward = function () {
-        if (moved) return;
-        moved = true;
-        clearTimeout(dog);
-        if (my === speakToken) setTimeout(function () { step(i + 1); }, german ? 220 : 120);
-      };
-      var dog = setTimeout(onward, 1600 + u.text.length * 110);
-      u.onend = onward;
-      u.onerror = onward;
-      /* iOS Safari drops an utterance queued in the same tick as cancel() */
-      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
-    })(0);
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= items.length) { if (done) done(); return; }
+        var item = items[i];
+        var onward = function () { step(i + 1); };
+        var lang = item.german ? 'de' : 'en';
+        var file = clipFor(item.text, lang);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(lang, file).then(function (buf) {
+            if (my !== speakToken) return;
+            var key = CLIP_DIR[lang] + file;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            window.__clipPlayed.push(key);
+            var span = spans[key] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(item, my, onward); });
+        } else {
+          say(item, my, onward);
+        }
+      })(0);
+    });
   }
 
   if (hasSpeech) {
@@ -831,19 +1072,19 @@
     phase = next;
     round = 0;
     buildQueue();
-    var goalsTxt = goals + ' ' + (goals === 1 ? 'goal' : 'goals');
+    var goalsTxt = goalsText(goals);
     if (next === 2) {
       els.phase.textContent = 'Half time';
       els.breakTitle.textContent = '📣 Half time!';
       els.breakText.textContent = goalsTxt + '! Now the words: Mama, Milo, Momo, Oma.';
       els.breakBtn.textContent = 'Second half ➜';
-      speak(['Half time! ' + goalsTxt + '. Now the words.', de('Mama'), de('Milo'), de('Momo'), de('Oma')]);
+      speak([halfLine(goals), de('Mama'), de('Milo'), de('Momo'), de('Oma')]);
     } else {
       els.phase.textContent = 'Extra time';
       els.breakTitle.textContent = '⏱️ Extra time!';
       els.breakText.textContent = goalsTxt + '! Now build each word from its pieces.';
       els.breakBtn.textContent = 'Extra time ➜';
-      speak('Extra time! ' + goalsTxt + '. Now build each word from its pieces.');
+      speak(extraLine(goals));
     }
     show('pause');
   }
@@ -869,9 +1110,9 @@
   }
 
   function readPage() {
-    var line = ['Seite 1.'];
+    var line = [de(SEITE[0])];
     SYLLABLES.forEach(function (s) { line.push(de(s)); });
-    line.push('Seite 2.');
+    line.push(de(SEITE[1]));
     WORDS.forEach(function (o) { line.push(de(o.w)); });
     speak(line);
   }
@@ -881,7 +1122,7 @@
     renderPage();
     show('page');
     celebrate(45);
-    speak('Full time! ' + goals + ' goals! Now read your page out loud. Tap a word if you need help.');
+    speak(fullLine(goals));
   }
 
   function startMatch() {
@@ -910,10 +1151,12 @@
 
   els.playBtn.addEventListener('click', function () {
     pickVoices();
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    preload();
     els.startOverlay.remove();
     intro = true;
     startMatch();
-    speak(['Kick off! German.', de('Ma'), de('Mi'), de('Mo')], function () { setTimeout(sayTarget, 200); });
+    speak([KICKOFF, de('Ma'), de('Mi'), de('Mo')], function () { setTimeout(sayTarget, 200); });
   });
 
   /* while a goal plays out its line carries the game on, so don't talk over it */

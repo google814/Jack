@@ -366,9 +366,129 @@
   var EXAMPLE = { a: 5, b: 2 };
   var ROUNDS_PER_HALF = 4;
 
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🔴', '🔵'];
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so tools/phrases/hw-20261002-mathematics-homework-wee-3.txt is
+     generated straight out of this block
+     (tools/gen-phrases-hw-20261002-mathematics-homework-wee-3.js). */
+
   var WORDS = ['zero', 'one', 'two', 'three', 'four', 'five',
                'six', 'seven', 'eight', 'nine', 'ten'];
-  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🔴', '🔵'];
+
+  function wholeOf(m) { return m.a + m.b; }
+
+  function modelSentence(m) {
+    return 'The whole is ' + WORDS[wholeOf(m)] + '. The parts are ' +
+           WORDS[m.a] + ' and ' + WORDS[m.b] + '.';
+  }
+
+  /* what he is asked for each box */
+  function askSay(step) {
+    if (step === 'a') return 'How many red dots? That is a part.';
+    if (step === 'b') return 'How many blue dots? That is the other part.';
+    return 'How many dots altogether? That is the whole.';
+  }
+  /* "one red dot", "two red dots" */
+  function thingName(step, n) {
+    var one = n === 1;
+    return step === 'a' ? (one ? 'red dot' : 'red dots')
+         : step === 'b' ? (one ? 'blue dot' : 'blue dots')
+         : (one ? 'dot' : 'dots');
+  }
+  function countSay(n, step) { return WORDS[n] + ' ' + thingName(step, n) + '.'; }
+
+  /* a circle tapped: "Whole. seven." / "Part." */
+  function nodeSay(step, n) {
+    var name = step === 'w' ? 'Whole' : 'Part';
+    return n === null ? name + '.' : name + '. ' + WORDS[n] + '.';
+  }
+
+  function introSay(half) {
+    return half === 1 ? 'Count the red dots, then the blue dots, then all the dots. '
+                      : 'Now find the whole first. ';
+  }
+  function notSay(n, together) {
+    return together ? 'Not ' + WORDS[n] + '. Let us count them together.'
+                    : 'Not ' + WORDS[n] + '. Try again. Tap the dots to count them.';
+  }
+  function yesSay(n, step) { return 'Yes, ' + WORDS[n] + '! ' + askSay(step); }
+  function goalSay(m) { return 'Goal! ' + modelSentence(m); }
+  function halfTimeSay(n) {
+    return 'Half time! You filled in ' + WORDS[n] + ' part whole models. ' +
+           'In the second half, find the whole first.';
+  }
+  function fullTimeSay(n) {
+    return 'Full time! You filled in ' + WORDS[n] + ' part whole models. Brilliant!';
+  }
+
+  /* the example, line by line (Whole 7, Part 5, Part 2) */
+  var EXAMPLE_SAY = [
+    'Here is the example. Fill in the part whole model to show what the dots show.',
+    'Five red dots.',
+    'Part, five.',
+    'Two blue dots.',
+    'Part, two.',
+    'Seven dots altogether.',
+    'Whole, seven. Five and two make seven. Now it is your turn!'
+  ];
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i, a, b, n, steps3 = ['a', 'b', 'w'];
+    function add(s) { var k = bare(s); if (k && !seen[k]) { seen[k] = 1; out.push(s); } }
+    function addAll(text) { var p = segments(text); for (var k = 0; k < p.length; k++) add(p[k]); }
+    for (i = 0; i < EXAMPLE_SAY.length; i++) addAll(EXAMPLE_SAY[i]);
+    for (n = 1; n <= 10; n++) add(WORDS[n]);
+    for (n = 1; n <= 10; n++) {
+      for (i = 0; i < 3; i++) add(countSay(n, steps3[i]));
+    }
+    for (i = 0; i < 3; i++) addAll(askSay(steps3[i]));
+    addAll(introSay(1) + askSay('a'));
+    addAll(introSay(2) + askSay('w'));
+    for (n = 0; n <= 10; n++) { addAll(nodeSay('w', n)); addAll(nodeSay('a', n)); }
+    addAll(nodeSay('w', null));
+    addAll(nodeSay('a', null));
+    for (n = 0; n <= 10; n++) { addAll(notSay(n, true)); addAll(notSay(n, false)); }
+    for (n = 1; n <= 10; n++) {
+      for (i = 0; i < 3; i++) addAll(yesSay(n, steps3[i]));
+    }
+    for (a = 1; a <= 9; a++) {
+      for (b = 1; a + b <= 10; b++) {
+        addAll(goalSay({ a: a, b: b }));
+        addAll(modelSentence({ a: a, b: b }));
+      }
+    }
+    addAll(halfTimeSay(4));
+    addAll(fullTimeSay(8));
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  window.__phrases = phraseList;
 
   /* ================= State ================= */
   var SCORE_KEY = 'jackHw_hw20261002mathematicshomeworkwee3';
@@ -410,13 +530,120 @@
     localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
   }
 
-  /* ================= Voice (en-GB speechSynthesis) =================
-     He cannot read yet, so every line is spoken. speak() calls done() when
-     the line has finished — with a timer as a safety net, because iOS does
-     not always fire onend. */
+  /* ================= Voice =================
+     He cannot read yet, so every line is spoken. The browser's own voice
+     sounds like a computer, so every line is pre-rendered with a neural
+     en-GB voice (tools/build-audio.py) and played back through Web Audio,
+     segment by segment. speechSynthesis is only the fallback for a segment
+     that has no clip. speak() calls done() when the line has finished — with
+     a timer as a safety net, because iOS does not always fire onend. */
   var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
   var voice = null;
-  var speakToken = 0;
+
+  var CLIP_DIR = '../audio/hw-20261002-mathematics-homework-wee-3/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
 
   function pickVoice() {
     if (!hasSpeech) return;
@@ -438,15 +665,19 @@
 
   function stopSpeaking() {
     speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
     if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
   }
 
-  function speak(text, done, rate) {
-    stopSpeaking();
-    var my = speakToken;
+  /* the fallback: only used for a segment that has no clip */
+  function say(text, my, done, rate) {
+    window.__clipMisses.push(text);
     var factor = slow ? 1.25 : 1;
     if (!hasSpeech) {
-      if (done) setTimeout(function () { if (my === speakToken) done(); }, (600 + text.length * 45) * factor);
+      setTimeout(function () { if (my === speakToken && done) done(); }, (600 + text.length * 45) * factor);
       return;
     }
     var finished = false;
@@ -468,6 +699,54 @@
       /* iOS Safari drops an utterance queued in the same tick as cancel() */
       setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
     } catch (e) { fin(); }
+  }
+
+  /* Plays a list of clip texts one after another, a breath between them.
+     `done` fires after the last one, unless something talked over it. */
+  function speakParts(parts, done, rate) {
+    stopSpeaking();
+    var my = speakToken;
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) { if (done) done(); return; }
+    if (!hasTTS) {
+      var len = parts.join(' ').length;
+      if (done) setTimeout(function () { if (my === speakToken) done(); }, (600 + len * 45) * (slow ? 1.25 : 1));
+      return;
+    }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(parts[i], my, onward, rate); });
+        } else {
+          say(parts[i], my, onward, rate);
+        }
+      })(0);
+    });
+  }
+
+  /* one line, cut into its segments */
+  function speak(text, done, rate) {
+    speakParts(segments(text), done, rate);
   }
 
   if (hasSpeech) {
@@ -495,27 +774,12 @@
   }
 
   /* ================= Words ================= */
-  function wholeOf(m) { return m.a + m.b; }
   function valueOf(step) { return step === 'a' ? model.a : step === 'b' ? model.b : wholeOf(model); }
 
-  function modelSentence(m) {
-    return 'The whole is ' + WORDS[wholeOf(m)] + '. The parts are ' +
-           WORDS[m.a] + ' and ' + WORDS[m.b] + '.';
-  }
-
-  /* what he is asked for each box */
-  function askSay(step) {
-    if (step === 'a') return 'How many red dots? That is a part.';
-    if (step === 'b') return 'How many blue dots? That is the other part.';
-    return 'How many dots altogether? That is the whole.';
-  }
   function askLead(step) {
     if (step === 'a') return 'How many <span class="r">red</span> dots? <span class="r">Part</span>';
     if (step === 'b') return 'How many <span class="b">blue</span> dots? <span class="b">Part</span>';
     return 'How many dots altogether? <span class="w">Whole</span>';
-  }
-  function thingName(step) {
-    return step === 'a' ? 'red dots' : step === 'b' ? 'blue dots' : 'dots';
   }
 
   /* ================= Small helpers ================= */
@@ -606,7 +870,7 @@
         setTimeout(function () {
           if (token !== countToken) return;
           var n = nodes.length;
-          speak(WORDS[n] + ' ' + thingName(step) + '.', then);
+          speak(countSay(n, step), then);
         }, 250);
         return;
       }
@@ -644,10 +908,9 @@
     if (mode === 'start' || mode === 'board') return;
     countToken++;
     var v = NODES[step].querySelector('.val').textContent;
-    var name = step === 'w' ? 'Whole' : 'Part';
-    if (/^\d+$/.test(v)) speak(name + '. ' + WORDS[parseInt(v, 10)] + '.');
+    if (/^\d+$/.test(v)) speak(nodeSay(step, parseInt(v, 10)));
     else if (mode === 'round' && steps[stepIdx] === step) speak(askSay(step));
-    else speak(name + '.');
+    else speak(nodeSay(step, null));
   }
 
   /* ================= Number tiles 0-10 ================= */
@@ -683,18 +946,18 @@
     els.grpA.classList.remove('got');
     els.grpB.classList.remove('got');
     sequence([
-      { say: 'Here is the example. Fill in the part whole model to show what the dots show.' },
+      { say: EXAMPLE_SAY[0] },
       { act: function () { els.grpA.classList.add('got'); },
-        say: 'Five red dots.' },
+        say: EXAMPLE_SAY[1] },
       { act: function () { setNode('a', 5, 'done'); },
-        say: 'Part, five.' },
+        say: EXAMPLE_SAY[2] },
       { act: function () { els.grpB.classList.add('got'); },
-        say: 'Two blue dots.' },
+        say: EXAMPLE_SAY[3] },
       { act: function () { setNode('b', 2, 'done'); },
-        say: 'Part, two.' },
-      { say: 'Seven dots altogether.' },
+        say: EXAMPLE_SAY[4] },
+      { say: EXAMPLE_SAY[5] },
       { act: function () { setNode('w', 7, 'done'); },
-        say: 'Whole, seven. Five and two make seven. Now it is your turn!' }
+        say: EXAMPLE_SAY[6] }
     ]);
   }
 
@@ -715,10 +978,7 @@
     markActive();
     els.lead.innerHTML = askLead(steps[0]);
     show(['lead', 'dots', 'model', 'tiles', 'btnRow'], ['countBtn']);
-    var intro = round === 0
-      ? (half === 1 ? 'Count the red dots, then the blue dots, then all the dots. '
-                    : 'Now find the whole first. ')
-      : '';
+    var intro = round === 0 ? introSay(half) : '';
     setTimeout(function () { if (mode === 'round' && !busy && stepIdx === 0) speak(intro + askSay(steps[0])); }, 300);
   }
 
@@ -735,13 +995,13 @@
       tile.classList.add('wrong');
       if (attempts >= 2) {
         busy = true;
-        speak('Not ' + WORDS[n] + '. Let us count them together.', function () {
+        speak(notSay(n, true), function () {
           countDots(step, function () { busy = false; });
         });
         /* never leave the tiles locked */
         setTimeout(function () { busy = false; }, 16000);
       } else {
-        speak('Not ' + WORDS[n] + '. Try again. Tap the dots to count them.');
+        speak(notSay(n, false));
       }
       return;
     }
@@ -757,7 +1017,7 @@
     if (stepIdx < steps.length) {
       markActive();
       els.lead.innerHTML = askLead(steps[stepIdx]);
-      speak('Yes, ' + WORDS[right] + '! ' + askSay(steps[stepIdx]));
+      speak(yesSay(right, steps[stepIdx]));
       return;
     }
     finishModel();
@@ -776,7 +1036,7 @@
     var last = round === ROUNDS_PER_HALF - 1;
     els.nextBtn.textContent = last ? (half === 1 ? 'Half time ➜' : 'Full time ➜') : 'Next ➜';
     show(['lead', 'dots', 'model', 'btnRow'], ['sayBtn', 'nextBtn']);
-    speak('Goal! ' + modelSentence(model));
+    speak(goalSay(model));
   }
 
   function nextRound() {
@@ -834,8 +1094,7 @@
     els.boardBtn.textContent = 'Second half ➜';
     renderBoard();
     show(['boardBox']);
-    speak('Half time! You filled in ' + WORDS[done.length] + ' part whole models. ' +
-          'In the second half, find the whole first.');
+    speak(halfTimeSay(done.length));
   }
 
   function enterFullTime() {
@@ -848,7 +1107,7 @@
     renderBoard();
     show(['boardBox']);
     celebrate(45);
-    speak('Full time! You filled in ' + WORDS[done.length] + ' part whole models. Brilliant!');
+    speak(fullTimeSay(done.length));
   }
 
   /* ================= Match ================= */
@@ -887,11 +1146,13 @@
 
   /* ================= Wiring ================= */
   els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
     if (hasSpeech) {
       pickVoice();
       /* iOS: speech has to start inside this tap */
       try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
     }
+    preload(phraseList());
     els.startOverlay.remove();
     startMatch();
   });

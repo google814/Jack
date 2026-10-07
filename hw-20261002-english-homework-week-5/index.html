@@ -323,6 +323,12 @@
 (function () {
   'use strict';
 
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so tools/phrases/hw-20261002-english-homework-week-5.txt is
+     generated straight out of this block
+     (tools/gen-phrases-hw-20261002-english-homework-week-5.js). */
+
   /* ================= Today's homework =================
      English week 5: vocabulary from Tin Dog's letter, matched to pictures.
      Page 2 of the sheet is five feelings, page 3 is six words from the
@@ -356,6 +362,77 @@
     { w: 'eager',  pic: '🏃',   badge: '💦', bg: '#ffedd5',
       m: 'Eager means you really, really want to.', s: 'He runs, eager to get there.' }
   ];
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment: "cat! ... The cat sat on the mat."
+     is the word clip followed by the sentence clip. Written out by hand
+     because a lookbehind regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    var BREAK = /^\s*(?:!\s*\.\.\.\s*|\.\.\.\s*)/;
+    while (i < t.length) {
+      var m = BREAK.exec(t.slice(i));
+      if (m && m[0].length) {
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+        i += m[0].length;
+        continue;
+      }
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?' || ch === ':') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* the lines, built the same way for playing and for the phrase list */
+  function askLine(w) { return 'Find: ' + w + '.'; }
+  function rightLine(w) { return w + '!'; }
+  function wrongLine(picked, w) { return 'That one is ' + picked + '. ' + askLine(w); }
+  function cheerLine(item) { return item.m + ' ' + item.s; }
+  function sheetRightLine(item) { return item.w + '! ' + item.s; }
+  function kickLine() { return 'Kick off! Tin Dog\'s words.'; }
+  function halfLine(g) {
+    return 'Half time! ' + g + ' goals. Now the words from Tin Dog\'s letter.';
+  }
+  function extraLine() {
+    return 'Extra time! Now the whole homework page. Match every word to its picture.';
+  }
+  function fullLine(g) {
+    return 'Full time! You scored ' + g + ' goals! Now match the words on your homework sheet.';
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, all = FEELINGS.concat(LETTER_WORDS), i, j, g;
+    function add(s) {
+      var k = bare(s);
+      if (s && !seen[k]) { seen[k] = 1; out.push(s); }
+    }
+    function addAll(text) { var parts = segments(text); for (var n = 0; n < parts.length; n++) add(parts[n]); }
+    addAll(kickLine());
+    for (i = 0; i < all.length; i++) {
+      addAll(rightLine(all[i].w));
+      addAll(askLine(all[i].w));
+      addAll(cheerLine(all[i]));
+      addAll(sheetRightLine(all[i]));
+      addAll(all[i].s);
+      for (j = 0; j < all.length; j++) if (j !== i) addAll(wrongLine(all[j].w, all[i].w));
+    }
+    addAll(halfLine(FEELINGS.length));
+    addAll(extraLine());
+    for (g = FEELINGS.length + LETTER_WORDS.length; g <= FEELINGS.length + LETTER_WORDS.length + 6; g++) addAll(fullLine(g));
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
 
   /* Some of the feelings mean nearly the same thing. A round never puts two
      right-looking answers next to each other: glad and cheerful are both
@@ -420,36 +497,8 @@
   var sources = [];          /* clips still playing */
   var speakToken = 0;        /* cancels a line that has been talked over */
   window.__clipPlays = 0;    /* handy when checking the page is really using clips */
-
-  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
-  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
-
-  /* A line is spoken segment by segment: "cat! ... The cat sat on the mat."
-     is the word clip followed by the sentence clip. Written out by hand
-     because a lookbehind regex would not parse on older phones. */
-  function segments(text) {
-    var t = norm(text), out = [], buf = '', i = 0;
-    var BREAK = /^\s*(?:!\s*\.\.\.\s*|\.\.\.\s*)/;
-    while (i < t.length) {
-      var m = BREAK.exec(t.slice(i));
-      if (m && m[0].length) {
-        if (buf.trim()) out.push(buf.trim());
-        buf = '';
-        i += m[0].length;
-        continue;
-      }
-      var ch = t.charAt(i);
-      buf += ch;
-      i++;
-      if ((ch === '.' || ch === '!' || ch === '?' || ch === ':') && /\s/.test(t.charAt(i))) {
-        while (i < t.length && /\s/.test(t.charAt(i))) i++;
-        if (buf.trim()) out.push(buf.trim());
-        buf = '';
-      }
-    }
-    if (buf.trim()) out.push(buf.trim());
-    return out;
-  }
+  window.__clipMisses = [];  /* lines that had to fall back to the browser voice */
+  window.__phrases = phraseList;
 
   var clipsReady = (function () {
     var load = (typeof fetch === 'function')
@@ -521,6 +570,11 @@
         if (f && !buffers[f]) loadClip(f).catch(function () {});
       }
     });
+  }
+  function preloadLines(lines) {
+    var segs = [];
+    for (var i = 0; i < lines.length; i++) segs = segs.concat(segments(lines[i]));
+    preload(segs);
   }
 
   function stopSpeaking() {
@@ -594,8 +648,9 @@
             sources.push(src);
             window.__clipPlays++;
             src.start(0);
-          }, function () { say(parts[i], rate, pitch, my, onward); });
+          }, function () { window.__clipMisses.push(parts[i]); say(parts[i], rate, pitch, my, onward); });
         } else {
+          window.__clipMisses.push(parts[i]);
           say(parts[i], rate, pitch, my, onward);
         }
       })(0);
@@ -688,7 +743,7 @@
   }
 
   function askFor(item) {
-    speak('Find: ' + item.w + '.', 0.8);
+    speak(askLine(item.w), 0.8);
   }
 
   /* ================= Halves 1 and 2: three pictures, one word ================= */
@@ -722,7 +777,7 @@
       els.pics.appendChild(b);
     });
     show('find');
-    preload(['Find: ' + item.w + '.', item.m, item.s]);
+    preloadLines([askLine(item.w), rightLine(item.w), cheerLine(item)]);
     setTimeout(function () { askFor(item); }, 350);
   }
 
@@ -734,13 +789,13 @@
       btn.classList.add('right');
       scored();
       celebrate(20);
-      speak(item.w + '!', 0.8);
+      speak(rightLine(item.w), 0.8);
       setTimeout(enterCheer, 900);
     } else {
       btn.classList.add('wrong');
       shake(btn);
       showFeedback('That one is ' + picked.w + '.');
-      speak('That one is ' + picked.w + '. Find: ' + item.w + '.', 0.8);
+      speak(wrongLine(picked.w, item.w), 0.8);
       setTimeout(function () { btn.classList.remove('wrong'); }, 1400);
     }
   }
@@ -756,7 +811,7 @@
       ? bits[0] + '<span class="lit">' + item.w + '</span>' + bits.slice(1).join(item.w)
       : item.s;
     show('cheer');
-    setTimeout(function () { speak(item.m + ' ' + item.s, 0.8); }, 400);
+    setTimeout(function () { speak(cheerLine(item), 0.8); }, 400);
   }
 
   /* ================= Extra time: the whole homework sheet =================
@@ -802,14 +857,14 @@
       btn.appendChild(lab);
       if (!missed) { scored(); celebrate(14); }
       showFeedback(missed ? 'Yes! ' + item.w : 'Goal! ' + item.w + ' ⚽');
-      speak(item.w + '! ' + item.s, 0.8);
+      speak(sheetRightLine(item), 0.8);
       setTimeout(function () { btn.classList.remove('right'); nextRound(); }, 2600);
     } else {
       missed = true;
       btn.classList.add('wrong');
       shake(btn);
       showFeedback('That one is ' + picked.w + '.');
-      speak('That one is ' + picked.w + '. Find: ' + item.w + '.', 0.8);
+      speak(wrongLine(picked.w, item.w), 0.8);
       setTimeout(function () { btn.classList.remove('wrong'); }, 1400);
     }
   }
@@ -841,7 +896,7 @@
       title = '📣 Half time!';
       text = goals + ' ' + (goals === 1 ? 'goal' : 'goals') + '. Now the words from Tin Dog\'s letter.';
       btn = 'Second half ➜';
-      line = 'Half time! ' + goals + ' goals. Now the words from Tin Dog\'s letter.';
+      line = halfLine(goals);
     } else {
       /* one page of the sheet, picked at random each match */
       var page = Math.random() < 0.5 ? FEELINGS : LETTER_WORDS;
@@ -852,7 +907,7 @@
       title = '⏱️ Extra time!';
       text = 'The whole homework page. Match every word to its picture.';
       btn = 'Extra time ➜';
-      line = 'Extra time! Now the whole homework page. Match every word to its picture.';
+      line = extraLine();
     }
     els.breakTitle.textContent = title;
     els.breakText.textContent = text;
@@ -870,7 +925,7 @@
     els.breakBtn.textContent = 'Play again ⚽';
     show('pause');
     celebrate(45);
-    speak('Full time! You scored ' + goals + ' goals! Now match the words on your homework sheet.', 0.85);
+    speak(fullLine(goals), 0.85);
   }
 
   function startMatch() {
@@ -884,7 +939,7 @@
   /* ================= Wiring ================= */
   els.playBtn.addEventListener('click', function () {
     audioReady();               /* iOS: the audio has to start inside this tap */
-    if (hasTTS) { pickVoice(); speak('Kick off! Tin Dog\'s words.', 0.9); }
+    if (hasTTS) { pickVoice(); preload(phraseList()); speak(kickLine(), 0.9); }
     els.startOverlay.remove();
     setTimeout(startMatch, 1300);
     els.phase.textContent = 'Kick off';

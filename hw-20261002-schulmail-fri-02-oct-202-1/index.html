@@ -275,7 +275,13 @@
 (function () {
   'use strict';
 
-  /* ================= Content ================= */
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so tools/phrases/hw-20261002-schulmail-fri-02-oct-202-1.txt is
+     generated straight out of this block
+     (tools/gen-phrases-hw-20261002-schulmail-fri-02-oct-202-1.js) and can
+     never drift. */
+
   /* The same six words from Tin Dog's letter as in "Tin Dog's Words",
      so both games drill the same Seesaw sheet. */
   var LETTER_WORDS = [
@@ -288,9 +294,108 @@
   ];
   var NUMBERS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten',
     'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];
+
+  var SUMS_PER_MATCH = 8;
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* the lines, as pure functions of the numbers */
+  function addPhrase(a, b) { return NUMBERS[a] + ' add ' + NUMBERS[b]; }
+  function introLine(a, b) {
+    return addPhrase(a, b) + '. Here are ' + NUMBERS[a] + ' red. Tap the ten frame to add ' + NUMBERS[b] + ' blue.';
+  }
+  function lastBlueLine(n) { return NUMBERS[n] + '! How many altogether?'; }
+  function goalLine(a, b, total) {
+    var line = 'Goal! ' + addPhrase(a, b) + ' makes ' + NUMBERS[total] + '!';
+    if (total === 10) line += ' The ten frame is full!';
+    return line;
+  }
+  function sumTapLine(a, b, done) {
+    return addPhrase(a, b) + (done ? ' makes ' + NUMBERS[a + b] : ' makes what?');
+  }
+  function moreBlueLine(n) { return 'Tap the ten frame to add ' + NUMBERS[n] + ' more blue.'; }
+  function altogetherLine(n) { return NUMBERS[n] + ' altogether!'; }
+  var NOT_QUITE_COUNT = 'Not quite. Let\'s count them together.';
+  var NOT_QUITE_TEN = 'Not quite. One ten frame is full. That is ten. Count on from ten.';
+  function notQuiteEmpty(total) {
+    return 'Not quite. Look at the ten frame. ' + (10 - total === 0 ? 'Is it full?' : 'How many empty boxes?');
+  }
+  function findLine(w) { return 'Find the picture for: ' + w + '.'; }
+  function wordGoalLine(item) { return 'Goal! ' + item.w + '. ' + item.s; }
+  function wrongWordLine(c, item) { return 'That is ' + c.w + '. Find: ' + item.w + '.'; }
+  var KICK_OFF = 'Kick off! Adding with ten frames.';
+  function halfTimeLine(goals) { return 'Half time! ' + goals + ' goals! Now the words from Tin Dog\'s letter.'; }
+  function fullTimeLine(goals) {
+    return 'Full time! You scored ' + goals + ' goals! Now use the ten frames for your homework sums. Next week is International Week, all about Madagascar!';
+  }
+  var GOALS_HALF = SUMS_PER_MATCH, GOALS_FULL = SUMS_PER_MATCH + LETTER_WORDS.length;
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, a, b, n, i;
+    function add(s) { var k = bare(s); if (k && !seen[k]) { seen[k] = 1; out.push(norm(s)); } }
+    function addAll(text) { var parts = segments(text); for (var k = 0; k < parts.length; k++) add(parts[k]); }
+    for (n = 1; n <= 18; n++) add(NUMBERS[n]);
+    for (n = 2; n <= 18; n++) addAll(altogetherLine(n));
+    addAll(KICK_OFF);
+    /* all 71 sums makeSums can draw: 45 inside one frame, 26 spilling over */
+    for (a = 1; a <= 9; a++) {
+      for (b = 1; b <= 10 - a; b++) sumLines(a, b);
+    }
+    for (a = 6; a <= 9; a++) {
+      for (b = 11 - a; b <= Math.min(9, 18 - a); b++) sumLines(a, b);
+    }
+    function sumLines(a, b) {
+      addAll(introLine(a, b));
+      addAll(lastBlueLine(b));
+      addAll(goalLine(a, b, a + b));
+      addAll(sumTapLine(a, b, false));
+    }
+    for (n = 1; n <= 9; n++) addAll(moreBlueLine(n));
+    add('How many altogether?');
+    addAll(NOT_QUITE_COUNT);
+    addAll(NOT_QUITE_TEN);
+    addAll(notQuiteEmpty(5));
+    addAll(notQuiteEmpty(10));
+    for (i = 0; i < LETTER_WORDS.length; i++) {
+      addAll(findLine(LETTER_WORDS[i].w));
+      addAll(wordGoalLine(LETTER_WORDS[i]));
+      add(LETTER_WORDS[i].w);
+      for (var j = 0; j < LETTER_WORDS.length; j++) {
+        if (j !== i) addAll(wrongWordLine(LETTER_WORDS[j], LETTER_WORDS[i]));
+      }
+    }
+    addAll(halfTimeLine(GOALS_HALF));
+    addAll(fullTimeLine(GOALS_FULL));
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') { return; }
+  window.__phrases = phraseList;
+
   var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🔟', '✉️'];
   var SCORE_KEY = 'jackHw_hw20261002schulmailfri02oct2021';
-  var SUMS_PER_MATCH = 8;
 
   /* ================= State ================= */
   var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
@@ -311,36 +416,208 @@
     pause: $('pause'), pauseTitle: $('pauseTitle'), pauseText: $('pauseText'), pauseBtn: $('pauseBtn')
   };
 
-  /* ================= Speech ================= */
-  var hasTTS = 'speechSynthesis' in window;
+  /* ================= Speech =================
+     The browser's own voice sounds like a computer, so every line is
+     pre-rendered with a neural en-GB voice (tools/build-audio.py) and played
+     back through Web Audio, segment by segment. speechSynthesis is only the
+     fallback for a segment that has no clip. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
   var voice = null;
+
+  var CLIP_DIR = '../audio/hw-20261002-schulmail-fri-02-oct-202-1/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));        /* keep a soft first "m" or "l" */
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* and the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
   function pickVoice() {
-    if (!hasTTS) return;
+    if (!hasSpeech) return;
     var vs = speechSynthesis.getVoices();
     voice = vs.find(function (v) { return v.lang === 'en-GB' && /Sonia|Libby|Serena|Kate|Female|Google UK English Female/i.test(v.name); }) ||
             vs.find(function (v) { return v.lang === 'en-GB'; }) ||
             vs.find(function (v) { return /^en/.test(v.lang); }) || null;
   }
-  if (hasTTS) {
+  if (hasSpeech) {
     pickVoice();
     speechSynthesis.onvoiceschanged = pickVoice;
   }
+
+  /* the fallback: only used for a segment that has no clip */
+  function say(text, rate, my, done) {
+    window.__clipMisses.push(text);
+    if (!hasSpeech) { if (done) done(); return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-GB';
+      if (voice) u.voice = voice;
+      u.rate = rate || 0.85;
+      u.pitch = 1.05;
+      u.onend = function () { if (my === speakToken && done) done(); };
+      u.onerror = u.onend;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { if (done) done(); }
+  }
+
+  /* Plays the segments one after another, a breath between them. `done`
+     fires after the last one, unless something talked over it. */
+  function speakParts(parts, rate, done) {
+    if (!hasTTS) { if (done) done(); return; }
+    stopSpeaking();
+    var my = speakToken;
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) { if (done) done(); return; }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(parts[i], rate, my, onward); });
+        } else {
+          say(parts[i], rate, my, onward);
+        }
+      })(0);
+    });
+  }
+
+  /* The watchdog below is the guarantee: onend fires even when the line is
+     talked over, and the game flow (Goal! -> next sum) hangs on it. The last
+     clip fires it too, whichever comes first (the flag stops a double call). */
   function speak(text, rate, onend) {
     if (!hasTTS) { if (onend) setTimeout(onend, 600); return; }
-    speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-GB';
-    if (voice) u.voice = voice;
-    u.rate = rate || 0.85;
-    u.pitch = 1.05;
+    var fire = null;
     if (onend) {
       var fired = false;
-      var fire = function () { if (!fired) { fired = true; onend(); } };
-      u.onend = fire;
-      /* Safari sometimes never fires onend */
-      later(fire, 900 + text.length * 90);
+      fire = function () { if (!fired) { fired = true; onend(); } };
+      later(fire, 1500 + text.length * 110);   /* clips run a little longer than the old voice */
     }
-    speechSynthesis.speak(u);
+    speakParts(segments(text), rate, fire);
   }
 
   /* ================= Helpers ================= */
@@ -450,7 +727,7 @@
     buildFrames(s.a + s.b);
     for (var i = 0; i < s.a; i++) later(putDot.bind(null, i, 'red'), 120 * i);
     els.hint.textContent = '👆 Add ' + s.b + ' blue';
-    speak(NUMBERS[s.a] + ' add ' + NUMBERS[s.b] + '. Here are ' + NUMBERS[s.a] + ' red. Tap the ten frame to add ' + NUMBERS[s.b] + ' blue.', 0.85);
+    speak(introLine(s.a, s.b), 0.85);
     later(function () { nudge(true); }, 120 * s.a + 300);
   }
 
@@ -462,7 +739,7 @@
     if (cur.blue < cur.b) {
       speak(NUMBERS[cur.blue], 1);
     } else {
-      speak(NUMBERS[cur.blue] + '! How many altogether?', 0.9);
+      speak(lastBlueLine(cur.blue), 0.9);
       showTiles();
     }
   }
@@ -496,20 +773,18 @@
       els.ans.textContent = total;
       els.hint.textContent = '✅ ' + cur.a + ' + ' + cur.b + ' = ' + total;
       goal();
-      var line = 'Goal! ' + NUMBERS[cur.a] + ' add ' + NUMBERS[cur.b] + ' makes ' + NUMBERS[total] + '!';
-      if (total === 10) line += ' The ten frame is full!';
-      speak(line, 0.85, function () { later(nextSum, 500); });
+      speak(goalLine(cur.a, cur.b, total), 0.85, function () { later(nextSum, 500); });
     } else {
       cur.tries++;
       btn.classList.remove('wrong');
       void btn.offsetWidth;
       btn.classList.add('wrong');
       if (cur.tries >= 2) {
-        speak('Not quite. Let\'s count them together.', 0.9, countAll);
+        speak(NOT_QUITE_COUNT, 0.9, countAll);
       } else if (total > 10) {
-        speak('Not quite. One ten frame is full. That is ten. Count on from ten.', 0.85);
+        speak(NOT_QUITE_TEN, 0.85);
       } else {
-        speak('Not quite. Look at the ten frame. ' + (10 - total === 0 ? 'Is it full?' : 'How many empty boxes?'), 0.85);
+        speak(notQuiteEmpty(total), 0.85);
       }
     }
   }
@@ -524,13 +799,13 @@
       if (i > 0) dots[i - 1].classList.remove('lit');
       if (i >= dots.length) {
         counting = false;
-        if (!cur.done) speak(NUMBERS[dots.length] + ' altogether!', 0.85);
+        if (!cur.done) speak(altogetherLine(dots.length), 0.85);
         return;
       }
       dots[i].classList.add('lit');
       speak(NUMBERS[i + 1], 1.05);
       i++;
-      later(step, 650);
+      later(step, 820);
     })();
   }
 
@@ -558,7 +833,7 @@
       els.pics.appendChild(b);
     });
     item.solved = false;
-    speak('Find the picture for: ' + item.w + '.', 0.8);
+    speak(findLine(item.w), 0.8);
   }
 
   function pickPicture(c, btn) {
@@ -572,10 +847,10 @@
       lbl.textContent = item.w;
       btn.appendChild(lbl);
       goal();
-      speak('Goal! ' + item.w + '. ' + item.s, 0.8, function () { later(nextWord, 600); });
+      speak(wordGoalLine(item), 0.8, function () { later(nextWord, 600); });
     } else {
       btn.classList.add('wrong');
-      speak('That is ' + c.w + '. Find: ' + item.w + '.', 0.8);
+      speak(wrongWordLine(c, item), 0.8);
     }
   }
 
@@ -610,7 +885,7 @@
     els.pauseBtn.textContent = 'Second half ⚽';
     show('pause');
     celebrate(24);
-    speak('Half time! ' + goals + ' goals! Now the words from Tin Dog\'s letter.', 0.85);
+    speak(halfTimeLine(goals), 0.85);
   }
 
   function startSecondHalf() {
@@ -629,13 +904,15 @@
     els.pauseBtn.textContent = 'Play again ⚽';
     show('pause');
     celebrate(45);
-    speak('Full time! You scored ' + goals + ' goals! Now use the ten frames for your homework sums. Next week is International Week, all about Madagascar!', 0.85);
+    speak(fullTimeLine(goals), 0.85);
   }
 
   /* ================= Wiring ================= */
   els.playBtn.addEventListener('click', function () {
     /* iOS: speech has to start inside this tap */
-    if (hasTTS) { pickVoice(); speak('Kick off! Adding with ten frames.', 0.9); }
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasTTS) { pickVoice(); speak(KICK_OFF, 0.9); }
+    preload(phraseList());
     els.start.remove();
     setTimeout(startMatch, 1600);
   });
@@ -646,12 +923,11 @@
   els.countBtn.addEventListener('click', countAll);
   els.sum.addEventListener('click', function () {
     if (!cur || counting) return;
-    var total = cur.a + cur.b;
-    speak(NUMBERS[cur.a] + ' add ' + NUMBERS[cur.b] + (cur.done ? ' makes ' + NUMBERS[total] : ' makes what?'), 0.85);
+    speak(sumTapLine(cur.a, cur.b, cur.done), 0.85);
   });
   els.hint.addEventListener('click', function () {
     if (!cur || cur.done || counting) return;
-    if (cur.blue < cur.b) speak('Tap the ten frame to add ' + NUMBERS[cur.b - cur.blue] + ' more blue.', 0.85);
+    if (cur.blue < cur.b) speak(moreBlueLine(cur.b - cur.blue), 0.85);
     else speak('How many altogether?', 0.85);
   });
   els.sayBtn.addEventListener('click', function () {
