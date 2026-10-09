@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1d4ed8">
+<title>Take Away Tens Frames ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Take Away">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #172554 0%, #1d4ed8 52%, #172554 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    background: rgba(0,0,0,.24);
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.6rem); flex: 0 1 auto; min-width: 0; }
+  @media (max-width: 620px) { header h1 { display: none; } }
+  #half {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.3rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2vh, 20px);
+    padding: clamp(8px, 2vh, 22px) 12px calc(clamp(10px, 2.4vh, 24px) + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1.05rem, 2.8vmin, 1.5rem); font-weight: 700; min-height: 1.3em; }
+
+  /* ---------- The sum: 7 − 4 = ? ---------- */
+  #sum {
+    font-size: clamp(2rem, 8vmin, 3.6rem);
+    font-weight: 900;
+    color: #1e293b;
+    background: #fff;
+    border-radius: 22px;
+    padding: clamp(4px, 1vh, 10px) clamp(18px, 4vw, 34px);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    line-height: 1.2;
+    cursor: pointer;
+  }
+  #sum .take { color: #dc2626; }
+  #sum .ans {
+    display: inline-block;
+    min-width: 1.4em;
+    padding: 0 .15em;
+    border-radius: 12px;
+    background: #fef9c3;
+    border: 3px dashed #f59e0b;
+    color: #b45309;
+  }
+  #sum .ans.got { border-style: solid; background: #dcfce7; color: #15803d; animation: bounceIn .5s ease; }
+
+  /* the ✖ slots: how many dots still have to go */
+  #takeRow { display: flex; gap: clamp(5px, 1.2vmin, 10px); justify-content: center; min-height: 1px; }
+  .slot {
+    width: clamp(24px, 5.6vmin, 40px);
+    height: clamp(24px, 5.6vmin, 40px);
+    border-radius: 50%;
+    border: 3px dashed rgba(255,255,255,.7);
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    font-size: clamp(.9rem, 3vmin, 1.4rem);
+  }
+  .slot.on { border-style: solid; border-color: #fca5a5; background: #dc2626; animation: bounceIn .4s ease; }
+
+  /* ---------- The tens frames (blue dots, like the worksheet) ---------- */
+  #frames {
+    --cell: clamp(34px, min(15vw, 8.4vh), 70px);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(10px, 2.4vmin, 24px);
+  }
+  .frame {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, var(--cell));
+    grid-template-rows: repeat(2, var(--cell));
+    gap: calc(var(--cell) * .08);
+    padding: calc(var(--cell) * .12);
+    background: #1e293b;
+    border-radius: calc(var(--cell) * .18);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    cursor: pointer;
+  }
+  .cell {
+    position: relative;
+    background: #fff;
+    border-radius: calc(var(--cell) * .08);
+  }
+  .dot {
+    position: absolute;
+    inset: 10%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #bfdbfe, #2563eb 45%, #1e40af);
+    box-shadow: inset 0 calc(var(--cell) * -.05) 0 rgba(0,0,0,.22), 0 2px 3px rgba(0,0,0,.3);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-weight: 900;
+    font-size: calc(var(--cell) * .4);
+    line-height: 1;
+    transition: transform .3s ease, opacity .3s ease;
+  }
+  .dot.gone { opacity: .28; transform: scale(.8); }
+  .cell .x {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #dc2626;
+    font-weight: 900;
+    font-size: calc(var(--cell) * .82);
+    line-height: 1;
+    pointer-events: none;
+    animation: bounceIn .35s ease;
+  }
+  .dot.lit { outline: 4px solid #facc15; outline-offset: 2px; animation: bounceIn .4s ease; }
+  .frame.lit { box-shadow: 0 0 0 calc(var(--cell) * .07) #fde047, 0 0 calc(var(--cell) * .5) rgba(253,224,71,.65); }
+  .frame .ten {
+    position: absolute;
+    top: calc(var(--cell) * -.34); right: calc(var(--cell) * -.3);
+    min-width: calc(var(--cell) * .7); height: calc(var(--cell) * .7);
+    padding: 0 calc(var(--cell) * .1);
+    border-radius: 999px;
+    background: #fde047; color: #0f172a;
+    font-weight: 900; font-size: calc(var(--cell) * .38);
+    display: none; align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .frame.lit .ten { display: flex; animation: bounceIn .45s ease; }
+  .nudge { animation: wiggle .6s ease-in-out 3; }
+  @keyframes wiggle {
+    0%,100% { transform: rotate(0); }
+    25% { transform: rotate(-3deg); }
+    75% { transform: rotate(3deg); }
+  }
+
+  /* ---------- Answer tiles ---------- */
+  #tiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(10px, 2.6vmin, 22px);
+    justify-content: center;
+  }
+  .tile {
+    width: clamp(70px, 17vmin, 116px);
+    height: clamp(70px, 17vmin, 116px);
+    font-family: inherit;
+    font-size: clamp(2rem, 8vmin, 3.4rem);
+    font-weight: 900;
+    color: #1e3a8a;
+    background: #eff6ff;
+    border: none;
+    border-bottom: 7px solid rgba(0,0,0,.28);
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .tile:active { transform: translateY(4px); border-bottom-width: 3px; }
+  .tile.wrong { background: #fecaca; animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* ---------- Buttons ---------- */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(11px, 2vh, 17px) clamp(20px, 5vw, 40px);
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.quiet {
+    background: rgba(0,0,0,.32);
+    box-shadow: none;
+    font-size: clamp(.9rem, 2.2vmin, 1.15rem);
+    padding: clamp(10px, 1.6vh, 14px) clamp(16px, 4vw, 30px);
+  }
+
+  /* ---------- Match board ---------- */
+  #boardBox { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
+  #boardTitle { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); font-weight: 800; }
+  #board {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(6px, 1.4vmin, 12px);
+    justify-content: center;
+    max-width: 720px;
+  }
+  .chip {
+    font-family: inherit;
+    font-size: clamp(1.2rem, 3.4vmin, 1.7rem);
+    font-weight: 900;
+    padding: clamp(8px, 1.6vh, 14px) clamp(14px, 2.8vw, 22px);
+    border-radius: 16px;
+    border: 3px solid #fde047;
+    background: #fff;
+    color: #1e293b;
+    cursor: pointer;
+  }
+  .chip .take { color: #dc2626; }
+  .chip .res { color: #15803d; }
+  .chip.saying { outline: 4px solid #fde047; outline-offset: 3px; }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #172554 0%, #1d4ed8 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 6vmin, 2.8rem); }
+  #startOverlay p { max-width: 28ch; opacity: .92; font-size: clamp(.95rem, 2.4vmin, 1.2rem); line-height: 1.5; }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 58px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Take away with tens frames</h1>
+  <span id="half">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <div id="sum" class="hidden"></div>
+  <div id="takeRow" class="hidden"></div>
+  <p class="lead hidden" id="lead"></p>
+
+  <div id="frames" class="hidden"></div>
+
+  <div id="tiles" class="hidden"></div>
+
+  <div class="row hidden" id="btnRow">
+    <button class="btn quiet" id="sayBtn">🔊 Say it again</button>
+    <button class="btn quiet" id="countBtn">🔊 Count with me</button>
+    <button class="btn big" id="nextBtn">Next ➜</button>
+  </div>
+
+  <div id="boardBox" class="hidden">
+    <div id="boardTitle"></div>
+    <p id="boardText" class="lead"></p>
+    <div id="board"></div>
+    <div class="row">
+      <button class="btn quiet" id="boardSayBtn">🔊 Say them all</button>
+      <button class="btn big" id="boardBtn"></button>
+    </div>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>⚽ Take away with tens frames ⚽</h2>
+  <p>Tap the dots to take them away.<br>How many are left?<br>7 − 4 = ? · 18 − 5 = ?</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower talking</label>
+  <button id="resetBtn">Reset score</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Homework =================
+     Mathematics - Homework Week 6: subtraction with tens frames.
+     "Task - please use the tens frames to complete the subtraction questions.
+      7 - 4 =   (one frame, 7 blue dots: 5 on top, 2 below)
+      18 - 5 =  (two frames: a full 10, and 8 dots: 5 on top, 3 below)"
+
+     First half: one tens frame, starting with 7 - 4. He taps the dots he
+     takes away (each one is crossed out and counted), then picks how many
+     are left. Second half: two tens frames, starting with 18 - 5. The full
+     ten stays, he takes away from the second frame (no crossing the ten,
+     like the homework). One football ⚽ for every sum. */
+
+  var ROUNDS_PER_HALF = 4;
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🔵', '✖️'];
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so tools/phrases/hw-20261009-mathematics-homework-wee.txt is
+     generated straight out of this block (tools/gen-phrases.js). */
+
+  var WORDS = ['zero', 'one', 'two', 'three', 'four', 'five',
+               'six', 'seven', 'eight', 'nine', 'ten',
+               'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
+               'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+
+  /* the two sums on the worksheet, always the first of each half */
+  var HOMEWORK = [{ a: 7, b: 4 }, { a: 18, b: 5 }];
+
+  /* every sum a half can ask: first half inside one frame (3 to 10),
+     second half 12 to 19 taking away from the second frame only, so a
+     full ten is always left (like 18 - 5 = 13) */
+  function sumsOf(half) {
+    var out = [], a, b;
+    if (half === 1) {
+      for (a = 3; a <= 10; a++) for (b = 1; b < a; b++) out.push({ a: a, b: b });
+    } else {
+      for (a = 12; a <= 19; a++) for (b = 1; b <= a - 11; b++) out.push({ a: a, b: b });
+    }
+    return out;
+  }
+
+  /* the numbers on the answer tiles can be anything from zero to twenty */
+  var TILE_MAX = 20;
+
+  function cap(w) { return w.charAt(0).toUpperCase() + w.slice(1); }
+  function dotWord(n) { return n === 1 ? 'dot' : 'dots'; }
+  function resultOf(m) { return m.a - m.b; }
+
+  var HOMEWORK_SAY = 'Please use the tens frames to complete the subtraction questions.';
+  var LEFT_SAY = 'How many dots are left?';
+  var KEEP_SAY = 'Keep the full ten. Take away from the other frame.';
+
+  function introSay(half) {
+    return half === 1 ? HOMEWORK_SAY
+                      : 'Now there are two tens frames. The first frame is a full ten.';
+  }
+  /* "Seven take away four." */
+  function sumSay(m) { return cap(WORDS[m.a]) + ' take away ' + WORDS[m.b] + '.'; }
+  function takeSay(b) {
+    return 'Tap ' + WORDS[b] + ' ' + dotWord(b) + ' to take ' + (b === 1 ? 'it' : 'them') + ' away.';
+  }
+  function askSay(m) { return sumSay(m) + ' ' + takeSay(m.b); }
+  function startSay(m, half, first) { return (first ? introSay(half) + ' ' : '') + askSay(m); }
+  function takenSay(b) { return cap(WORDS[b]) + ' taken away. ' + LEFT_SAY; }
+  function countAllSay(n) { return cap(WORDS[n]) + ' ' + dotWord(n) + '.'; }
+  function countLeftSay(n) { return cap(WORDS[n]) + ' left.'; }
+  function notSay(n, together) {
+    return together ? 'Not ' + WORDS[n] + '. Let us count them together.'
+                    : 'Not ' + WORDS[n] + '. Try again. Count the dots that are left.';
+  }
+  function tenAndSay(r) { return 'Ten and ' + WORDS[r - 10] + ' make ' + WORDS[r] + '.'; }
+  /* "Eighteen take away five equals thirteen. Ten and three make thirteen." */
+  function resultSay(m) {
+    var r = resultOf(m);
+    return cap(WORDS[m.a]) + ' take away ' + WORDS[m.b] + ' equals ' + WORDS[r] + '.' +
+           (r > 10 ? ' ' + tenAndSay(r) : '');
+  }
+  function goalSay(m) { return 'Goal! ' + resultSay(m); }
+  function halfTimeSay(n) {
+    return 'Half time! You did ' + WORDS[n] + ' take away sums. ' +
+           'In the second half, there are two tens frames.';
+  }
+  function fullTimeSay(n) {
+    return 'Full time! You did ' + WORDS[n] + ' take away sums. Brilliant!';
+  }
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, h, i, n, list;
+    function add(s) { var k = bare(s); if (k && !seen[k]) { seen[k] = 1; out.push(s); } }
+    function addAll(text) { var p = segments(text); for (var k = 0; k < p.length; k++) add(p[k]); }
+    for (n = 0; n <= 20; n++) add(WORDS[n]);
+    addAll(HOMEWORK_SAY);
+    addAll(LEFT_SAY);
+    addAll(KEEP_SAY);
+    for (h = 1; h <= 2; h++) {
+      addAll(introSay(h));
+      list = sumsOf(h);
+      for (i = 0; i < list.length; i++) {
+        addAll(startSay(list[i], h, true));
+        addAll(askSay(list[i]));
+        addAll(goalSay(list[i]));
+        addAll(resultSay(list[i]));
+      }
+    }
+    for (n = 1; n <= 9; n++) { addAll(takeSay(n)); addAll(takenSay(n)); }
+    for (n = 0; n <= 20; n++) { addAll(countAllSay(n)); addAll(countLeftSay(n)); }
+    for (n = 0; n <= TILE_MAX; n++) { addAll(notSay(n, true)); addAll(notSay(n, false)); }
+    for (n = 11; n <= 20; n++) addAll(tenAndSay(n));
+    for (n = 0; n <= 8; n++) { addAll(halfTimeSay(n)); addAll(fullTimeSay(n)); }
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') return;
+  window.__phrases = phraseList;
+
+  /* ================= State ================= */
+  var SCORE_KEY = 'jackHw_hw20261009mathematicshomeworkwee';
+  var SLOW_KEY  = 'jackHw_hw20261009mathematicshomeworkwee_slow';
+
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var half = 1;
+  var round = 0;
+  var queue1 = [], queue2 = [];
+  var done = [];          /* sums finished this match */
+  var model = null;       /* { a, b } */
+  var two = false;        /* two tens frames this round */
+  var phase = 'take';     /* take | answer */
+  var taken = 0;
+  var attempts = 0;
+  var busy = false;
+  var mode = 'start';     /* start | round | finished | board */
+  var flowToken = 0;      /* cancels a talking sequence */
+  var countToken = 0;     /* cancels counting out loud */
+  var frameEls = [];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), half: $('half'), lead: $('lead'),
+    sum: $('sum'), takeRow: $('takeRow'), frames: $('frames'),
+    tiles: $('tiles'), btnRow: $('btnRow'),
+    sayBtn: $('sayBtn'), countBtn: $('countBtn'), nextBtn: $('nextBtn'),
+    boardBox: $('boardBox'), boardTitle: $('boardTitle'), boardText: $('boardText'),
+    board: $('board'), boardSayBtn: $('boardSayBtn'), boardBtn: $('boardBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Voice =================
+     He cannot read yet, so every line is spoken. The browser's own voice
+     sounds like a computer, so every line is pre-rendered with a neural
+     en-GB voice (tools/build-audio.py) and played back through Web Audio,
+     segment by segment. speechSynthesis is only the fallback for a segment
+     that has no clip. speak() calls done() when the line has finished — with
+     a timer as a safety net, because iOS does not always fire onend. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/hw-20261009-mathematics-homework-wee/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Serena|Kate|Martha|Stephanie|Fiona|Samantha|Karen|Moira)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) ||
+      find(gb, /Google UK English Female/i) ||
+      find(gb, female) || gb[0] ||
+      find(en, good) || find(en, female) || en[0] || null;
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  /* the fallback: only used for a segment that has no clip */
+  function say(text, my, done, rate) {
+    window.__clipMisses.push(text);
+    var factor = slow ? 1.25 : 1;
+    if (!hasSpeech) {
+      setTimeout(function () { if (my === speakToken && done) done(); }, (600 + text.length * 45) * factor);
+      return;
+    }
+    var finished = false;
+    var guard = null;
+    var fin = function () {
+      if (finished) return;
+      finished = true;
+      clearTimeout(guard);
+      if (my === speakToken && done) done();
+    };
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = 'en-GB';
+      u.rate = (rate || 0.9) * (slow ? 0.8 : 1);
+      u.onend = fin;
+      u.onerror = fin;
+      guard = setTimeout(fin, (2500 + text.length * 110) * factor);
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { fin(); }
+  }
+
+  /* Plays a list of clip texts one after another, a breath between them.
+     `done` fires after the last one, unless something talked over it. */
+  function speakParts(parts, done, rate) {
+    stopSpeaking();
+    var my = speakToken;
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) { if (done) done(); return; }
+    if (!hasTTS) {
+      var len = parts.join(' ').length;
+      if (done) setTimeout(function () { if (my === speakToken) done(); }, (600 + len * 45) * (slow ? 1.25 : 1));
+      return;
+    }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(parts[i], my, onward, rate); });
+        } else {
+          say(parts[i], my, onward, rate);
+        }
+      })(0);
+    });
+  }
+
+  /* one line, cut into its segments */
+  function speak(text, done, rate) {
+    speakParts(segments(text), done, rate);
+  }
+
+  if (hasSpeech) {
+    pickVoice();
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function stopAll() {
+    flowToken++;
+    countToken++;
+    stopSpeaking();
+  }
+
+  /* Run a list of { act, say } one after another, each line waiting for
+     the one before it to finish. Anything else that talks stops it. */
+  function sequence(list) {
+    var token = ++flowToken;
+    (function next(i) {
+      if (token !== flowToken || i >= list.length) return;
+      var s = list[i];
+      if (s.act) s.act();
+      if (s.say) speak(s.say, function () { setTimeout(function () { next(i + 1); }, 300); }, s.rate);
+      else setTimeout(function () { next(i + 1); }, s.wait || 500);
+    })(0);
+  }
+
+  /* ================= Small helpers ================= */
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function nudge(el) {
+    el.classList.remove('nudge');
+    void el.offsetWidth;
+    el.classList.add('nudge');
+  }
+
+  /* ================= Screens ================= */
+  var ALL = ['sum', 'takeRow', 'lead', 'frames', 'tiles', 'btnRow', 'boardBox'];
+  function show(list, buttons) {
+    ALL.forEach(function (id) { els[id].classList.toggle('hidden', list.indexOf(id) === -1); });
+    buttons = buttons || [];
+    ['sayBtn', 'countBtn', 'nextBtn'].forEach(function (id) {
+      els[id].classList.toggle('hidden', buttons.indexOf(id) === -1);
+    });
+  }
+
+  function renderSum(answerShown) {
+    els.sum.innerHTML = model.a + ' − <span class="take">' + model.b + '</span> = ' +
+      '<span class="ans' + (answerShown ? ' got' : '') + '">' + (answerShown ? resultOf(model) : '?') + '</span>';
+  }
+
+  function renderTakeRow() {
+    var html = '';
+    for (var i = 0; i < model.b; i++) {
+      html += '<span class="slot' + (i < taken ? ' on' : '') + '">' + (i < taken ? '✖' : '') + '</span>';
+    }
+    els.takeRow.innerHTML = html;
+  }
+
+  /* ================= Tens frames ================= */
+  function renderFrames(m) {
+    els.frames.innerHTML = '';
+    frameEls = [];
+    var counts = m.a <= 10 ? [m.a] : [10, m.a - 10];
+    for (var f = 0; f < counts.length; f++) {
+      var fr = document.createElement('div');
+      fr.className = 'frame';
+      fr.setAttribute('data-f', String(f));
+      /* filled like the worksheet: the top row left to right, then the bottom row */
+      for (var i = 0; i < 10; i++) {
+        var c = document.createElement('div');
+        c.className = 'cell';
+        if (i < counts[f]) {
+          var d = document.createElement('div');
+          d.className = 'dot';
+          c.appendChild(d);
+        }
+        fr.appendChild(c);
+      }
+      var ten = document.createElement('span');
+      ten.className = 'ten';
+      ten.textContent = '10';
+      fr.appendChild(ten);
+      els.frames.appendChild(fr);
+      frameEls.push(fr);
+    }
+  }
+
+  function clearLit() {
+    var lit = els.frames.querySelectorAll('.dot');
+    for (var i = 0; i < lit.length; i++) { lit[i].classList.remove('lit'); lit[i].textContent = ''; }
+    frameEls.forEach(function (fr) { fr.classList.remove('lit'); });
+  }
+
+  /* Count out loud, a number lighting up on each dot. With two frames the
+     full ten lights up as one "ten" and the rest is counted on from there.
+     which: 'all' (every dot he started with) or 'left' (not taken away). */
+  function countDots(which, then) {
+    var token = ++countToken;
+    flowToken++;
+    stopSpeaking();
+    clearLit();
+    var steps = [], n = 0, i, dots;
+    if (two) {
+      n = 10;
+      steps.push({ frame: frameEls[0], n: 10 });
+    }
+    dots = frameEls[two ? 1 : 0].querySelectorAll('.dot');
+    for (i = 0; i < dots.length; i++) {
+      if (which === 'left' && dots[i].classList.contains('gone')) continue;
+      n++;
+      steps.push({ dot: dots[i], n: n });
+    }
+    i = 0;
+    (function tick() {
+      if (token !== countToken) return;
+      if (i >= steps.length) {
+        setTimeout(function () {
+          if (token !== countToken) return;
+          speak(which === 'all' ? countAllSay(n) : countLeftSay(n), then);
+        }, 250);
+        return;
+      }
+      var s = steps[i++];
+      if (s.frame) s.frame.classList.add('lit');
+      else { s.dot.classList.add('lit'); s.dot.textContent = String(s.n); }
+      var next = function () { if (token === countToken) setTimeout(tick, slow ? 450 : 180); };
+      speak(WORDS[s.n], next, 0.85);
+    })();
+  }
+
+  /* ================= Answer tiles ================= */
+  /* the right answer and two real mistakes: one out, and a number that is
+     not the answer at all (the start, the take away, or adding instead) */
+  function choicesFor(m) {
+    var r = resultOf(m);
+    var ok = function (x) { return x >= 0 && x <= TILE_MAX && x !== r; };
+    var near = shuffle([r - 1, r + 1].filter(ok));
+    var far = shuffle([m.a, m.b, m.a + m.b].filter(ok));
+    var out = [r];
+    var pool = near.slice(0, 1).concat(far, near.slice(1));
+    for (var i = 0; i < pool.length && out.length < 3; i++) {
+      if (out.indexOf(pool[i]) === -1) out.push(pool[i]);
+    }
+    return out.sort(function (x, y) { return x - y; });
+  }
+
+  function buildTiles(m) {
+    els.tiles.innerHTML = '';
+    choicesFor(m).forEach(function (n) {
+      var t = document.createElement('button');
+      t.className = 'tile';
+      t.type = 'button';
+      t.textContent = String(n);
+      t.addEventListener('click', answer.bind(null, n, t));
+      els.tiles.appendChild(t);
+    });
+  }
+
+  /* ================= A round ================= */
+  function current() { return half === 1 ? queue1[round] : queue2[round]; }
+
+  function enterRound() {
+    stopAll();
+    mode = 'round';
+    phase = 'take';
+    busy = false;
+    model = current();
+    two = model.a > 10;
+    taken = 0;
+    attempts = 0;
+    els.half.textContent = (half === 1 ? 'First half · ' : 'Second half · ') + (round + 1) + '/' + ROUNDS_PER_HALF;
+    renderSum(false);
+    renderTakeRow();
+    renderFrames(model);
+    buildTiles(model);
+    els.lead.textContent = '👆 ✖ ' + model.b;
+    show(['sum', 'takeRow', 'lead', 'frames', 'btnRow'], ['sayBtn', 'countBtn']);
+    var line = startSay(model, half, round === 0);
+    setTimeout(function () { if (mode === 'round' && phase === 'take' && taken === 0) speak(line); }, 300);
+  }
+
+  function takeDot(dot) {
+    stopAll();
+    clearLit();
+    dot.classList.add('gone');
+    var x = document.createElement('span');
+    x.className = 'x';
+    x.textContent = '✖';
+    dot.parentNode.appendChild(x);
+    taken++;
+    renderTakeRow();
+    if (taken < model.b) { speak(WORDS[taken]); return; }
+    phase = 'answer';
+    els.lead.textContent = '❓';
+    show(['sum', 'takeRow', 'lead', 'frames', 'tiles', 'btnRow'], ['sayBtn', 'countBtn']);
+    speakParts([WORDS[taken]].concat(segments(takenSay(model.b))));
+  }
+
+  function tapFrames(e) {
+    if (mode !== 'round' || busy) return;
+    var fr = e.target.closest ? e.target.closest('.frame') : null;
+    if (!fr) return;
+    var f = parseInt(fr.getAttribute('data-f'), 10);
+    if (phase === 'take') {
+      if (two && f === 0) {
+        stopAll();
+        nudge(frameEls[1]);
+        speak(KEEP_SAY);
+        return;
+      }
+      var cell = e.target.closest('.cell');
+      var dot = cell ? cell.querySelector('.dot') : null;
+      if (!dot || dot.classList.contains('gone')) return;
+      takeDot(dot);
+    } else {
+      countDots('left');
+    }
+  }
+
+  function answer(n, tile) {
+    if (mode !== 'round' || phase !== 'answer' || busy) return;
+    stopAll();
+    clearLit();
+    var right = resultOf(model);
+
+    if (n !== right) {
+      attempts++;
+      tile.classList.remove('wrong');
+      void tile.offsetWidth;
+      tile.classList.add('wrong');
+      if (attempts >= 2) {
+        busy = true;
+        speak(notSay(n, true), function () {
+          countDots('left', function () { busy = false; });
+        });
+        /* never leave the tiles locked */
+        setTimeout(function () { busy = false; }, 25000);
+      } else {
+        speak(notSay(n, false));
+      }
+      return;
+    }
+    finishSum();
+  }
+
+  function finishSum() {
+    busy = true;
+    mode = 'finished';
+    done.push(model);
+    footballs++;
+    save();
+    renderScore(true);
+    celebrate(22);
+    renderSum(true);
+    els.lead.textContent = 'GOAL! ⚽';
+    var last = round === ROUNDS_PER_HALF - 1;
+    els.nextBtn.textContent = last ? (half === 1 ? 'Half time ➜' : 'Full time ➜') : 'Next ➜';
+    show(['sum', 'lead', 'frames', 'btnRow'], ['sayBtn', 'nextBtn']);
+    speak(goalSay(model));
+  }
+
+  function nextRound() {
+    stopAll();
+    round++;
+    if (round >= ROUNDS_PER_HALF) {
+      if (half === 1) enterHalfTime(); else enterFullTime();
+      return;
+    }
+    enterRound();
+  }
+
+  /* ================= Board ================= */
+  function renderBoard() {
+    els.board.innerHTML = '';
+    done.forEach(function (m, i) {
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.innerHTML = m.a + ' − <span class="take">' + m.b + '</span> = <span class="res">' + resultOf(m) + '</span>';
+      b.addEventListener('click', function () { sayChip(i); });
+      els.board.appendChild(b);
+    });
+  }
+
+  function sayChip(i) {
+    stopAll();
+    var chips = els.board.querySelectorAll('.chip');
+    for (var c = 0; c < chips.length; c++) chips[c].classList.toggle('saying', c === i);
+    speak(resultSay(done[i]), function () { if (chips[i]) chips[i].classList.remove('saying'); });
+  }
+
+  function sayAll() {
+    var chips = els.board.querySelectorAll('.chip');
+    var list = [];
+    done.forEach(function (m, i) {
+      list.push({
+        act: function () { for (var c = 0; c < chips.length; c++) chips[c].classList.toggle('saying', c === i); },
+        say: resultSay(m)
+      });
+    });
+    list.push({ act: function () { for (var c = 0; c < chips.length; c++) chips[c].classList.remove('saying'); } });
+    stopAll();
+    sequence(list);
+  }
+
+  function enterHalfTime() {
+    mode = 'board';
+    half = 2;
+    round = 0;
+    els.half.textContent = 'Half time';
+    els.boardTitle.textContent = '📣 Half time!';
+    els.boardText.textContent = 'Next: two tens frames.';
+    els.boardBtn.textContent = 'Second half ➜';
+    renderBoard();
+    show(['boardBox']);
+    speak(halfTimeSay(done.length));
+  }
+
+  function enterFullTime() {
+    mode = 'board';
+    half = 3;
+    els.half.textContent = 'Full time';
+    els.boardTitle.textContent = '🏆 Full time!';
+    els.boardText.textContent = done.length + ' take away sums · ' + done.length + ' ⚽';
+    els.boardBtn.textContent = 'Play again ⚽';
+    renderBoard();
+    show(['boardBox']);
+    celebrate(45);
+    speak(fullTimeSay(done.length));
+  }
+
+  /* ================= Match ================= */
+  /* each half starts with the homework sum, then three more with
+     different starting numbers */
+  function buildQueue(h) {
+    var first = HOMEWORK[h - 1];
+    var out = [first];
+    shuffle(sumsOf(h)).forEach(function (m) {
+      if (out.length >= ROUNDS_PER_HALF) return;
+      var clash = out.some(function (o) { return o.a === m.a; });
+      if (!clash) out.push(m);
+    });
+    return out;
+  }
+
+  function startMatch() {
+    stopAll();
+    queue1 = buildQueue(1);
+    queue2 = buildQueue(2);
+    done = [];
+    half = 1;
+    round = 0;
+    enterRound();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasSpeech) {
+      pickVoice();
+      /* iOS: speech has to start inside this tap */
+      try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+    }
+    preload(phraseList());
+    els.startOverlay.remove();
+    startMatch();
+  });
+
+  els.frames.addEventListener('click', tapFrames);
+
+  els.sum.addEventListener('click', function () { els.sayBtn.click(); });
+
+  els.countBtn.addEventListener('click', function () {
+    if (mode === 'round' && !busy) countDots(phase === 'take' ? 'all' : 'left');
+  });
+  els.sayBtn.addEventListener('click', function () {
+    if (!model || busy && mode === 'round') return;
+    stopAll();
+    clearLit();
+    if (mode === 'finished') speak(resultSay(model));
+    else if (mode === 'round' && phase === 'answer') speak(takenSay(model.b));
+    else if (mode === 'round') speak(askSay(model));
+  });
+  els.nextBtn.addEventListener('click', nextRound);
+
+  els.boardSayBtn.addEventListener('click', sayAll);
+  els.boardBtn.addEventListener('click', function () {
+    stopAll();
+    if (half === 2) enterRound();
+    else startMatch();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>
