@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#7c2d12">
+<title>Message to Old Bear ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Old Bear">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #431407 0%, #9a3412 52%, #431407 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    background: rgba(0,0,0,.24);
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.6rem); flex: 0 1 auto; min-width: 0; }
+  @media (max-width: 620px) { header h1 { display: none; } }
+  #half {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.3rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2vh, 18px);
+    padding: clamp(8px, 2vh, 22px) 12px calc(clamp(10px, 2.4vh, 24px) + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1.05rem, 2.8vmin, 1.5rem); font-weight: 700; }
+
+  /* ---------- The letter (like the Seesaw page) ---------- */
+  #letter {
+    position: relative;
+    width: min(94vw, 620px);
+    background: #fffbeb;
+    color: #1e293b;
+    border-radius: 18px;
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    padding: clamp(12px, 2.4vmin, 22px) clamp(14px, 3vmin, 26px);
+    text-align: left;
+    --lh: clamp(46px, 9vmin, 68px);
+  }
+  #letter .stamp {
+    position: absolute;
+    top: 8px; right: 10px;
+    font-size: clamp(2rem, 7vmin, 3.4rem);
+    line-height: 1;
+    pointer-events: none;
+  }
+  .line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: var(--lh);
+    font-size: clamp(1rem, 3.4vmin, 1.55rem);
+    font-weight: 800;
+    cursor: pointer;
+    border-radius: 12px 12px 0 0;
+    border-bottom: 2px solid #fcd9a8;
+    padding: 4px 8px;
+  }
+  .line .ic { font-size: 1.3em; flex: 0 0 auto; width: 1.4em; text-align: center; }
+  .line .tx { flex: 1; min-width: 0; }
+  .line.faint { opacity: .4; }
+  .line.empty .tx { color: #cbd5e1; letter-spacing: .2em; }
+  .line .gap {
+    display: inline-block;
+    min-width: 4.5em;
+    border-bottom: 4px dashed #ea580c;
+    color: #ea580c;
+    animation: pulse 1.2s ease infinite;
+  }
+  .line .end { color: #c2410c; }
+  .line.active { background: rgba(251,191,36,.25); }
+  .line.saying { background: #fde68a; }
+  .line.new .end { display: inline-block; animation: bounceIn .5s ease; }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: .45; }
+  }
+
+  /* ---------- Picture cards ---------- */
+  #choices, #order {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(8px, 2vmin, 16px);
+    justify-content: center;
+    max-width: 720px;
+  }
+  .card {
+    position: relative;
+    width: clamp(98px, 28vw, 170px);
+    min-height: clamp(104px, 24vmin, 160px);
+    font-family: inherit;
+    color: #1e293b;
+    background: #fff;
+    border: 4px solid #fdba74;
+    border-bottom-width: 8px;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 6px;
+  }
+  .card:active { transform: translateY(4px); border-bottom-width: 4px; }
+  .card .pic { font-size: clamp(2.4rem, 9vmin, 4rem); line-height: 1.1; }
+  .card .lbl { font-size: clamp(.8rem, 2.2vmin, 1.05rem); font-weight: 800; line-height: 1.2; }
+  .card.wrong { background: #fecaca; animation: shake .4s ease; }
+  .card.hint { box-shadow: 0 0 0 6px rgba(253,224,71,.9); animation: pop 1s ease infinite; }
+  .card .hear {
+    position: absolute;
+    top: -12px; right: -12px;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: none;
+    background: #1d4ed8;
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 3px 0 rgba(0,0,0,.3);
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+  @keyframes pop {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+
+  /* ---------- Buttons ---------- */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(11px, 2vh, 17px) clamp(20px, 5vw, 40px);
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #22c55e, #15803d); }
+  .btn.quiet {
+    background: rgba(0,0,0,.32);
+    box-shadow: none;
+    font-size: clamp(.9rem, 2.2vmin, 1.15rem);
+    padding: clamp(10px, 1.6vh, 14px) clamp(16px, 4vw, 30px);
+  }
+
+  /* ---------- Board ---------- */
+  #boardBox { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
+  #boardTitle { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); font-weight: 800; }
+  #board {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(6px, 1.4vmin, 12px);
+    justify-content: center;
+    max-width: 720px;
+  }
+  .chip {
+    font-family: inherit;
+    font-size: clamp(1.6rem, 5vmin, 2.4rem);
+    padding: clamp(8px, 1.6vh, 14px) clamp(12px, 2.6vw, 20px);
+    border-radius: 16px;
+    border: 3px solid #fdba74;
+    background: #fffbeb;
+    color: #1e293b;
+    cursor: pointer;
+  }
+  .chip small { display: block; font-size: .42em; font-weight: 800; opacity: .65; }
+  .chip.saying { outline: 4px solid #fde047; outline-offset: 3px; }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #431407 0%, #9a3412 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(14px, 3.4vh, 30px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 6vmin, 2.8rem); }
+  #startOverlay .frame {
+    background: #fffbeb; color: #1e293b;
+    border-radius: 16px; padding: 14px 22px;
+    text-align: left; font-weight: 800; line-height: 1.7;
+    font-size: clamp(1rem, 3vmin, 1.35rem);
+    box-shadow: 0 6px 0 rgba(0,0,0,.25);
+  }
+  #startOverlay p { max-width: 30ch; opacity: .92; font-size: clamp(.95rem, 2.4vmin, 1.2rem); line-height: 1.5; }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 58px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>A message to Old Bear</h1>
+  <span id="half">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead hidden" id="lead"></p>
+
+  <div id="letter" class="hidden">
+    <span class="stamp">🧸</span>
+    <div id="lines"></div>
+  </div>
+
+  <div id="choices" class="hidden"></div>
+  <div id="order" class="hidden"></div>
+
+  <div class="row hidden" id="btnRow">
+    <button class="btn quiet" id="sayBtn">🔊 Say it again</button>
+    <button class="btn quiet" id="readBtn">📜 Read my message</button>
+    <button class="btn big" id="nextBtn">Next ➜</button>
+  </div>
+
+  <div id="boardBox" class="hidden">
+    <div id="boardTitle"></div>
+    <p id="boardText" class="lead"></p>
+    <div id="board"></div>
+    <div class="row">
+      <button class="btn quiet" id="boardSayBtn">🔊 Read them all</button>
+      <button class="btn big" id="boardBtn"></button>
+    </div>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>🧸✉️ A message to Old Bear ⚽</h2>
+  <div class="frame">
+    👋 Dear Old Bear,<br>
+    ❤️ I like you because .....<br>
+    🌟 I would like to......<br>
+    ✍️ From ...
+  </div>
+  <p>English homework, week 7. Write a message to Old Bear, then record your own one.</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower talking</label>
+  <button id="resetBtn">Reset score</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Homework =================
+     English - Homework Week 7: "Write a message to Old Bear. You can either
+     type or record your message to Old Bear."
+        Dear Old Bear,
+        I like you because .....
+        I would like to......
+        From ...
+
+     Every round he writes one message, line by line. First half the lines
+     come in order and he fills each blank: who it is to (Old Bear, not Tin
+     Dog), why he likes Old Bear, what he would like to do, who it is from
+     (Jack). Second half he puts the four lines in order himself before
+     filling them. One football ⚽ for every finished message, and the whole
+     message is read back so he can say his own on Seesaw. */
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🧸', '✉️', '💛'];
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so tools/phrases/hw-20261016-english-homework-week-7.txt is
+     generated straight out of this block (tools/gen-phrases.js). */
+
+  var ROUNDS_PER_HALF = 3;
+
+  var WORDS = ['zero', 'one', 'two', 'three', 'four', 'five',
+               'six', 'seven', 'eight', 'nine', 'ten'];
+
+  /* the four lines of the message, in order */
+  var ICONS = ['👋', '❤️', '🌟', '✍️'];
+  var STARTERS = ['Dear', 'I like you because', 'I would like to', 'From'];
+
+  var OLD_BEAR = 'Old Bear';
+  var ME = 'Jack';
+  var NAMES = [
+    { n: 'Old Bear', pic: '🧸' },
+    { n: 'Tin Dog',  pic: '🐶' },
+    { n: 'Jack',     pic: '👦' }
+  ];
+  var REASONS = [
+    { t: 'you are kind',           pic: '💛', lbl: 'kind' },
+    { t: 'you are cuddly',         pic: '🤗', lbl: 'cuddly' },
+    { t: 'you are funny',          pic: '😄', lbl: 'funny' },
+    { t: 'you are my friend',      pic: '🤝', lbl: 'my friend' },
+    { t: 'you tell good stories',  pic: '📖', lbl: 'stories' },
+    { t: 'you are brave',          pic: '🦁', lbl: 'brave' },
+    { t: 'you help your friends',  pic: '🙌', lbl: 'helps friends' }
+  ];
+  var ACTIVITIES = [
+    { t: 'have a picnic with you',     pic: '🧺', lbl: 'picnic' },
+    { t: 'play football with you',     pic: '⚽', lbl: 'football' },
+    { t: 'have a cup of tea with you', pic: '☕', lbl: 'cup of tea' },
+    { t: 'read a book with you',       pic: '📚', lbl: 'read a book' },
+    { t: 'go to the park with you',    pic: '🌳', lbl: 'the park' },
+    { t: 'fly a kite with you',        pic: '🪁', lbl: 'fly a kite' },
+    { t: 'have a party with you',      pic: '🎂', lbl: 'a party' }
+  ];
+
+  /* the finished lines: m = { r: reason, a: activity } */
+  function dearSay() { return 'Dear ' + OLD_BEAR + '.'; }
+  function likeSay(r) { return 'I like you because ' + r.t + '.'; }
+  function wantSay(a) { return 'I would like to ' + a.t + '.'; }
+  function fromSay() { return 'From ' + ME + '.'; }
+  function lineSay(k, m) {
+    return k === 0 ? dearSay() : k === 1 ? likeSay(m.r) : k === 2 ? wantSay(m.a) : fromSay();
+  }
+  function messageLines(m) { return [dearSay(), likeSay(m.r), wantSay(m.a), fromSay()]; }
+
+  /* a line that is not filled in yet: "I like you because..." */
+  function partSay(k) { return STARTERS[k] + '...'; }
+
+  /* what he is asked for each line */
+  function askSay(k) {
+    if (k === 0) return 'Dear... Who is the message to? Find Old Bear.';
+    if (k === 1) return 'I like you because... Why do you like Old Bear? Pick one.';
+    if (k === 2) return 'I would like to... What would you like to do with Old Bear? Pick one.';
+    return 'From... Who is the message from? It is from you!';
+  }
+  function wrongNameSay(k, name) {
+    return k === 0 ? 'Not ' + name + '. This message is to Old Bear.'
+                   : 'Not ' + name + '. The message is from you, Jack.';
+  }
+
+  /* second half: the lines in order */
+  function orderAsk(k) {
+    return k === 0 ? 'Put the message in order. What comes first?' : 'What comes next?';
+  }
+  function orderWrong(k) {
+    return k === 0 ? 'Not yet. A message starts with Dear.'
+                   : 'Not yet. Next comes ' + partSay(k);
+  }
+  function orderYes(k) { return 'Yes! ' + askSay(k); }
+
+  /* after a line is filled: the line, then what comes next */
+  function nextSay(k, m, half) {
+    var said = lineSay(k, m);
+    if (k >= 3) return said;
+    return said + ' ' + (half === 1 ? askSay(k + 1) : orderAsk(k + 1));
+  }
+
+  function introSay(half) {
+    return half === 1 ? 'Kick off! Let us write a message to Old Bear. A message starts with Dear. ' + askSay(0)
+                      : orderAsk(0);
+  }
+  var GOAL_SAY = 'Goal! Here is your message to Old Bear.';
+  function goalSay(m) { return GOAL_SAY + ' ' + messageLines(m).join(' '); }
+
+  function messagesWord(n) { return WORDS[n] + (n === 1 ? ' message' : ' messages'); }
+  function halfTimeSay(n) {
+    return 'Half time! You wrote ' + messagesWord(n) + ' to Old Bear. ' +
+           'In the second half, you put the message in order.';
+  }
+  function fullTimeSay(n) {
+    return 'Full time! You wrote ' + messagesWord(n) + ' to Old Bear. Brilliant! ' +
+           'Now record your own message to Old Bear.';
+  }
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i, j, k, n, h;
+    function add(s) { var b = bare(s); if (b && !seen[b]) { seen[b] = 1; out.push(s); } }
+    function addAll(text) { var p = segments(text); for (var q = 0; q < p.length; q++) add(p[q]); }
+    addAll(introSay(1));
+    addAll(introSay(2));
+    for (k = 0; k < 4; k++) {
+      addAll(partSay(k));
+      addAll(askSay(k));
+      addAll(orderAsk(k));
+      addAll(orderWrong(k));
+      addAll(orderYes(k));
+    }
+    for (i = 0; i < NAMES.length; i++) {
+      if (NAMES[i].n !== OLD_BEAR) addAll(wrongNameSay(0, NAMES[i].n));
+      if (NAMES[i].n !== ME) addAll(wrongNameSay(3, NAMES[i].n));
+    }
+    for (i = 0; i < REASONS.length; i++) {
+      for (j = 0; j < ACTIVITIES.length; j++) {
+        var m = { r: REASONS[i], a: ACTIVITIES[j] };
+        for (k = 0; k < 4; k++) for (h = 1; h <= 2; h++) addAll(nextSay(k, m, h));
+        addAll(goalSay(m));
+      }
+    }
+    for (n = 1; n <= ROUNDS_PER_HALF * 2; n++) { addAll(halfTimeSay(n)); addAll(fullTimeSay(n)); }
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') return;
+  window.__phrases = phraseList;
+
+  /* ================= State ================= */
+  var SCORE_KEY = 'jackHw_hw20261016englishhomeworkweek7';
+  var SLOW_KEY  = 'jackHw_hw20261016englishhomeworkweek7_slow';
+
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var half = 1;
+  var round = 0;
+  var done = [];          /* messages finished this match */
+  var msg = null;         /* { r, a } chosen so far */
+  var filled = [];        /* which of the four lines are written */
+  var k = 0;              /* the line he is on, 0..3 */
+  var phase = 'fill';     /* fill | order (second half: pick the line first) */
+  var options = [];       /* the cards on show */
+  var attempts = 0;
+  var lastNew = -1;       /* the line just written, for the little bounce */
+  var mode = 'start';     /* start | round | finished | board */
+  var flowToken = 0;      /* cancels a talking sequence */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), half: $('half'), lead: $('lead'),
+    letter: $('letter'), lines: $('lines'),
+    choices: $('choices'), order: $('order'), btnRow: $('btnRow'),
+    sayBtn: $('sayBtn'), readBtn: $('readBtn'), nextBtn: $('nextBtn'),
+    boardBox: $('boardBox'), boardTitle: $('boardTitle'), boardText: $('boardText'),
+    board: $('board'), boardSayBtn: $('boardSayBtn'), boardBtn: $('boardBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Voice =================
+     He cannot read yet, so every line is spoken. The browser's own voice
+     sounds like a computer, so every line is pre-rendered with a neural
+     en-GB voice (tools/build-audio.py) and played back through Web Audio,
+     segment by segment. speechSynthesis is only the fallback for a segment
+     that has no clip. speak() calls done() when the line has finished — with
+     a timer as a safety net, because iOS does not always fire onend. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/hw-20261016-english-homework-week-7/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Serena|Kate|Martha|Stephanie|Fiona|Samantha|Karen|Moira)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) ||
+      find(gb, /Google UK English Female/i) ||
+      find(gb, female) || gb[0] ||
+      find(en, good) || find(en, female) || en[0] || null;
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  /* the fallback: only used for a segment that has no clip */
+  function say(text, my, done, rate) {
+    window.__clipMisses.push(text);
+    var factor = slow ? 1.25 : 1;
+    if (!hasSpeech) {
+      setTimeout(function () { if (my === speakToken && done) done(); }, (600 + text.length * 45) * factor);
+      return;
+    }
+    var finished = false;
+    var guard = null;
+    var fin = function () {
+      if (finished) return;
+      finished = true;
+      clearTimeout(guard);
+      if (my === speakToken && done) done();
+    };
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = 'en-GB';
+      u.rate = (rate || 0.9) * (slow ? 0.8 : 1);
+      u.onend = fin;
+      u.onerror = fin;
+      guard = setTimeout(fin, (2500 + text.length * 110) * factor);
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { fin(); }
+  }
+
+  /* Plays a list of clip texts one after another, a breath between them.
+     `done` fires after the last one, unless something talked over it. */
+  function speakParts(parts, done, rate) {
+    stopSpeaking();
+    var my = speakToken;
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) { if (done) done(); return; }
+    if (!hasTTS) {
+      var len = parts.join(' ').length;
+      if (done) setTimeout(function () { if (my === speakToken) done(); }, (600 + len * 45) * (slow ? 1.25 : 1));
+      return;
+    }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(parts[i], my, onward, rate); });
+        } else {
+          say(parts[i], my, onward, rate);
+        }
+      })(0);
+    });
+  }
+
+  /* one line, cut into its segments */
+  function speak(text, done, rate) {
+    speakParts(segments(text), done, rate);
+  }
+
+  if (hasSpeech) {
+    pickVoice();
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function stopAll() {
+    flowToken++;
+    stopSpeaking();
+  }
+
+  /* Run a list of { act, say } one after another, each line waiting for
+     the one before it to finish. Anything else that talks stops it. */
+  function sequence(list) {
+    stopSpeaking();
+    var token = ++flowToken;
+    (function next(i) {
+      if (token !== flowToken || i >= list.length) return;
+      var s = list[i];
+      if (s.act) s.act();
+      if (s.say) speak(s.say, function () { setTimeout(function () { next(i + 1); }, 300); }, s.rate);
+      else setTimeout(function () { next(i + 1); }, s.wait || 500);
+    })(0);
+  }
+
+  /* ================= Small helpers ================= */
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  /* ================= Screens ================= */
+  var ALL = ['lead', 'letter', 'choices', 'order', 'btnRow', 'boardBox'];
+  function show(list, buttons) {
+    ALL.forEach(function (id) { els[id].classList.toggle('hidden', list.indexOf(id) === -1); });
+    buttons = buttons || [];
+    ['sayBtn', 'readBtn', 'nextBtn'].forEach(function (id) {
+      els[id].classList.toggle('hidden', buttons.indexOf(id) === -1);
+    });
+  }
+
+  /* ================= The letter ================= */
+  /* the line as it stands on the paper, written like the homework sheet */
+  function lineHtml(i) {
+    var gap = '<span class="gap">&nbsp;</span>';
+    var on = phase === 'fill' && i === k && !filled[i];
+    if (i === 0) return 'Dear ' + (filled[0] ? '<span class="end">Old Bear,</span>' : on ? gap + ',' : '');
+    if (i === 1) return 'I like you because ' + (filled[1] ? '<span class="end">' + msg.r.t + '.</span>' : on ? gap : '.....');
+    if (i === 2) return 'I would like to ' + (filled[2] ? '<span class="end">' + msg.a.t + '.</span>' : on ? gap : '......');
+    return 'From ' + (filled[3] ? '<span class="end">Jack</span>' : on ? gap : '...');
+  }
+
+  function renderLetter() {
+    els.lines.innerHTML = '';
+    for (var i = 0; i < 4; i++) {
+      var d = document.createElement('div');
+      var blank = half === 2 && !filled[i] && !(phase === 'fill' && i === k);
+      d.className = 'line' +
+        (blank ? ' empty' : '') +
+        (!blank && !filled[i] && i !== k ? ' faint' : '') +
+        (mode === 'round' && i === k && !filled[i] ? ' active' : '') +
+        (i === lastNew ? ' new' : '');
+      d.innerHTML = blank
+        ? '<span class="ic"></span><span class="tx">? ? ?</span>'
+        : '<span class="ic">' + ICONS[i] + '</span><span class="tx">' + lineHtml(i) + '</span>';
+      d.addEventListener('click', tapLine.bind(null, i));
+      els.lines.appendChild(d);
+    }
+    lastNew = -1;
+  }
+
+  /* tapping a line on the paper reads it */
+  function tapLine(i) {
+    if (mode === 'start' || mode === 'board') return;
+    if (filled[i]) { stopAll(); speak(lineSay(i, msg)); return; }
+    if (half === 2 && !(phase === 'fill' && i === k)) return;
+    stopAll();
+    speak(i === k && mode === 'round' ? askSay(i) : partSay(i));
+  }
+
+  function markSaying(i) {
+    var ls = els.lines.querySelectorAll('.line');
+    for (var c = 0; c < ls.length; c++) ls[c].classList.toggle('saying', c === i);
+  }
+
+  function readMessage(head) {
+    var list = [];
+    if (head) list.push({ say: head });
+    for (var i = 0; i < 4; i++) {
+      if (!filled[i]) continue;
+      list.push({ act: markSaying.bind(null, i), say: lineSay(i, msg) });
+    }
+    list.push({ act: markSaying.bind(null, -1) });
+    sequence(list);
+  }
+
+  /* ================= Picture cards ================= */
+  function lead(text) { els.lead.textContent = text; }
+
+  function leadFor(i) {
+    if (i === 0) return '👋 Dear … who is it to?';
+    if (i === 1) return '❤️ I like you because …';
+    if (i === 2) return '🌟 I would like to …';
+    return '✍️ From … who is it from?';
+  }
+
+  /* an order card holds its own 🔊 button, so it is a div, not a button */
+  function makeCard(pic, lbl, asDiv) {
+    var b = document.createElement(asDiv ? 'div' : 'button');
+    b.className = 'card';
+    if (asDiv) b.setAttribute('role', 'button');
+    else b.type = 'button';
+    b.innerHTML = '<span class="pic">' + pic + '</span><span class="lbl">' + lbl + '</span>';
+    return b;
+  }
+
+  function renderChoices() {
+    els.choices.innerHTML = '';
+    options.forEach(function (o, i) {
+      var b = makeCard(o.pic, o.n || o.lbl);
+      b.addEventListener('click', function () { pick(i, b); });
+      els.choices.appendChild(b);
+    });
+  }
+
+  function optionsFor(i) {
+    if (i === 0 || i === 3) return shuffle(NAMES);
+    return shuffle(i === 1 ? REASONS : ACTIVITIES).slice(0, 3);
+  }
+
+  function renderOrder() {
+    els.order.innerHTML = '';
+    var left = [];
+    for (var i = 0; i < 4; i++) if (!filled[i]) left.push(i);
+    shuffle(left).forEach(function (p) {
+      var b = makeCard(ICONS[p], STARTERS[p] + ' …', true);
+      b.dataset.part = String(p);
+      b.addEventListener('click', function () { pickOrder(p, b); });
+      var h = document.createElement('button');
+      h.className = 'hear';
+      h.type = 'button';
+      h.textContent = '🔊';
+      h.addEventListener('click', function (e) {
+        e.stopPropagation();
+        stopAll();
+        speak(partSay(p));
+      });
+      b.appendChild(h);
+      els.order.appendChild(b);
+    });
+  }
+
+  /* show the step he is on: picture cards (fill) or the four lines (order) */
+  function showStep() {
+    attempts = 0;
+    if (phase === 'fill') {
+      options = optionsFor(k);
+      renderChoices();
+      lead(leadFor(k));
+      renderLetter();
+      show(['lead', 'letter', 'choices', 'btnRow'], ['sayBtn']);
+    } else {
+      renderOrder();
+      lead(k === 0 ? 'What comes first?' : 'What comes next?');
+      renderLetter();
+      show(['lead', 'letter', 'order', 'btnRow'], ['sayBtn']);
+    }
+  }
+
+  function wrongCard(b) {
+    b.classList.remove('wrong');
+    void b.offsetWidth;
+    b.classList.add('wrong');
+  }
+
+  function hintCard(container, test) {
+    var cs = container.querySelectorAll('.card');
+    for (var c = 0; c < cs.length; c++) if (test(cs[c])) cs[c].classList.add('hint');
+  }
+
+  function pick(i, b) {
+    if (mode !== 'round' || phase !== 'fill') return;
+    var o = options[i];
+    if (k === 0 || k === 3) {
+      var want = k === 0 ? OLD_BEAR : ME;
+      if (o.n !== want) {
+        stopAll();
+        attempts++;
+        wrongCard(b);
+        if (attempts >= 2) hintCard(els.choices, function (c) { return c.querySelector('.lbl').textContent === want; });
+        speak(wrongNameSay(k, o.n));
+        return;
+      }
+    }
+    if (k === 1) msg.r = o;
+    if (k === 2) msg.a = o;
+    lineDone();
+  }
+
+  function pickOrder(p, b) {
+    if (mode !== 'round' || phase !== 'order') return;
+    stopAll();
+    if (p !== k) {
+      attempts++;
+      wrongCard(b);
+      if (attempts >= 2) hintCard(els.order, function (c) { return c.dataset.part === String(k); });
+      speak(orderWrong(k));
+      return;
+    }
+    phase = 'fill';
+    showStep();
+    speak(orderYes(k));
+  }
+
+  function lineDone() {
+    stopAll();
+    filled[k] = true;
+    lastNew = k;
+    var said = nextSay(k, msg, half);
+    k++;
+    if (k >= 4) {
+      renderLetter();
+      finishMessage();
+      return;
+    }
+    phase = half === 1 ? 'fill' : 'order';
+    showStep();
+    speak(said);
+  }
+
+  /* ================= A round ================= */
+  function enterRound() {
+    stopAll();
+    mode = 'round';
+    msg = { r: null, a: null };
+    filled = [false, false, false, false];
+    k = 0;
+    phase = half === 1 ? 'fill' : 'order';
+    els.half.textContent = (half === 1 ? 'First half · ' : 'Second half · ') + (round + 1) + '/' + ROUNDS_PER_HALF;
+    showStep();
+    var first = round === 0 ? introSay(half) : (half === 1 ? askSay(0) : orderAsk(0));
+    var startPhase = phase;
+    setTimeout(function () { if (mode === 'round' && k === 0 && phase === startPhase) speak(first); }, 300);
+  }
+
+  function currentAsk() {
+    return phase === 'order' ? orderAsk(k) : askSay(k);
+  }
+
+  function finishMessage() {
+    mode = 'finished';
+    done.push({ r: msg.r, a: msg.a });
+    footballs++;
+    save();
+    renderScore(true);
+    celebrate(22);
+    lead('GOAL! ⚽ Your message to Old Bear');
+    var last = round === ROUNDS_PER_HALF - 1;
+    els.nextBtn.textContent = last ? (half === 1 ? 'Half time ➜' : 'Full time ➜') : 'Next ➜';
+    renderLetter();
+    show(['lead', 'letter', 'btnRow'], ['readBtn', 'nextBtn']);
+    readMessage(GOAL_SAY);
+  }
+
+  function nextRound() {
+    stopAll();
+    round++;
+    if (round >= ROUNDS_PER_HALF) {
+      if (half === 1) enterHalfTime(); else enterFullTime();
+      return;
+    }
+    enterRound();
+  }
+
+  /* ================= Board ================= */
+  function renderBoard() {
+    els.board.innerHTML = '';
+    done.forEach(function (m, i) {
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.innerHTML = '🧸 ' + m.r.pic + ' ' + m.a.pic + '<small>' + m.r.lbl + ' · ' + m.a.lbl + '</small>';
+      b.addEventListener('click', function () { sayChip(i); });
+      els.board.appendChild(b);
+    });
+  }
+
+  function markChip(i) {
+    var chips = els.board.querySelectorAll('.chip');
+    for (var c = 0; c < chips.length; c++) chips[c].classList.toggle('saying', c === i);
+  }
+
+  function chipSteps(i) {
+    var lines = messageLines(done[i]);
+    var list = [{ act: markChip.bind(null, i), say: lines[0] }];
+    for (var j = 1; j < lines.length; j++) list.push({ say: lines[j] });
+    return list;
+  }
+
+  function sayChip(i) {
+    sequence(chipSteps(i).concat([{ act: markChip.bind(null, -1) }]));
+  }
+
+  function sayAll() {
+    var list = [];
+    done.forEach(function (m, i) { list = list.concat(chipSteps(i)); });
+    list.push({ act: markChip.bind(null, -1) });
+    sequence(list);
+  }
+
+  function enterHalfTime() {
+    mode = 'board';
+    half = 2;
+    round = 0;
+    els.half.textContent = 'Half time';
+    els.boardTitle.textContent = '📣 Half time!';
+    els.boardText.textContent = 'Next: put the message in order.';
+    els.boardBtn.textContent = 'Second half ➜';
+    renderBoard();
+    show(['boardBox']);
+    speak(halfTimeSay(done.length));
+  }
+
+  function enterFullTime() {
+    mode = 'board';
+    half = 3;
+    els.half.textContent = 'Full time';
+    els.boardTitle.textContent = '🏆 Full time!';
+    els.boardText.textContent = done.length + ' messages to Old Bear · ' + done.length + ' ⚽ · Now record yours on Seesaw 🎤';
+    els.boardBtn.textContent = 'Play again ⚽';
+    renderBoard();
+    show(['boardBox']);
+    celebrate(45);
+    speak(fullTimeSay(done.length));
+  }
+
+  /* ================= Match ================= */
+  function startMatch() {
+    stopAll();
+    done = [];
+    half = 1;
+    round = 0;
+    enterRound();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasSpeech) {
+      pickVoice();
+      /* iOS: speech has to start inside this tap */
+      try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+    }
+    preload(phraseList());
+    els.startOverlay.remove();
+    startMatch();
+  });
+
+  els.sayBtn.addEventListener('click', function () {
+    if (mode !== 'round') return;
+    stopAll();
+    speak(currentAsk());
+  });
+  els.readBtn.addEventListener('click', function () {
+    if (mode === 'finished') readMessage();
+  });
+  els.nextBtn.addEventListener('click', nextRound);
+
+  els.boardSayBtn.addEventListener('click', sayAll);
+  els.boardBtn.addEventListener('click', function () {
+    stopAll();
+    if (half === 2) enterRound();
+    else startMatch();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>
