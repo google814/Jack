@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#6d28d9">
+<title>Editing a Sprite ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Edit a Sprite">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #2e1065 0%, #6d28d9 52%, #2e1065 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    background: rgba(0,0,0,.24);
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.6rem); flex: 0 1 auto; min-width: 0; }
+  @media (max-width: 620px) { header h1 { display: none; } }
+  #half {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.3rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2vh, 18px);
+    padding: clamp(8px, 2vh, 22px) 12px calc(clamp(10px, 2.4vh, 24px) + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1.05rem, 2.8vmin, 1.5rem); font-weight: 700; }
+
+  #work {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(8px, 2vh, 18px);
+  }
+  #stage {
+    --s: min(42vw, 30vh, 300px);
+    display: flex;
+    gap: clamp(8px, 2vmin, 18px);
+    justify-content: center;
+    align-items: flex-end;
+  }
+  #stage.solo { --s: min(72vw, 38vh, 340px); }
+  .panel { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .panel .tag { font-size: clamp(.8rem, 2.2vmin, 1.05rem); font-weight: 800; }
+  .canvas {
+    width: var(--s);
+    height: var(--s);
+    background: #fff;
+    border-radius: 22px;
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    cursor: pointer;
+    overflow: hidden;
+  }
+  #targetPanel .canvas { background: #fef9c3; cursor: default; }
+  .canvas svg, .chip svg, .pick svg { display: block; width: 100%; height: 100%; }
+  .canvas.pop svg { animation: pop .4s ease; }
+  .canvas.wobble svg { animation: shake .4s ease; }
+  @keyframes pop {
+    0% { transform: scale(.82); }
+    60% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* ---------- Tools ---------- */
+  #tools { display: flex; flex-direction: column; gap: clamp(5px, 1.2vmin, 10px); align-items: center; }
+  .toolRow { display: flex; flex-wrap: wrap; gap: clamp(5px, 1.2vmin, 10px); justify-content: center; }
+  .tool {
+    width: clamp(48px, 10.5vmin, 76px);
+    height: clamp(48px, 10.5vmin, 76px);
+    padding: 5px;
+    background: #f5f3ff;
+    border: none;
+    border-bottom: 6px solid rgba(0,0,0,.28);
+    border-radius: 16px;
+    cursor: pointer;
+  }
+  .tool svg { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .tool:active { transform: translateY(4px); border-bottom-width: 2px; }
+  .tool.colour { border-radius: 50%; }
+  .tool.wrong { background: #fecaca; animation: shake .4s ease; }
+  .tool.hint {
+    box-shadow: 0 0 0 6px rgba(253,224,71,.9);
+    animation: pulse 1.1s ease infinite;
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+  }
+
+  /* ---------- Buttons ---------- */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(11px, 2vh, 17px) clamp(20px, 5vw, 40px);
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.go { background: linear-gradient(145deg, #22c55e, #15803d); }
+  .btn.quiet {
+    background: rgba(0,0,0,.32);
+    box-shadow: none;
+    font-size: clamp(.9rem, 2.2vmin, 1.15rem);
+    padding: clamp(10px, 1.6vh, 14px) clamp(16px, 4vw, 30px);
+  }
+
+  /* ---------- Pick a sprite ---------- */
+  #picks { display: grid; grid-template-columns: repeat(2, auto); gap: clamp(10px, 2.4vmin, 20px); }
+  .pick {
+    width: min(38vw, 26vh, 190px);
+    height: min(38vw, 26vh, 190px);
+    background: #fff;
+    border: none;
+    border-radius: 22px;
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    cursor: pointer;
+  }
+  .pick:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+
+  /* ---------- Upload your work ---------- */
+  #uploadBox { display: flex; flex-direction: column; align-items: center; gap: clamp(12px, 2.4vh, 22px); }
+  #projCard {
+    --s: min(52vw, 32vh, 260px);
+    position: relative;
+    background: #fff;
+    color: #1e293b;
+    border-radius: 18px;
+    padding: 8px 8px 6px;
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    font-weight: 800;
+    font-size: clamp(.85rem, 2.2vmin, 1.05rem);
+    overflow: hidden;
+  }
+  #projCard .canvas { box-shadow: none; cursor: default; }
+  #projCard.snap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    animation: flash .5s ease forwards;
+  }
+  @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+  #upBar {
+    width: min(76vw, 420px);
+    height: 18px;
+    background: rgba(0,0,0,.3);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  #upFill { height: 100%; width: 0; background: #22c55e; transition: width 1.8s linear; }
+  #upStatus { font-weight: 800; font-size: clamp(1rem, 2.8vmin, 1.4rem); min-height: 1.4em; }
+  .bigAct {
+    font-family: inherit;
+    font-weight: 800;
+    font-size: clamp(1rem, 2.8vmin, 1.3rem);
+    color: #1e293b;
+    background: #fff;
+    border: none;
+    border-bottom: 6px solid rgba(0,0,0,.28);
+    border-radius: 20px;
+    padding: clamp(10px, 1.8vh, 16px) clamp(20px, 5vw, 36px);
+    cursor: pointer;
+    min-width: 130px;
+  }
+  .bigAct .emo { display: block; font-size: clamp(2rem, 7vmin, 3.2rem); line-height: 1.15; }
+  .bigAct:active { transform: translateY(4px); border-bottom-width: 2px; }
+  .bigAct.now {
+    box-shadow: 0 0 0 6px rgba(253,224,71,.9);
+    animation: pulse 1.1s ease infinite;
+  }
+  .bigAct.off { opacity: .45; }
+
+  /* ---------- Match board ---------- */
+  #boardBox { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
+  #boardTitle { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); font-weight: 800; }
+  #board {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(6px, 1.4vmin, 12px);
+    justify-content: center;
+    max-width: 720px;
+  }
+  .chip {
+    width: clamp(72px, 17vmin, 120px);
+    height: clamp(72px, 17vmin, 120px);
+    border-radius: 16px;
+    border: 3px solid #fde047;
+    background: #fff;
+    cursor: pointer;
+    padding: 2px;
+  }
+  .chip.saying { outline: 4px solid #fde047; outline-offset: 3px; }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #2e1065 0%, #6d28d9 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 6vmin, 2.8rem); }
+  #startOverlay p { max-width: 28ch; opacity: .92; font-size: clamp(.95rem, 2.4vmin, 1.2rem); line-height: 1.5; }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 58px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  /* a phone on its side: sprite on the left, tools on the right */
+  @media (max-height: 520px) and (orientation: landscape) {
+    #work { flex-direction: row; }
+    #stage { --s: min(24vw, 46vh); }
+    #stage.solo { --s: min(34vw, 52vh); }
+    .tool { width: 46px; height: 46px; }
+    #projCard { --s: 34vh; }
+    .pick { width: 30vh; height: 30vh; }
+    #picks { grid-template-columns: repeat(4, auto); }
+    #uploadBox { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Editing a sprite</h1>
+  <span id="half">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead hidden" id="lead"></p>
+
+  <div id="picks" class="hidden"></div>
+
+  <div id="work" class="hidden">
+    <div id="stage">
+      <div class="panel hidden" id="targetPanel">
+        <span class="tag">👀 Picture</span>
+        <div class="canvas" id="targetCanvas"></div>
+      </div>
+      <div class="panel">
+        <span class="tag hidden" id="myTag">✏️ My sprite</span>
+        <div class="canvas" id="myCanvas"></div>
+      </div>
+    </div>
+    <div id="tools" class="hidden"></div>
+  </div>
+
+  <div id="uploadBox" class="hidden">
+    <div id="projCard">
+      <div class="canvas" id="projCanvas"></div>
+      <div>My project today</div>
+    </div>
+    <div class="row">
+      <button class="bigAct" id="snapBtn" type="button"><span class="emo">📷</span>Photo</button>
+      <button class="bigAct" id="upBtn" type="button"><span class="emo">⬆️</span>Upload</button>
+    </div>
+    <div id="upBar"><div id="upFill"></div></div>
+    <div id="upStatus"></div>
+  </div>
+
+  <div class="row hidden" id="btnRow">
+    <button class="btn quiet" id="sayBtn">🔊 Say it again</button>
+    <button class="btn go" id="toUploadBtn">⬆️ Upload your work</button>
+    <button class="btn big" id="nextBtn">Next ➜</button>
+  </div>
+
+  <div id="boardBox" class="hidden">
+    <div id="boardTitle"></div>
+    <p id="boardText" class="lead"></p>
+    <div id="board"></div>
+    <div class="row">
+      <button class="btn big" id="boardBtn"></button>
+    </div>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>⚽ Editing a sprite ⚽</h2>
+  <p>Computing<br>Change the colour and the size. Add a hat.<br>My project today · Upload your work</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower talking</label>
+  <button id="resetBtn">Reset score</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Homework =================
+     Computing_L2_Y1_Editing_a_Sprite: "My project today" / "Upload your work".
+     A sprite is a character in a computer project; editing it means changing
+     how it looks. The first match starts with a short look at the tools.
+     First half: four sprites, he hears one edit ("Make the cat red") and taps
+     the tool. Second half: four sprites, two edits each, he makes his sprite
+     look the same as the picture. Then "My project today": he picks a sprite,
+     edits it any way he likes and uploads his work, the way his work goes to
+     Seesaw: take a photo, then tap Upload. One football ⚽ for every sprite
+     and one for the upload. */
+
+  var ROUNDS_PER_HALF = 4;
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🎨', '🎩'];
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so tools/phrases/hw-20261030-computing-l2-y1-editing--1.txt is
+     generated straight out of this block (tools/gen-phrases.js). */
+
+  var WORDS = ['zero', 'one', 'two', 'three', 'four', 'five',
+               'six', 'seven', 'eight', 'nine', 'ten'];
+
+  var SPRITE_NAMES = ['cat', 'robot', 'fish', 'monster'];
+  var COLOURS = ['red', 'blue', 'green', 'yellow', 'orange', 'purple'];
+  var WEARS = { hat: 'a hat', crown: 'a crown', glasses: 'glasses', ball: 'a football' };
+  var EDIT_TOOLS = COLOURS.concat(['bigger', 'smaller', 'turn', 'hat', 'crown', 'glasses', 'ball']);
+
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function toolKind(t) {
+    if (COLOURS.indexOf(t) >= 0) return 'colour';
+    if (t === 'bigger' || t === 'smaller') return 'size';
+    if (t === 'turn') return 'turn';
+    if (t === 'undo') return 'undo';
+    return 'wear';
+  }
+
+  /* what a tool says when it is tapped */
+  function toolSay(t) {
+    var k = toolKind(t);
+    if (k === 'wear') return cap(WEARS[t]) + '.';
+    if (k === 'turn') return 'Turn round.';
+    return cap(t) + '.';
+  }
+
+  /* "Make the cat red." */
+  function taskSay(name, t) {
+    var k = toolKind(t);
+    if (k === 'wear') return 'Give the ' + name + ' ' + WEARS[t] + '.';
+    if (k === 'turn') return 'Turn the ' + name + ' round.';
+    return 'Make the ' + name + ' ' + t + '.';
+  }
+
+  /* "You made the cat red." */
+  function didSay(name, t) {
+    var k = toolKind(t);
+    if (k === 'wear') return 'You gave the ' + name + ' ' + WEARS[t] + '.';
+    if (k === 'turn') return 'You turned the ' + name + ' round.';
+    return 'You made the ' + name + ' ' + t + '.';
+  }
+  function chipSay(name, edits) {
+    return edits.map(function (t) { return didSay(name, t); }).join(' ');
+  }
+  function goalSay(name, edits) { return 'Goal! ' + chipSay(name, edits); }
+
+  /* half 1 he hears the edit, half 2 he looks at the picture */
+  function askSay(half, name, edits) {
+    return half === 1 ? taskSay(name, edits[0])
+                      : 'Look at the picture. Make your ' + name + ' look the same.';
+  }
+  function introSay(half) {
+    return half === 1 ? 'First half! Listen, then edit the sprite. '
+                      : 'Second half! Two changes every time. ';
+  }
+  function yesSay(t) { return 'Yes! ' + toolSay(t) + ' One more change.'; }
+  function notSay(half, name, edits) { return 'Not that one. Try again. ' + askSay(half, name, edits); }
+  function hintSay(name, t) { return 'Not that one. Tap the shining one. ' + taskSay(name, t); }
+  var DONE_SAY = 'You did that one. One more change.';
+
+  /* the first look at the tools, line by line */
+  var INTRO_SAY = [
+    'Editing a sprite!',
+    'This is a sprite. A sprite is a character in your project.',
+    'Editing a sprite means changing how it looks.',
+    'You can change the colour.',
+    'You can make it bigger or smaller.',
+    'You can add a hat.',
+    'You can turn it round.',
+    'Now it is your turn!'
+  ];
+
+  /* my project today */
+  var PICK_SAY = 'My project today! Pick a sprite.';
+  var FREE_SAY = 'Now edit your sprite. Change anything you like. Then tap Upload your work.';
+  var NEED_EDIT_SAY = 'Edit your sprite first.';
+  function pickedSay(name) { return 'The ' + name + '! ' + FREE_SAY; }
+  function projectChipSay(name) { return 'My project today. My ' + name + '.'; }
+
+  /* upload your work, step by step */
+  var UPLOAD_SAY = {
+    start: 'Now upload your work! First, take a photo of your project.',
+    snap: 'Click! Great photo. Next, tap Upload.',
+    going: 'Uploading your work.',
+    done: 'Your work is uploaded! Well done!'
+  };
+
+  function halfTimeSay(n) {
+    return 'Half time! You edited ' + WORDS[n] + ' sprites. ' +
+           'In the second half, make your sprite look the same as the picture.';
+  }
+  function fullTimeSay(n) {
+    return 'Full time! You edited ' + WORDS[n] + ' sprites and uploaded your work. Brilliant!';
+  }
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i, j, k;
+    function add(s) { var b = bare(s); if (b && !seen[b]) { seen[b] = 1; out.push(s); } }
+    function addAll(text) { var p = segments(text); for (var q = 0; q < p.length; q++) add(p[q]); }
+    for (i = 0; i < INTRO_SAY.length; i++) addAll(INTRO_SAY[i]);
+    addAll(introSay(1));
+    addAll(introSay(2));
+    for (j = 0; j < EDIT_TOOLS.length; j++) {
+      addAll(toolSay(EDIT_TOOLS[j]));
+      addAll(yesSay(EDIT_TOOLS[j]));
+    }
+    addAll(toolSay('undo'));
+    for (i = 0; i < SPRITE_NAMES.length; i++) {
+      var name = SPRITE_NAMES[i];
+      for (j = 0; j < EDIT_TOOLS.length; j++) {
+        addAll(taskSay(name, EDIT_TOOLS[j]));
+        addAll(goalSay(name, [EDIT_TOOLS[j]]));
+        addAll(hintSay(name, EDIT_TOOLS[j]));
+        addAll(notSay(1, name, [EDIT_TOOLS[j]]));
+      }
+      addAll(askSay(2, name, []));
+      addAll(notSay(2, name, []));
+      addAll(pickedSay(name));
+      addAll(projectChipSay(name));
+    }
+    addAll(DONE_SAY);
+    addAll(PICK_SAY);
+    addAll(FREE_SAY);
+    addAll(NEED_EDIT_SAY);
+    for (k in UPLOAD_SAY) addAll(UPLOAD_SAY[k]);
+    addAll(halfTimeSay(4));
+    addAll(fullTimeSay(8));
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') return;
+  window.__phrases = phraseList;
+
+  /* ================= State ================= */
+  var SCORE_KEY = 'jackHw_hw20261030computingl2y1editing1';
+  var SLOW_KEY  = 'jackHw_hw20261030computingl2y1editing1_slow';
+
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var half = 1;
+  var round = 0;
+  var queue1 = [], queue2 = [];
+  var done = [];          /* sprites finished this match: { look, name, edits } */
+  var task = null;        /* { name, edits } */
+  var look = null;        /* the sprite as it is now */
+  var goal = null;        /* the sprite as it should end up */
+  var attempts = 0;
+  var busy = false;
+  var history = [];       /* my project today: the looks to undo back to */
+  var project = null;     /* my project today: { look, name } */
+  var introSeen = false;
+  var upStep = 0;         /* 0 take a photo, 1 upload, 2 uploading, 3 done */
+  var mode = 'start';     /* start | intro | round | finished | pick | free | upload | uploaded | board */
+  var flowToken = 0;      /* cancels a talking sequence */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), half: $('half'), lead: $('lead'),
+    picks: $('picks'), work: $('work'), stage: $('stage'),
+    targetPanel: $('targetPanel'), targetCanvas: $('targetCanvas'),
+    myTag: $('myTag'), myCanvas: $('myCanvas'), tools: $('tools'),
+    uploadBox: $('uploadBox'), projCard: $('projCard'), projCanvas: $('projCanvas'),
+    snapBtn: $('snapBtn'), upBtn: $('upBtn'), upFill: $('upFill'), upStatus: $('upStatus'),
+    btnRow: $('btnRow'), sayBtn: $('sayBtn'), toUploadBtn: $('toUploadBtn'), nextBtn: $('nextBtn'),
+    boardBox: $('boardBox'), boardTitle: $('boardTitle'), boardText: $('boardText'),
+    board: $('board'), boardBtn: $('boardBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Voice =================
+     He cannot read yet, so every line is spoken. The browser's own voice
+     sounds like a computer, so every line is pre-rendered with a neural
+     en-GB voice (tools/build-audio.py) and played back through Web Audio,
+     segment by segment. speechSynthesis is only the fallback for a segment
+     that has no clip. speak() calls done() when the line has finished — with
+     a timer as a safety net, because iOS does not always fire onend. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/hw-20261030-computing-l2-y1-editing--1/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Serena|Kate|Martha|Stephanie|Fiona|Samantha|Karen|Moira)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) ||
+      find(gb, /Google UK English Female/i) ||
+      find(gb, female) || gb[0] ||
+      find(en, good) || find(en, female) || en[0] || null;
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  /* the fallback: only used for a segment that has no clip */
+  function say(text, my, done, rate) {
+    window.__clipMisses.push(text);
+    var factor = slow ? 1.25 : 1;
+    if (!hasSpeech) {
+      setTimeout(function () { if (my === speakToken && done) done(); }, (600 + text.length * 45) * factor);
+      return;
+    }
+    var finished = false;
+    var guard = null;
+    var fin = function () {
+      if (finished) return;
+      finished = true;
+      clearTimeout(guard);
+      if (my === speakToken && done) done();
+    };
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = 'en-GB';
+      u.rate = (rate || 0.9) * (slow ? 0.8 : 1);
+      u.onend = fin;
+      u.onerror = fin;
+      guard = setTimeout(fin, (2500 + text.length * 110) * factor);
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { fin(); }
+  }
+
+  /* Plays a list of clip texts one after another, a breath between them.
+     `done` fires after the last one, unless something talked over it. */
+  function speakParts(parts, done, rate) {
+    stopSpeaking();
+    var my = speakToken;
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) { if (done) done(); return; }
+    if (!hasTTS) {
+      var len = parts.join(' ').length;
+      if (done) setTimeout(function () { if (my === speakToken) done(); }, (600 + len * 45) * (slow ? 1.25 : 1));
+      return;
+    }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(parts[i], my, onward, rate); });
+        } else {
+          say(parts[i], my, onward, rate);
+        }
+      })(0);
+    });
+  }
+
+  /* one line, cut into its segments */
+  function speak(text, done, rate) {
+    speakParts(segments(text), done, rate);
+  }
+
+  if (hasSpeech) {
+    pickVoice();
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function stopAll() {
+    flowToken++;
+    stopSpeaking();
+  }
+
+  /* Run a list of { act, say } one after another, each line waiting for
+     the one before it to finish. Anything else that talks stops it. */
+  function sequence(list) {
+    var token = ++flowToken;
+    (function next(i) {
+      if (token !== flowToken || i >= list.length) return;
+      var s = list[i];
+      if (s.act) s.act();
+      if (s.say) speak(s.say, function () { setTimeout(function () { next(i + 1); }, 300); }, s.rate);
+      else setTimeout(function () { next(i + 1); }, s.wait || 500);
+    })(0);
+  }
+
+  /* ================= Small helpers ================= */
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  /* ================= Screens ================= */
+  var ALL = ['lead', 'picks', 'work', 'uploadBox', 'btnRow', 'boardBox'];
+  function show(list, buttons) {
+    ALL.forEach(function (id) { els[id].classList.toggle('hidden', list.indexOf(id) === -1); });
+    buttons = buttons || [];
+    ['sayBtn', 'toUploadBtn', 'nextBtn'].forEach(function (id) {
+      els[id].classList.toggle('hidden', buttons.indexOf(id) === -1);
+    });
+  }
+
+  /* ================= Drawing the sprites =================
+     Inline SVG, because the colour, the size and the way it faces all have to
+     change. A look is { name, colour, size, wear, flip }. */
+  var HEX = {
+    red: '#ef4444', blue: '#3b82f6', green: '#22c55e',
+    yellow: '#facc15', orange: '#fb923c', purple: '#a855f7'
+  };
+  var INK = '#1e293b';
+  var LINE = ' stroke="' + INK + '" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"';
+  var SIZES = [0.58, 0.78, 1];   /* smaller, as it starts, bigger */
+
+  /* each sprite: its colour at the start, where things go on it, its body */
+  var ART = {
+    cat: { colour: 'orange', hat: [118, 53], glasses: [118, 82], ball: [155, 165], body: function (c) {
+      return '<path d="M58 150 C22 150 18 108 40 92" fill="none" stroke="' + INK + '" stroke-width="16" stroke-linecap="round"/>' +
+        '<path d="M58 150 C22 150 18 108 40 92" fill="none" stroke="' + c + '" stroke-width="8" stroke-linecap="round"/>' +
+        '<ellipse cx="94" cy="136" rx="44" ry="40" fill="' + c + '"' + LINE + '/>' +
+        '<ellipse cx="74" cy="174" rx="15" ry="8" fill="' + c + '"' + LINE + '/>' +
+        '<ellipse cx="114" cy="174" rx="15" ry="8" fill="' + c + '"' + LINE + '/>' +
+        '<polygon points="88,70 90,32 116,54" fill="' + c + '"' + LINE + '/>' +
+        '<polygon points="148,70 146,32 120,54" fill="' + c + '"' + LINE + '/>' +
+        '<circle cx="118" cy="85" r="34" fill="' + c + '"' + LINE + '/>' +
+        '<circle cx="106" cy="82" r="5" fill="' + INK + '"/><circle cx="130" cy="82" r="5" fill="' + INK + '"/>' +
+        '<polygon points="113,92 123,92 118,98" fill="' + INK + '"/>' +
+        '<path d="M108 102 Q118 110 128 102" fill="none"' + LINE + '/>' +
+        '<path d="M92 92 L76 88 M92 98 L76 102 M144 92 L160 88 M144 98 L160 102" fill="none"' + LINE + '/>';
+    } },
+    robot: { colour: 'blue', hat: [105, 46], glasses: [105, 68], ball: [165, 165], body: function (c) {
+      return '<path d="M105 46 L105 26" fill="none"' + LINE + '/><circle cx="105" cy="22" r="6" fill="#facc15"' + LINE + '/>' +
+        '<path d="M62 112 L34 84" fill="none" stroke="' + INK + '" stroke-width="12" stroke-linecap="round"/>' +
+        '<circle cx="32" cy="80" r="9" fill="' + c + '"' + LINE + '/>' +
+        '<path d="M148 112 L164 140" fill="none" stroke="' + INK + '" stroke-width="12" stroke-linecap="round"/>' +
+        '<rect x="74" y="160" width="20" height="24" rx="4" fill="' + c + '"' + LINE + '/>' +
+        '<rect x="116" y="160" width="20" height="24" rx="4" fill="' + c + '"' + LINE + '/>' +
+        '<rect x="60" y="100" width="90" height="62" rx="10" fill="' + c + '"' + LINE + '/>' +
+        '<circle cx="85" cy="122" r="7" fill="#fff"' + LINE + '/><rect x="102" y="116" width="32" height="12" rx="4" fill="#fff"' + LINE + '/>' +
+        '<rect x="70" y="46" width="70" height="52" rx="10" fill="' + c + '"' + LINE + '/>' +
+        '<circle cx="93" cy="68" r="6" fill="' + INK + '"/><circle cx="117" cy="68" r="6" fill="' + INK + '"/>' +
+        '<path d="M92 84 L118 84" fill="none"' + LINE + '/>';
+    } },
+    fish: { colour: 'green', hat: [132, 78], glasses: [132, 100], ball: [150, 166], body: function (c) {
+      return '<polygon points="60,110 18,76 18,144" fill="' + c + '"' + LINE + '/>' +
+        '<path d="M86 76 Q100 46 124 72 Z" fill="' + c + '"' + LINE + '/>' +
+        '<ellipse cx="108" cy="110" rx="58" ry="38" fill="' + c + '"' + LINE + '/>' +
+        '<path d="M76 92 Q90 110 76 128 M92 86 Q108 110 92 134" fill="none"' + LINE + '/>' +
+        '<circle cx="120" cy="100" r="5" fill="' + INK + '"/><circle cx="144" cy="100" r="5" fill="' + INK + '"/>' +
+        '<path d="M126 122 Q138 130 150 120" fill="none"' + LINE + '/>' +
+        '<circle cx="178" cy="66" r="6" fill="#bae6fd"' + LINE + '/><circle cx="166" cy="42" r="4" fill="#bae6fd"' + LINE + '/>';
+    } },
+    monster: { colour: 'purple', hat: [105, 52], glasses: [105, 86], ball: [165, 160], body: function (c) {
+      return '<polygon points="70,60 60,26 88,50" fill="#fef3c7"' + LINE + '/>' +
+        '<polygon points="140,60 150,26 122,50" fill="#fef3c7"' + LINE + '/>' +
+        '<path d="M56 112 L28 96" fill="none" stroke="' + INK + '" stroke-width="12" stroke-linecap="round"/>' +
+        '<path d="M58 164 Q58 50 105 50 Q152 50 152 164 Q140 150 128 164 Q116 150 105 164 Q94 150 82 164 Q70 150 58 164 Z" fill="' + c + '"' + LINE + '/>' +
+        '<circle cx="93" cy="86" r="8" fill="#fff"' + LINE + '/><circle cx="117" cy="86" r="8" fill="#fff"' + LINE + '/>' +
+        '<circle cx="96" cy="86" r="3" fill="' + INK + '"/><circle cx="120" cy="86" r="3" fill="' + INK + '"/>' +
+        '<path d="M84 114 Q105 136 128 114 Z" fill="#fff"' + LINE + '/>';
+    } }
+  };
+
+  /* what he can put on a sprite, drawn around a point */
+  function wearSvg(w, x, y) {
+    if (w === 'hat') {
+      return '<rect x="' + (x - 18) + '" y="' + (y - 36) + '" width="36" height="30" rx="3" fill="#111827"/>' +
+        '<rect x="' + (x - 18) + '" y="' + (y - 16) + '" width="36" height="8" fill="#dc2626"/>' +
+        '<rect x="' + (x - 29) + '" y="' + (y - 8) + '" width="58" height="8" rx="4" fill="#111827"/>';
+    }
+    if (w === 'crown') {
+      return '<polygon points="' + (x - 24) + ',' + y + ' ' + (x - 27) + ',' + (y - 26) + ' ' + (x - 12) + ',' + (y - 12) + ' ' +
+        x + ',' + (y - 30) + ' ' + (x + 12) + ',' + (y - 12) + ' ' + (x + 27) + ',' + (y - 26) + ' ' + (x + 24) + ',' + y +
+        '" fill="#fbbf24"' + LINE + '/>' +
+        '<circle cx="' + x + '" cy="' + (y - 8) + '" r="4" fill="#dc2626"/>';
+    }
+    if (w === 'glasses') {
+      return '<circle cx="' + (x - 12) + '" cy="' + y + '" r="11" fill="rgba(255,255,255,.35)" stroke="#111827" stroke-width="4"/>' +
+        '<circle cx="' + (x + 12) + '" cy="' + y + '" r="11" fill="rgba(255,255,255,.35)" stroke="#111827" stroke-width="4"/>' +
+        '<path d="M' + (x - 1) + ' ' + y + ' L' + (x + 1) + ' ' + y + '" stroke="#111827" stroke-width="4"/>';
+    }
+    /* the football */
+    return '<circle cx="' + x + '" cy="' + y + '" r="17" fill="#fff"' + LINE + '/>' +
+      '<polygon points="' + x + ',' + (y - 8) + ' ' + (x + 8) + ',' + (y - 2) + ' ' + (x + 5) + ',' + (y + 7) + ' ' +
+      (x - 5) + ',' + (y + 7) + ' ' + (x - 8) + ',' + (y - 2) + '" fill="' + INK + '"/>';
+  }
+
+  function spriteSvg(s) {
+    var a = ART[s.name];
+    var k = SIZES[s.size];
+    var inner = a.body(HEX[s.colour]);
+    if (s.wear) inner += wearSvg(s.wear, a[s.wear === 'crown' ? 'hat' : s.wear][0], a[s.wear === 'crown' ? 'hat' : s.wear][1]);
+    return '<svg viewBox="0 0 200 200" aria-hidden="true"><g transform="translate(100 100) scale(' +
+      (s.flip ? -k : k) + ' ' + k + ') translate(-100 -100)">' + inner + '</g></svg>';
+  }
+
+  /* ================= The tools ================= */
+  function freshLook(name) {
+    return { name: name, colour: ART[name].colour, size: 1, wear: null, flip: false };
+  }
+  function copyLook(s) {
+    return { name: s.name, colour: s.colour, size: s.size, wear: s.wear, flip: s.flip };
+  }
+  function applyTool(s, t) {
+    var n = copyLook(s), k = toolKind(t);
+    if (k === 'colour') n.colour = t;
+    else if (t === 'bigger') n.size = Math.min(2, n.size + 1);
+    else if (t === 'smaller') n.size = Math.max(0, n.size - 1);
+    else if (k === 'turn') n.flip = !n.flip;
+    else if (k === 'wear') n.wear = n.wear === t ? null : t;
+    return n;
+  }
+  function differences(s, g) {
+    return (s.colour !== g.colour ? 1 : 0) + (s.size !== g.size ? 1 : 0) +
+           (s.wear !== g.wear ? 1 : 0) + (s.flip !== g.flip ? 1 : 0);
+  }
+  function sameLook(a, b) { return differences(a, b) === 0; }
+
+  function toolIcon(t) {
+    var k = toolKind(t);
+    var open = '<svg viewBox="0 0 60 60" aria-hidden="true">';
+    if (k === 'colour') return open + '<circle cx="30" cy="30" r="26" fill="' + HEX[t] + '" stroke="' + INK + '" stroke-width="3"/></svg>';
+    if (t === 'bigger') {
+      return open + '<rect x="6" y="28" width="14" height="14" rx="3" fill="#94a3b8"/>' +
+        '<rect x="26" y="10" width="30" height="40" rx="5" fill="#8b5cf6" stroke="' + INK + '" stroke-width="3"/>' +
+        '<path d="M34 30 H48 M41 23 V37" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg>';
+    }
+    if (t === 'smaller') {
+      return open + '<rect x="4" y="10" width="30" height="40" rx="5" fill="#94a3b8"/>' +
+        '<rect x="38" y="26" width="18" height="18" rx="4" fill="#8b5cf6" stroke="' + INK + '" stroke-width="3"/>' +
+        '<path d="M12 30 H26" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg>';
+    }
+    if (t === 'turn') {
+      return open + '<path d="M8 30 H52 M18 20 L8 30 L18 40 M42 20 L52 30 L42 40" fill="none" stroke="#7c3aed" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+    if (t === 'undo') {
+      return open + '<path d="M18 18 L8 28 L18 38 M8 28 H36 A13 13 0 0 1 36 54 H24" fill="none" stroke="#475569" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+    var y = t === 'glasses' ? 30 : t === 'ball' ? 30 : 46;
+    return '<svg viewBox="0 0 60 60" aria-hidden="true">' + wearSvg(t, 30, y) + '</svg>';
+  }
+
+  function buildTools() {
+    var rows = [COLOURS, ['bigger', 'smaller', 'turn', 'undo'], ['hat', 'crown', 'glasses', 'ball']];
+    rows.forEach(function (list) {
+      var row = document.createElement('div');
+      row.className = 'toolRow';
+      list.forEach(function (t) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tool ' + toolKind(t);
+        b.setAttribute('data-tool', t);
+        b.setAttribute('aria-label', toolSay(t));
+        b.innerHTML = toolIcon(t);
+        b.addEventListener('click', function () { tapTool(t, b); });
+        row.appendChild(b);
+      });
+      els.tools.appendChild(row);
+    });
+  }
+  function toolButton(t) { return els.tools.querySelector('[data-tool="' + t + '"]'); }
+  function clearHints() {
+    var h = els.tools.querySelectorAll('.hint');
+    for (var i = 0; i < h.length; i++) h[i].classList.remove('hint');
+  }
+  /* the edit he has not done yet */
+  function nextEdit() {
+    for (var i = 0; i < task.edits.length; i++) {
+      var t = task.edits[i], k = toolKind(t);
+      if (k === 'colour' && look.colour !== goal.colour) return t;
+      if (k === 'size' && look.size !== goal.size) return t;
+      if (k === 'wear' && look.wear !== goal.wear) return t;
+      if (k === 'turn' && look.flip !== goal.flip) return t;
+    }
+    return task.edits[0];
+  }
+
+  function renderLook(effect) {
+    els.myCanvas.innerHTML = spriteSvg(look);
+    els.myCanvas.classList.remove('pop', 'wobble');
+    if (effect) { void els.myCanvas.offsetWidth; els.myCanvas.classList.add(effect); }
+  }
+
+  function tapTool(t, btn) {
+    if (mode === 'free') { editFree(t); return; }
+    if (mode !== 'round' || busy) return;
+    stopAll();
+    var before = differences(look, goal);
+    var next = applyTool(look, t);
+    if (differences(next, goal) < before) {
+      attempts = 0;
+      clearHints();
+      look = next;
+      renderLook('pop');
+      if (sameLook(look, goal)) { finishSprite(); return; }
+      speak(yesSay(t));
+      return;
+    }
+    /* tapped again after it was done: bigger at its biggest, the same colour */
+    if (sameLook(next, look) && task.edits.indexOf(t) >= 0) {
+      speak(DONE_SAY);
+      return;
+    }
+    /* wrong: he sees what it does, then it goes back */
+    attempts++;
+    btn.classList.remove('wrong');
+    void btn.offsetWidth;
+    btn.classList.add('wrong');
+    var keep = look;
+    var want = nextEdit();
+    busy = true;
+    look = next;
+    renderLook('wobble');
+    if (attempts >= 2) speak(hintSay(task.name, want));
+    else speak(notSay(half, task.name, task.edits));
+    setTimeout(function () {
+      look = keep;
+      renderLook();
+      btn.classList.remove('wrong');
+      busy = false;
+      if (attempts >= 2) {
+        clearHints();
+        var b = toolButton(want);
+        if (b) b.classList.add('hint');
+      }
+    }, 900);
+  }
+
+  /* ================= The first look at the tools ================= */
+  function enterIntro() {
+    stopAll();
+    mode = 'intro';
+    els.half.textContent = 'Editing a sprite';
+    els.lead.textContent = 'Editing a sprite ✏️';
+    els.nextBtn.textContent = 'My turn ➜';
+    stageFor(false);
+    els.tools.classList.add('hidden');
+    show(['lead', 'work', 'btnRow'], ['sayBtn', 'nextBtn']);
+    playIntro();
+  }
+
+  function playIntro() {
+    look = freshLook('cat');
+    renderLook();
+    var set = function (t) {
+      return function () { look = applyTool(look, t); renderLook('pop'); };
+    };
+    sequence([
+      { say: INTRO_SAY[0] },
+      { say: INTRO_SAY[1] },
+      { say: INTRO_SAY[2] },
+      { act: set('blue'), say: INTRO_SAY[3] },
+      { act: set('bigger'), say: INTRO_SAY[4] },
+      { act: set('hat'), say: INTRO_SAY[5] },
+      { act: set('turn'), say: INTRO_SAY[6] },
+      { say: INTRO_SAY[7] }
+    ]);
+  }
+
+  /* ================= A round ================= */
+  function stageFor(withPicture) {
+    els.stage.classList.toggle('solo', !withPicture);
+    els.targetPanel.classList.toggle('hidden', !withPicture);
+    els.myTag.classList.toggle('hidden', !withPicture);
+  }
+  function setToolsFor(free) {
+    els.tools.classList.remove('hidden');
+    toolButton('undo').classList.toggle('hidden', !free);
+    clearHints();
+  }
+
+  function current() { return half === 1 ? queue1[round] : queue2[round]; }
+  function leadFor() {
+    return half === 1 ? bare(taskSay(task.name, task.edits[0])) + ' 🎨'
+                      : '👀 Make your ' + task.name + ' look the same';
+  }
+
+  function enterRound() {
+    stopAll();
+    mode = 'round';
+    busy = false;
+    attempts = 0;
+    task = current();
+    look = freshLook(task.name);
+    goal = look;
+    task.edits.forEach(function (t) { goal = applyTool(goal, t); });
+    els.half.textContent = (half === 1 ? 'First half · ' : 'Second half · ') + (round + 1) + '/' + ROUNDS_PER_HALF;
+    stageFor(half === 2);
+    els.targetCanvas.innerHTML = half === 2 ? spriteSvg(goal) : '';
+    renderLook();
+    setToolsFor(false);
+    els.lead.textContent = leadFor();
+    show(['lead', 'work', 'btnRow'], ['sayBtn']);
+    var intro = round === 0 ? introSay(half) : '';
+    var my = ++flowToken;
+    setTimeout(function () {
+      if (my === flowToken && mode === 'round') speak(intro + askSay(half, task.name, task.edits));
+    }, 300);
+  }
+
+  function finishSprite() {
+    busy = true;
+    mode = 'finished';
+    done.push({ look: copyLook(look), name: task.name, edits: task.edits });
+    footballs++;
+    save();
+    renderScore(true);
+    celebrate(22);
+    els.lead.textContent = 'GOAL! ⚽';
+    var last = round === ROUNDS_PER_HALF - 1;
+    els.nextBtn.textContent = last ? (half === 1 ? 'Half time ➜' : 'My project ➜') : 'Next ➜';
+    els.tools.classList.add('hidden');
+    show(['lead', 'work', 'btnRow'], ['sayBtn', 'nextBtn']);
+    speak(goalSay(task.name, task.edits));
+  }
+
+  function nextRound() {
+    stopAll();
+    if (mode === 'intro') { introSeen = true; enterRound(); return; }
+    if (mode === 'uploaded') { enterFullTime(); return; }
+    round++;
+    if (round >= ROUNDS_PER_HALF) {
+      if (half === 1) enterHalfTime(); else enterPick();
+      return;
+    }
+    enterRound();
+  }
+
+  /* ================= My project today ================= */
+  function enterPick() {
+    stopAll();
+    mode = 'pick';
+    els.half.textContent = 'My project today';
+    els.lead.textContent = 'My project today: pick a sprite';
+    els.picks.innerHTML = '';
+    SPRITE_NAMES.forEach(function (name) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pick';
+      b.setAttribute('aria-label', name);
+      b.innerHTML = spriteSvg(freshLook(name));
+      b.addEventListener('click', function () { pickSprite(name); });
+      els.picks.appendChild(b);
+    });
+    show(['lead', 'picks', 'btnRow'], ['sayBtn']);
+    speak(PICK_SAY);
+  }
+
+  function pickSprite(name) {
+    if (mode !== 'pick') return;
+    stopAll();
+    mode = 'free';
+    look = freshLook(name);
+    history = [];
+    stageFor(false);
+    renderLook('pop');
+    setToolsFor(true);
+    els.lead.textContent = 'Edit your sprite ✏️';
+    show(['lead', 'work', 'btnRow'], ['sayBtn', 'toUploadBtn']);
+    speak(pickedSay(name));
+  }
+
+  function editFree(t) {
+    stopAll();
+    if (t === 'undo') {
+      if (history.length) { look = history.pop(); renderLook('pop'); }
+    } else {
+      var next = applyTool(look, t);
+      if (!sameLook(next, look)) { history.push(look); look = next; renderLook('pop'); }
+    }
+    speak(toolSay(t));
+  }
+
+  /* ================= Upload your work ================= */
+  function enterUpload() {
+    stopAll();
+    if (!history.length) { speak(NEED_EDIT_SAY); return; }
+    mode = 'upload';
+    upStep = 0;
+    project = { look: copyLook(look), name: look.name };
+    els.half.textContent = 'Upload your work';
+    els.lead.textContent = 'Upload your work! 📷 then ⬆️';
+    els.projCanvas.innerHTML = spriteSvg(project.look);
+    els.projCard.classList.remove('snap');
+    els.upFill.style.transition = 'none';
+    els.upFill.style.width = '0';
+    els.upStatus.textContent = '';
+    markUpload();
+    show(['lead', 'uploadBox']);
+    speak(UPLOAD_SAY.start);
+  }
+
+  function markUpload() {
+    els.snapBtn.classList.toggle('now', upStep === 0);
+    els.snapBtn.classList.toggle('off', upStep > 0);
+    els.upBtn.classList.toggle('now', upStep === 1);
+    els.upBtn.classList.toggle('off', upStep !== 1);
+  }
+
+  function takePhoto() {
+    if (mode !== 'upload' || upStep !== 0) return;
+    stopAll();
+    upStep = 1;
+    els.projCard.classList.remove('snap');
+    void els.projCard.offsetWidth;
+    els.projCard.classList.add('snap');
+    markUpload();
+    speak(UPLOAD_SAY.snap);
+  }
+
+  function upload() {
+    if (mode !== 'upload') return;
+    if (upStep === 0) { speak(UPLOAD_SAY.start); return; }
+    if (upStep !== 1) return;
+    stopAll();
+    upStep = 2;
+    markUpload();
+    els.upStatus.textContent = 'Uploading…';
+    void els.upFill.offsetWidth;
+    els.upFill.style.transition = '';
+    els.upFill.style.width = '100%';
+    var spoke = false, filled = false;
+    var both = function () { if (spoke && filled) uploaded(); };
+    speak(UPLOAD_SAY.going, function () { spoke = true; both(); });
+    setTimeout(function () { filled = true; both(); }, 1900);
+    /* never leave him waiting for a line that did not finish */
+    setTimeout(function () { spoke = true; both(); }, 6000);
+  }
+
+  function uploaded() {
+    if (mode !== 'upload' || upStep !== 2) return;
+    upStep = 3;
+    mode = 'uploaded';
+    footballs++;
+    save();
+    renderScore(true);
+    celebrate(40);
+    markUpload();
+    els.upStatus.textContent = '✅ Uploaded!';
+    els.nextBtn.textContent = 'Full time ➜';
+    show(['lead', 'uploadBox', 'btnRow'], ['nextBtn']);
+    speak(UPLOAD_SAY.done);
+  }
+
+  /* ================= Board ================= */
+  function renderBoard() {
+    els.board.innerHTML = '';
+    var add = function (lookOf, say) {
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.innerHTML = spriteSvg(lookOf);
+      b.addEventListener('click', function () {
+        stopAll();
+        var chips = els.board.querySelectorAll('.chip');
+        for (var c = 0; c < chips.length; c++) chips[c].classList.toggle('saying', chips[c] === b);
+        speak(say, function () { b.classList.remove('saying'); });
+      });
+      els.board.appendChild(b);
+    };
+    done.forEach(function (d) { add(d.look, chipSay(d.name, d.edits)); });
+    if (project && half === 3) add(project.look, projectChipSay(project.name));
+  }
+
+  function enterHalfTime() {
+    mode = 'board';
+    half = 2;
+    round = 0;
+    els.half.textContent = 'Half time';
+    els.boardTitle.textContent = '📣 Half time!';
+    els.boardText.textContent = 'Next: make it look the same as the picture.';
+    els.boardBtn.textContent = 'Second half ➜';
+    renderBoard();
+    show(['boardBox']);
+    speak(halfTimeSay(done.length));
+  }
+
+  function enterFullTime() {
+    mode = 'board';
+    half = 3;
+    els.half.textContent = 'Full time';
+    els.boardTitle.textContent = '🏆 Full time!';
+    els.boardText.textContent = done.length + ' sprites · 1 upload · ' + (done.length + 1) + ' ⚽';
+    els.boardBtn.textContent = 'Play again ⚽';
+    renderBoard();
+    show(['boardBox']);
+    celebrate(45);
+    speak(fullTimeSay(done.length));
+  }
+
+  /* ================= Match ================= */
+  function randomEdit(kind, name) {
+    if (kind === 'colour') {
+      return shuffle(COLOURS.filter(function (c) { return c !== ART[name].colour; }))[0];
+    }
+    if (kind === 'size') return Math.random() < 0.5 ? 'bigger' : 'smaller';
+    if (kind === 'wear') return shuffle(Object.keys(WEARS))[0];
+    return 'turn';
+  }
+
+  function buildQueues() {
+    var kinds = ['colour', 'size', 'wear', 'turn'];
+    var one = shuffle(kinds);
+    var names1 = shuffle(SPRITE_NAMES);
+    queue1 = one.map(function (k, i) { return { name: names1[i], edits: [randomEdit(k, names1[i])] }; });
+    var pairs = [];
+    kinds.forEach(function (a, i) {
+      kinds.slice(i + 1).forEach(function (b) { pairs.push([a, b]); });
+    });
+    pairs = shuffle(pairs).slice(0, ROUNDS_PER_HALF);
+    var names2 = shuffle(SPRITE_NAMES);
+    queue2 = pairs.map(function (p, i) {
+      return { name: names2[i], edits: [randomEdit(p[0], names2[i]), randomEdit(p[1], names2[i])] };
+    });
+  }
+
+  function startMatch() {
+    stopAll();
+    buildQueues();
+    done = [];
+    project = null;
+    half = 1;
+    round = 0;
+    if (introSeen) enterRound(); else enterIntro();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasSpeech) {
+      pickVoice();
+      /* iOS: speech has to start inside this tap */
+      try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+    }
+    preload(phraseList());
+    els.startOverlay.remove();
+    startMatch();
+  });
+
+  /* say the current job again; tapping the sprite does the same */
+  function sayAgain() {
+    if (mode === 'intro') { playIntro(); return; }
+    stopAll();
+    if (mode === 'round') speak(askSay(half, task.name, task.edits));
+    else if (mode === 'finished') speak(goalSay(task.name, task.edits));
+    else if (mode === 'pick') speak(PICK_SAY);
+    else if (mode === 'free') speak(FREE_SAY);
+  }
+  els.sayBtn.addEventListener('click', sayAgain);
+  els.myCanvas.addEventListener('click', sayAgain);
+  els.nextBtn.addEventListener('click', nextRound);
+  els.toUploadBtn.addEventListener('click', enterUpload);
+  els.snapBtn.addEventListener('click', takePhoto);
+  els.upBtn.addEventListener('click', upload);
+
+  els.boardBtn.addEventListener('click', function () {
+    stopAll();
+    if (half === 2) enterRound();
+    else startMatch();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  buildTools();
+  renderScore(false);
+})();
+</script>
+</body>
+</html>

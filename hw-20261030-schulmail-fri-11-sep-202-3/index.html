@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#6d28d9">
+<title>Dots and Teddy's Feelings ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Dots and Teddy">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #2e1065 0%, #6d28d9 52%, #2e1065 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    background: rgba(0,0,0,.24);
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.6rem); flex: 0 1 auto; min-width: 0; }
+  @media (max-width: 620px) { header h1 { display: none; } }
+  #half {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.3rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2vh, 20px);
+    padding: clamp(8px, 2vh, 22px) 12px calc(clamp(10px, 2.4vh, 24px) + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1.05rem, 2.8vmin, 1.5rem); font-weight: 700; }
+
+  /* ---------- The task badge: 6 and one more / one less ---------- */
+  #task { display: flex; align-items: center; gap: 12px; }
+  #taskNum {
+    min-width: 1.7em;
+    padding: 2px 10px;
+    border-radius: 16px;
+    background: #fff;
+    color: #5b21b6;
+    font-size: clamp(1.7rem, 6.4vmin, 3rem);
+    font-weight: 900;
+  }
+  #taskOp {
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: clamp(1.1rem, 4vmin, 1.9rem);
+    font-weight: 900;
+  }
+  #taskOp.more { background: #16a34a; }
+  #taskOp.less { background: #ea580c; }
+
+  /* ---------- Tens frames ---------- */
+  #frames {
+    --c: min(17vw, 10.5vh);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(8px, 1.6vh, 14px);
+  }
+  #frames.one { --c: min(17vw, 15vh); }
+  @media (orientation: landscape) {
+    #frames { flex-direction: row; --c: min(8.4vw, 15vh); }
+    #frames.one { --c: min(14vw, 19vh); }
+  }
+  .frame {
+    display: grid;
+    grid-template-columns: repeat(5, var(--c));
+    grid-auto-rows: var(--c);
+    background: #1e1b4b;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 12px;
+    box-shadow: 0 6px 0 rgba(0,0,0,.25);
+  }
+  .frame.full { outline: 4px solid #fde047; }
+  .cell {
+    background: #fff;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+  }
+  .dot {
+    width: 78%;
+    height: 78%;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #ef4444;
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.18);
+    color: #fff;
+    font-weight: 800;
+    font-size: calc(var(--c) * .42);
+    line-height: 1;
+    cursor: grab;
+    touch-action: none;
+  }
+  .dot.lit { outline: 4px solid #facc15; outline-offset: 1px; animation: bounceIn .4s ease; }
+  .dot.pop { animation: bounceIn .35s ease; }
+  #ghost {
+    position: fixed;
+    z-index: 70;
+    width: var(--g);
+    height: var(--g);
+    margin: calc(var(--g) / -2) 0 0 calc(var(--g) / -2);
+    pointer-events: none;
+    opacity: .92;
+    transform: scale(1.12);
+  }
+
+  /* ---------- The tray the spare dots wait in ---------- */
+  #tray {
+    --c: clamp(44px, 9vmin, 66px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-width: min(80vw, 330px);
+    min-height: calc(var(--c) + 16px);
+    padding: 8px 14px;
+    border-radius: 18px;
+    border: 3px dashed rgba(255,255,255,.55);
+    background: rgba(0,0,0,.2);
+    flex-wrap: wrap;
+  }
+  #tray .dot { width: var(--c); height: var(--c); }
+
+  /* ---------- Teddy ---------- */
+  #teddyBox { display: flex; align-items: center; justify-content: center; gap: 14px; }
+  #teddy { width: clamp(120px, 30vmin, 230px); height: clamp(120px, 30vmin, 230px); }
+  #teddy.small { width: clamp(84px, 18vmin, 140px); height: clamp(84px, 18vmin, 140px); }
+  #teddy.pop { animation: bounceIn .5s ease; }
+  #scene { font-size: clamp(2.2rem, 10vmin, 4.6rem); line-height: 1; }
+
+  /* ---------- Word cards ---------- */
+  #opts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(6px, 1.6vmin, 14px);
+    width: min(96vw, 640px);
+  }
+  #opts.many { grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(96vw, 780px); }
+  .opt {
+    position: relative;
+    min-width: 0;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 6px 0 rgba(0,0,0,.28);
+    color: #1e1b4b;
+  }
+  .opt.saying { outline: 5px solid #fde047; outline-offset: 2px; }
+  .opt.hint { outline: 5px solid #4ade80; outline-offset: 2px; animation: pulse 1.1s ease infinite; }
+  .opt.wrong { background: #fecaca; animation: shake .4s ease; }
+  .opt-go {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    min-height: clamp(84px, 17vmin, 132px);
+    padding: 8px 2px;
+    background: none;
+    border: none;
+    border-radius: 18px;
+    font-family: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .opt-go .pic { font-size: clamp(2rem, 8vmin, 3.4rem); line-height: 1.1; }
+  .opt-go .word { font-size: clamp(.86rem, 3.2vmin, 1.4rem); font-weight: 800; overflow-wrap: anywhere; }
+  #opts.plainwords .opt-go .word { font-size: clamp(.98rem, 3.8vmin, 1.7rem); }
+  .opt-say {
+    position: absolute;
+    top: -6px;
+    right: -4px;
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 50%;
+    background: #7c3aed;
+    color: #fff;
+    font-size: 1.05rem;
+    cursor: pointer;
+    box-shadow: 0 2px 0 rgba(0,0,0,.3);
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* ---------- Buttons ---------- */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(11px, 2vh, 17px) clamp(20px, 5vw, 40px);
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.tick { background: linear-gradient(145deg, #22c55e, #15803d); font-size: clamp(1.2rem, 3.6vmin, 1.8rem); }
+  .btn.quiet {
+    background: rgba(0,0,0,.32);
+    box-shadow: none;
+    font-size: clamp(.9rem, 2.2vmin, 1.15rem);
+    padding: clamp(10px, 1.6vh, 14px) clamp(16px, 4vw, 30px);
+  }
+
+  /* ---------- Match board ---------- */
+  #boardBox { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
+  #boardTitle { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); font-weight: 800; }
+  #board {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(6px, 1.4vmin, 12px);
+    justify-content: center;
+    max-width: 720px;
+  }
+  .chip {
+    font-family: inherit;
+    font-size: clamp(1.05rem, 3vmin, 1.5rem);
+    font-weight: 900;
+    padding: clamp(8px, 1.6vh, 14px) clamp(12px, 2.6vw, 20px);
+    border-radius: 16px;
+    border: 3px solid #fde047;
+    background: #fff;
+    color: #1e1b4b;
+    cursor: pointer;
+  }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #2e1065 0%, #6d28d9 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 6vmin, 2.8rem); }
+  #startOverlay p { max-width: 28ch; opacity: .92; font-size: clamp(.95rem, 2.4vmin, 1.2rem); line-height: 1.5; }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 58px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Dots and Teddy's feelings</h1>
+  <span id="half">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead hidden" id="lead"></p>
+
+  <div id="task" class="hidden">
+    <span id="taskNum"></span>
+    <span id="taskOp"></span>
+  </div>
+  <div id="frames" class="hidden"></div>
+  <div id="tray" class="hidden"></div>
+
+  <div id="teddyBox" class="hidden">
+    <svg id="teddy" viewBox="0 0 120 120" aria-hidden="true"></svg>
+    <span id="scene" class="hidden"></span>
+  </div>
+  <div id="opts" class="hidden"></div>
+
+  <div class="row hidden" id="btnRow">
+    <button class="btn quiet" id="sayBtn">🔊 Say it again</button>
+    <button class="btn quiet" id="countBtn">🔊 Count with me</button>
+    <button class="btn tick" id="tickBtn">✓</button>
+    <button class="btn big" id="nextBtn">Next ➜</button>
+  </div>
+
+  <div id="boardBox" class="hidden">
+    <div id="boardTitle"></div>
+    <p id="boardText" class="lead"></p>
+    <div id="board"></div>
+    <div class="row">
+      <button class="btn big" id="boardBtn"></button>
+    </div>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>⚽ Dots and Teddy's feelings 🧸</h2>
+  <p>Move the dots to show one more or one less.<br>Then find interesting adjectives for you and your teddy bear.</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower talking</label>
+  <button id="resetBtn">Reset score</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Homework =================
+     School mail, Fri 11 Sep 2026.
+     Maths: "move the dots onto the tens frames to show one more or one less...
+     count carefully and check that they have the correct number of dots".
+     English: "using adjectives... their own emotions and their teddy bear's
+     emotions... interesting adjectives to describe how they are feeling and
+     how they think their teddy bear might be feeling".
+
+     First half: six frames. He drags (or taps) dots on and off the tens
+     frames, then checks with the green tick. The last two use two frames, past
+     ten. Second half: six rounds with Teddy. How do YOU feel (any answer is
+     right, then he shows that face), what does Teddy's face say, and how might
+     Teddy feel in a little story; each Teddy answer is then swapped for a more
+     interesting adjective. One football ⚽ for every round. */
+
+  var ONE_FRAME_ROUNDS = 4;   /* the rest of the first half uses two frames */
+  var TRAY_SIZE = 3;
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🔴', '🧸'];
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so tools/phrases/hw-20261030-schulmail-fri-11-sep-202-3.txt is
+     generated straight out of this block (tools/gen-phrases.js). */
+
+  var ROUNDS_PER_HALF = 6;
+
+  var WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+               'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen',
+               'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
+
+  /* group: feelings that look alike are never offered side by side */
+  var FEELINGS = [
+    { plain: 'happy',     fancy: 'delighted',  pic: '😄', group: 'a', scene: '🧸⚽',
+      story: 'Teddy is playing football with a friend.' },
+    { plain: 'excited',   fancy: 'thrilled',   pic: '🤩', group: 'a', scene: '🎂🎈',
+      story: 'Today is Teddy\'s birthday party!' },
+    { plain: 'surprised', fancy: 'amazed',     pic: '😲', group: 'b', scene: '🐘🚪',
+      story: 'An elephant is at the door!' },
+    { plain: 'scared',    fancy: 'terrified',  pic: '😨', group: 'b', scene: '🌑💥',
+      story: 'There is a loud bang in the dark.' },
+    { plain: 'worried',   fancy: 'anxious',    pic: '😟', group: 'b', scene: '🏫🎒',
+      story: 'Today is Teddy\'s first day at a new school.' },
+    { plain: 'sad',       fancy: 'miserable',  pic: '😢', group: 'c', scene: '⚽❓',
+      story: 'Teddy\'s favourite ball is lost.' },
+    { plain: 'angry',     fancy: 'furious',    pic: '😠', group: 'd', scene: '🧩💥',
+      story: 'Somebody broke Teddy\'s toy.' },
+    { plain: 'tired',     fancy: 'exhausted',  pic: '😴', group: 'e', scene: '🌙⭐',
+      story: 'It is very late at night.' }
+  ];
+
+  function cap(w) { return w.charAt(0).toUpperCase() + w.slice(1); }
+  function dots(n) { return WORDS[n] + (n === 1 ? ' dot' : ' dots'); }
+  function opName(op) { return op === 'more' ? 'one more' : 'one less'; }
+  function resultOf(op, n) { return op === 'more' ? n + 1 : n - 1; }
+
+  /* ---------- first half ---------- */
+  function mathsIntro() {
+    return 'Move the dots onto the tens frames to show one more or one less. ' +
+           'Count carefully. Then tap the green tick to check.';
+  }
+  function mathsAsk(op, n) { return 'Look, ' + dots(n) + '. Move the dots to show ' + opName(op) + '.'; }
+  function countSay(n) { return dots(n) + '.'; }
+  function mathsNot(have) { return 'Not yet. You have ' + dots(have) + '. Count carefully and try again.'; }
+  function mathsTogether() { return 'Let us count together.'; }
+  function mathsSum(op, n) { return cap(opName(op)) + ' than ' + WORDS[n] + ' is ' + WORDS[resultOf(op, n)] + '.'; }
+  function mathsShow(op, n) { return mathsSum(op, n) + ' Move the dots.'; }
+  function mathsGoal(op, n) { return 'Goal! ' + mathsSum(op, n); }
+
+  /* ---------- second half ---------- */
+  function feelIntro() { return 'Now use interesting adjectives to say how you feel and how your teddy bear feels.'; }
+  function youAsk(fancy) {
+    return fancy ? 'How do you feel now? Pick an interesting adjective.'
+                 : 'How do you feel today? Tap a word.';
+  }
+  function youPick(w) {
+    return 'You feel ' + w + '. Show me your ' + w + ' face! Teddy is showing it too. Then tap the green tick.';
+  }
+  function youGoal(w) { return 'Goal! ' + cap(w) + ' is a great adjective.'; }
+  function faceAsk() { return 'Look at Teddy\'s face. How is Teddy feeling?'; }
+  function storyAsk(f) { return f.story + ' How might Teddy be feeling?'; }
+  function notPlain(w) { return 'Not ' + w + '. Try again.'; }
+  function hintWord(w) { return 'Look, ' + w + '. Tap ' + w + '.'; }
+  function yesPlain(f) {
+    return 'Yes, ' + f.plain + '! Can you find a more interesting adjective for ' + f.plain + '?';
+  }
+  function means(f) { return cap(f.fancy) + ' means very ' + f.plain + '.'; }
+  function notFancy(f) { return means(f) + ' Try again.'; }
+  function hintFancy(f) { return means(f) + ' Tap ' + f.fancy + '.'; }
+  function teddyGoal(f) { return 'Goal! ' + means(f) + ' Teddy is ' + f.fancy + '.'; }
+
+  function halfTimeSay(n) {
+    return 'Half time! You scored ' + WORDS[n] + ' goals. Next, think about feelings.';
+  }
+  function fullTimeSay(n) {
+    return 'Full time! You scored ' + WORDS[n] + ' goals. Brilliant!';
+  }
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i, n;
+    function add(s) { var k = bare(s); if (k && !seen[k]) { seen[k] = 1; out.push(s); } }
+    function addAll(text) { var p = segments(text); for (var k = 0; k < p.length; k++) add(p[k]); }
+
+    addAll(mathsIntro());
+    addAll(mathsTogether());
+    for (n = 1; n <= 20; n++) add(WORDS[n]);
+    for (n = 0; n <= 20; n++) { addAll(countSay(n)); addAll(mathsNot(n)); }
+    for (n = 1; n <= 19; n++) {
+      addAll(mathsAsk('more', n));
+      addAll(mathsShow('more', n));
+      addAll(mathsGoal('more', n));
+    }
+    for (n = 2; n <= 20; n++) {
+      addAll(mathsAsk('less', n));
+      addAll(mathsShow('less', n));
+      addAll(mathsGoal('less', n));
+    }
+
+    addAll(feelIntro());
+    addAll(youAsk(false));
+    addAll(youAsk(true));
+    addAll(faceAsk());
+    for (i = 0; i < FEELINGS.length; i++) {
+      var f = FEELINGS[i];
+      add(f.plain);
+      add(f.fancy);
+      addAll(youPick(f.plain));
+      addAll(youPick(f.fancy));
+      addAll(youGoal(f.plain));
+      addAll(youGoal(f.fancy));
+      addAll(storyAsk(f));
+      addAll(notPlain(f.plain));
+      addAll(hintWord(f.plain));
+      addAll(yesPlain(f));
+      addAll(notFancy(f));
+      addAll(hintFancy(f));
+      addAll(teddyGoal(f));
+    }
+    addAll(halfTimeSay(ROUNDS_PER_HALF));
+    addAll(fullTimeSay(ROUNDS_PER_HALF * 2));
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') return;
+  window.__phrases = phraseList;
+
+  /* ================= State ================= */
+  var SCORE_KEY = 'jackHw_hw20261030schulmailfri11sep2023';
+  var SLOW_KEY  = 'jackHw_hw20261030schulmailfri11sep2023_slow';
+
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var half = 1;
+  var round = 0;
+  var queue1 = [], queue2 = [];
+  var goals = 0;          /* goals this match */
+  var words = [];         /* adjectives he found this match, for the board */
+  var task = null;        /* maths: { op, n }  teddy: { kind, f, fancy } */
+  var have = 0;           /* dots on the frames */
+  var spare = 0;          /* dots in the tray */
+  var capacity = 10;
+  var step = '';          /* teddy: pick | plain | fancy | show | done */
+  var attempts = 0;
+  var busy = false;
+  var mode = 'start';     /* start | maths | teddy | finished | board */
+  var flowToken = 0;      /* cancels a talking sequence */
+  var countToken = 0;     /* cancels counting out loud */
+  var currentOpts = [];
+  var lastLine = '';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), half: $('half'), lead: $('lead'),
+    task: $('task'), taskNum: $('taskNum'), taskOp: $('taskOp'),
+    frames: $('frames'), tray: $('tray'),
+    teddyBox: $('teddyBox'), teddy: $('teddy'), scene: $('scene'), opts: $('opts'),
+    btnRow: $('btnRow'), sayBtn: $('sayBtn'), countBtn: $('countBtn'),
+    tickBtn: $('tickBtn'), nextBtn: $('nextBtn'),
+    boardBox: $('boardBox'), boardTitle: $('boardTitle'), boardText: $('boardText'),
+    board: $('board'), boardBtn: $('boardBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Voice =================
+     He cannot read yet, so every line is spoken. The browser's own voice
+     sounds like a computer, so every line is pre-rendered with a neural
+     en-GB voice (tools/build-audio.py) and played back through Web Audio,
+     segment by segment. speechSynthesis is only the fallback for a segment
+     that has no clip. speak() calls done() when the line has finished — with
+     a timer as a safety net, because iOS does not always fire onend. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/hw-20261030-schulmail-fri-11-sep-202-3/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Serena|Kate|Martha|Stephanie|Fiona|Samantha|Karen|Moira)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) ||
+      find(gb, /Google UK English Female/i) ||
+      find(gb, female) || gb[0] ||
+      find(en, good) || find(en, female) || en[0] || null;
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  /* the fallback: only used for a segment that has no clip */
+  function say(text, my, done, rate) {
+    window.__clipMisses.push(text);
+    var factor = slow ? 1.25 : 1;
+    if (!hasSpeech) {
+      setTimeout(function () { if (my === speakToken && done) done(); }, (600 + text.length * 45) * factor);
+      return;
+    }
+    var finished = false;
+    var guard = null;
+    var fin = function () {
+      if (finished) return;
+      finished = true;
+      clearTimeout(guard);
+      if (my === speakToken && done) done();
+    };
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = 'en-GB';
+      u.rate = (rate || 0.9) * (slow ? 0.8 : 1);
+      u.onend = fin;
+      u.onerror = fin;
+      guard = setTimeout(fin, (2500 + text.length * 110) * factor);
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { fin(); }
+  }
+
+  /* Plays a list of clip texts one after another, a breath between them.
+     `done` fires after the last one, unless something talked over it. */
+  function speakParts(parts, done, rate) {
+    stopSpeaking();
+    var my = speakToken;
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) { if (done) done(); return; }
+    if (!hasTTS) {
+      var len = parts.join(' ').length;
+      if (done) setTimeout(function () { if (my === speakToken) done(); }, (600 + len * 45) * (slow ? 1.25 : 1));
+      return;
+    }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(parts[i], my, onward, rate); });
+        } else {
+          say(parts[i], my, onward, rate);
+        }
+      })(0);
+    });
+  }
+
+  /* one line, cut into its segments */
+  function speak(text, done, rate) {
+    speakParts(segments(text), done, rate);
+  }
+
+  if (hasSpeech) {
+    pickVoice();
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function stopAll() {
+    flowToken++;
+    countToken++;
+    stopSpeaking();
+  }
+
+  /* Run a list of { act, say } one after another, each line waiting for
+     the one before it to finish. Anything else that talks stops it. */
+  function sequence(list) {
+    var token = ++flowToken;
+    (function next(i) {
+      if (token !== flowToken || i >= list.length) return;
+      var s = list[i];
+      if (s.act) s.act();
+      if (s.say) speak(s.say, function () { setTimeout(function () { next(i + 1); }, 300); }, s.rate);
+      else setTimeout(function () { next(i + 1); }, s.wait || 500);
+    })(0);
+  }
+
+  /* ================= Small helpers ================= */
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function scoreGoal() {
+    goals++;
+    footballs++;
+    save();
+    renderScore(true);
+    celebrate(22);
+  }
+
+  /* ================= Screens ================= */
+  var ALL = ['lead', 'task', 'frames', 'tray', 'teddyBox', 'opts', 'btnRow', 'boardBox'];
+  function show(list, buttons) {
+    ALL.forEach(function (id) { els[id].classList.toggle('hidden', list.indexOf(id) === -1); });
+    buttons = buttons || [];
+    ['sayBtn', 'countBtn', 'tickBtn', 'nextBtn'].forEach(function (id) {
+      els[id].classList.toggle('hidden', buttons.indexOf(id) === -1);
+    });
+  }
+
+  function sayLine(text) {
+    lastLine = text;
+    stopAll();
+    speak(text);
+  }
+
+  function nextLabel() {
+    if (round < ROUNDS_PER_HALF - 1) return 'Next ➜';
+    return half === 1 ? 'Half time ➜' : 'Full time ➜';
+  }
+
+  /* ================= Tens frames ================= */
+  function renderFrames(popAt) {
+    var count = capacity / 10;
+    els.frames.classList.toggle('one', count === 1);
+    els.frames.innerHTML = '';
+    for (var f = 0; f < count; f++) {
+      var frame = document.createElement('div');
+      frame.className = 'frame' + (have >= (f + 1) * 10 ? ' full' : '');
+      for (var c = 0; c < 10; c++) {
+        var at = f * 10 + c;
+        var cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.setAttribute('data-empty', at < have ? '' : '1');
+        if (at < have) {
+          var d = document.createElement('div');
+          d.className = 'dot' + (at === popAt ? ' pop' : '');
+          d.setAttribute('data-from', 'frame');
+          cell.appendChild(d);
+        }
+        frame.appendChild(cell);
+      }
+      els.frames.appendChild(frame);
+    }
+  }
+
+  function renderTray() {
+    els.tray.innerHTML = '';
+    for (var i = 0; i < spare; i++) {
+      var d = document.createElement('div');
+      d.className = 'dot';
+      d.setAttribute('data-from', 'tray');
+      els.tray.appendChild(d);
+    }
+  }
+
+  function addDot() {
+    if (spare <= 0 || have >= capacity) return;
+    spare--;
+    have++;
+    renderFrames(have - 1);
+    renderTray();
+  }
+  function removeDot() {
+    if (have <= 0) return;
+    have--;
+    spare++;
+    renderFrames(-1);
+    renderTray();
+  }
+
+  /* Drag a dot from the tray to the frames or back; a plain tap does the same.
+     The dots are moved by a ghost, so the frames can stay simple to redraw. */
+  var drag = null;
+  var movedAt = 0;        /* the click that follows a tap must not move a second dot */
+  function canMove() { return mode === 'maths' && !busy; }
+
+  function overTarget(x, y) {
+    var el = document.elementFromPoint(x, y);
+    if (!el) return '';
+    if (els.frames.contains(el)) return 'frames';
+    if (els.tray.contains(el)) return 'tray';
+    return '';
+  }
+
+  function dragDown(e) {
+    var dot = e.target;
+    if (!dot.getAttribute || !dot.getAttribute('data-from') || !canMove()) return;
+    e.preventDefault();
+    countToken++;
+    clearLit();
+    var box = dot.getBoundingClientRect();
+    drag = { el: dot, from: dot.getAttribute('data-from'), id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, ghost: null, size: box.width };
+  }
+
+  function dragMove(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag.moved && Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 10) {
+      drag.moved = true;
+      var g = document.createElement('div');
+      g.id = 'ghost';
+      g.className = 'dot';
+      g.style.setProperty('--g', drag.size + 'px');
+      document.body.appendChild(g);
+      drag.ghost = g;
+      /* hidden, not removed: a touch whose target leaves the page stops
+         sending moves on iOS */
+      drag.el.style.visibility = 'hidden';
+    }
+    if (drag.ghost) {
+      drag.ghost.style.left = e.clientX + 'px';
+      drag.ghost.style.top = e.clientY + 'px';
+    }
+  }
+
+  function dragUp(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var d = drag;
+    drag = null;
+    movedAt = Date.now();
+    if (!d.moved) {
+      if (e.type === 'pointerup' && canMove()) { if (d.from === 'tray') addDot(); else removeDot(); }
+      return;
+    }
+    d.ghost.remove();
+    /* a cancelled touch moves nothing */
+    if (e.type === 'pointerup') {
+      var target = overTarget(e.clientX, e.clientY);
+      if (d.from === 'tray' && target === 'frames') addDot();
+      /* a dot pulled off the frames goes back, wherever it is let go */
+      else if (d.from === 'frame' && target !== 'frames') removeDot();
+    }
+    renderFrames(-1);
+    renderTray();
+  }
+
+  /* an empty space on the frame takes the next dot too */
+  function tapFrames(e) {
+    if (!canMove() || Date.now() - movedAt < 500) return;
+    var cell = e.target;
+    if (cell.getAttribute && cell.getAttribute('data-empty') === '1') {
+      countToken++;
+      clearLit();
+      addDot();
+    }
+  }
+
+  function clearLit() {
+    var lit = els.frames.querySelectorAll('.dot');
+    for (var i = 0; i < lit.length; i++) { lit[i].classList.remove('lit'); lit[i].textContent = ''; }
+  }
+
+  /* Count the dots out loud, a number lighting up on each one. */
+  function countDots(then) {
+    var token = ++countToken;
+    flowToken++;
+    clearLit();
+    var nodes = els.frames.querySelectorAll('.dot');
+    var i = 0;
+    (function tick() {
+      if (token !== countToken) return;
+      if (i >= nodes.length) {
+        setTimeout(function () {
+          if (token !== countToken) return;
+          speak(countSay(nodes.length), then);
+        }, 250);
+        return;
+      }
+      nodes[i].classList.add('lit');
+      nodes[i].textContent = String(i + 1);
+      speak(WORDS[i + 1], null, 0.85);
+      i++;
+      setTimeout(tick, slow ? 1050 : 800);
+    })();
+  }
+
+  /* ================= First half: one more, one less ================= */
+  function enterMaths() {
+    stopAll();
+    mode = 'maths';
+    busy = false;
+    task = queue1[round];
+    attempts = 0;
+    capacity = round < ONE_FRAME_ROUNDS ? 10 : 20;
+    have = task.n;
+    spare = Math.min(TRAY_SIZE, capacity - task.n);
+    els.half.textContent = 'First half · ' + (round + 1) + '/' + ROUNDS_PER_HALF;
+    els.taskNum.textContent = String(task.n);
+    els.taskOp.textContent = task.op === 'more' ? '⬆ one more' : '⬇ one less';
+    els.taskOp.className = task.op;
+    renderFrames(-1);
+    renderTray();
+    show(['task', 'frames', 'tray', 'btnRow'], ['sayBtn', 'countBtn', 'tickBtn']);
+    lastLine = mathsAsk(task.op, task.n);
+    var first = round === 0 ? mathsIntro() + ' ' : '';
+    var token = flowToken;
+    setTimeout(function () {
+      if (token === flowToken && mode === 'maths' && !busy) speak(first + lastLine);
+    }, 300);
+  }
+
+  function checkDots() {
+    if (mode !== 'maths' || busy) return;
+    stopAll();
+    clearLit();
+    if (have === resultOf(task.op, task.n)) {
+      mode = 'finished';
+      scoreGoal();
+      els.nextBtn.textContent = nextLabel();
+      show(['task', 'frames', 'btnRow'], ['sayBtn', 'nextBtn']);
+      lastLine = mathsGoal(task.op, task.n);
+      speak(lastLine);
+      return;
+    }
+    attempts++;
+    if (attempts < 2) { speak(mathsNot(have)); return; }
+    /* second miss: count what is there, then say what it should be */
+    busy = true;
+    var unlock = setTimeout(function () { busy = false; }, 30000);
+    speak(mathsTogether(), function () {
+      countDots(function () {
+        speak(mathsShow(task.op, task.n), function () {
+          clearTimeout(unlock);
+          clearLit();
+          busy = false;
+        });
+      });
+    });
+  }
+
+  /* ================= Teddy's face ================= */
+  var EYE = '<circle cx="44" cy="54" r="5" fill="#1f1208"/><circle cx="76" cy="54" r="5" fill="#1f1208"/>';
+  var WIDE = '<circle cx="44" cy="53" r="8" fill="#fff" stroke="#1f1208" stroke-width="2"/><circle cx="44" cy="53" r="3.5" fill="#1f1208"/>' +
+             '<circle cx="76" cy="53" r="8" fill="#fff" stroke="#1f1208" stroke-width="2"/><circle cx="76" cy="53" r="3.5" fill="#1f1208"/>';
+  var LINE = 'fill="none" stroke="#1f1208" stroke-width="3.4" stroke-linecap="round"';
+  var DROP = '<path d="M97 34 q6 9 0 13 q-6 -4 0 -13z" fill="#7dd3fc"/>';
+  var FACES = {
+    neutral:   EYE + '<path d="M52 84 q8 5 16 0" ' + LINE + '/>',
+    happy:     '<path d="M38 56 q6 -8 12 0 M70 56 q6 -8 12 0" ' + LINE + '/><path d="M46 80 q14 15 28 0z" fill="#7f1d1d" stroke="#1f1208" stroke-width="3" stroke-linejoin="round"/>',
+    excited:   '<path d="M44 44 l3 7 7 1 -5 5 1.5 7 -6.5 -3.5 -6.5 3.5 1.5 -7 -5 -5 7 -1z M76 44 l3 7 7 1 -5 5 1.5 7 -6.5 -3.5 -6.5 3.5 1.5 -7 -5 -5 7 -1z" fill="#facc15" stroke="#1f1208" stroke-width="1.6" stroke-linejoin="round"/>' +
+               '<path d="M42 78 q18 22 36 0z" fill="#7f1d1d" stroke="#1f1208" stroke-width="3" stroke-linejoin="round"/><path d="M50 88 q10 7 20 0" fill="none" stroke="#fb7185" stroke-width="4" stroke-linecap="round"/>',
+    surprised: WIDE + '<path d="M34 38 q10 -7 20 -2 M66 36 q10 -5 20 2" ' + LINE + '/><ellipse cx="60" cy="87" rx="7" ry="9" fill="#7f1d1d" stroke="#1f1208" stroke-width="3"/>',
+    scared:    WIDE + '<path d="M36 41 l16 -6 M84 41 l-16 -6" ' + LINE + '/><path d="M46 88 q4 -6 7 0 t7 0 t7 0 t7 0" ' + LINE + '/>' + DROP,
+    worried:   EYE + '<path d="M36 46 l15 -6 M84 46 l-15 -6" ' + LINE + '/><path d="M50 88 q5 -6 10 -1 t10 0" ' + LINE + '/>' + DROP,
+    sad:       EYE + '<path d="M36 47 l15 -7 M84 47 l-15 -7" ' + LINE + '/><path d="M49 90 q11 -11 22 0" ' + LINE + '/><path d="M44 62 q5 8 0 11 q-5 -3 0 -11z" fill="#38bdf8"/>',
+    angry:     EYE + '<path d="M35 42 l18 8 M85 42 l-18 8" stroke="#1f1208" stroke-width="4.6" stroke-linecap="round"/><path d="M49 89 q11 -7 22 0" ' + LINE + '/>',
+    tired:     '<path d="M37 55 q7 5 14 0 M69 55 q7 5 14 0" ' + LINE + '/><ellipse cx="60" cy="86" rx="5" ry="4" fill="#7f1d1d" stroke="#1f1208" stroke-width="2.6"/>' +
+               '<text x="90" y="30" font-size="15" font-weight="800" fill="#e0e7ff">z</text><text x="101" y="19" font-size="20" font-weight="800" fill="#e0e7ff">z</text>'
+  };
+
+  function drawTeddy(face, pop) {
+    els.teddy.innerHTML =
+      '<circle cx="28" cy="26" r="16" fill="#b45309"/><circle cx="92" cy="26" r="16" fill="#b45309"/>' +
+      '<circle cx="28" cy="26" r="8" fill="#fcd9a8"/><circle cx="92" cy="26" r="8" fill="#fcd9a8"/>' +
+      '<circle cx="60" cy="62" r="44" fill="#b45309"/>' +
+      '<ellipse cx="60" cy="80" rx="24" ry="19" fill="#fcd9a8"/>' +
+      '<ellipse cx="60" cy="70" rx="7" ry="5" fill="#1f1208"/>' +
+      FACES[face];
+    els.teddy.classList.remove('pop');
+    if (pop) { void els.teddy.getBoundingClientRect(); els.teddy.classList.add('pop'); }
+  }
+
+  /* ================= Second half: adjectives ================= */
+  function enterTeddy() {
+    stopAll();
+    mode = 'teddy';
+    busy = false;
+    task = queue2[round];
+    attempts = 0;
+    els.half.textContent = 'Second half · ' + (round + 1) + '/' + ROUNDS_PER_HALF;
+    els.scene.classList.add('hidden');
+    els.teddy.classList.remove('small');
+    if (task.kind === 'you') {
+      drawTeddy('neutral');
+      els.teddy.classList.add('small');
+      enterStep('pick');
+    } else {
+      drawTeddy(task.kind === 'face' ? task.f.plain : 'neutral');
+      if (task.kind === 'story') {
+        els.scene.textContent = task.f.scene;
+        els.scene.classList.remove('hidden');
+      }
+      enterStep('plain');
+    }
+  }
+
+  /* the word cards for this step, read out one by one */
+  function optionsFor(s) {
+    if (s === 'pick') return shuffle(FEELINGS);
+    var f = task.f;
+    var groups = {};
+    groups[f.group] = 1;
+    var others = shuffle(FEELINGS).filter(function (o) {
+      if (groups[o.group]) return false;
+      groups[o.group] = 1;
+      return true;
+    }).slice(0, 2);
+    return shuffle([f].concat(others));
+  }
+
+  function wordOf(o, s) {
+    if (s === 'pick') return task.fancy ? o.fancy : o.plain;
+    return s === 'fancy' ? o.fancy : o.plain;
+  }
+
+  function askLine(s) {
+    if (s === 'pick') return youAsk(task.fancy);
+    if (s === 'plain') return task.kind === 'face' ? faceAsk() : storyAsk(task.f);
+    return yesPlain(task.f);
+  }
+
+  function enterStep(s) {
+    step = s;
+    attempts = 0;
+    currentOpts = optionsFor(s);
+    els.lead.textContent = s === 'pick' ? 'How do you feel? 🤔'
+      : s === 'fancy' ? '✨ A more interesting adjective'
+      : task.kind === 'face' ? 'How is Teddy feeling? 🧸' : 'How might Teddy be feeling? 🧸';
+    renderOpts(s);
+    show(['lead', 'teddyBox', 'opts', 'btnRow'], ['sayBtn']);
+    readStep();
+  }
+
+  function renderOpts(s) {
+    els.opts.innerHTML = '';
+    els.opts.classList.toggle('many', s === 'pick');
+    /* the interesting words have no picture: he has to listen to them */
+    els.opts.classList.toggle('plainwords', s === 'fancy');
+    currentOpts.forEach(function (o, i) {
+      var w = wordOf(o, s);
+      var box = document.createElement('div');
+      box.className = 'opt';
+      var go = document.createElement('button');
+      go.className = 'opt-go';
+      go.type = 'button';
+      go.innerHTML = (s === 'fancy' ? '' : '<span class="pic">' + o.pic + '</span>') +
+                     '<span class="word">' + w + '</span>';
+      go.addEventListener('click', function () { choose(i, box); });
+      var sayIt = document.createElement('button');
+      sayIt.className = 'opt-say';
+      sayIt.type = 'button';
+      sayIt.textContent = '🔊';
+      sayIt.setAttribute('aria-label', w);
+      sayIt.addEventListener('click', function () { stopAll(); markSaying(-1); speak(w); });
+      box.appendChild(go);
+      box.appendChild(sayIt);
+      els.opts.appendChild(box);
+    });
+  }
+
+  function markSaying(i) {
+    var boxes = els.opts.querySelectorAll('.opt');
+    for (var b = 0; b < boxes.length; b++) boxes[b].classList.toggle('saying', b === i);
+  }
+
+  function readStep(firstLine) {
+    stopAll();
+    var list = [{ wait: 300 }];
+    if (firstLine) list.push({ say: firstLine });
+    list.push({ say: askLine(step) });
+    currentOpts.forEach(function (o, i) {
+      list.push({ act: function () { markSaying(i); }, say: wordOf(o, step) });
+    });
+    list.push({ act: function () { markSaying(-1); } });
+    sequence(list);
+  }
+
+  function choose(i, box) {
+    if (mode !== 'teddy') return;
+    stopAll();
+    markSaying(-1);
+    var o = currentOpts[i];
+    if (step === 'pick') {
+      enterShow(o);
+      return;
+    }
+    if (o === task.f) {
+      if (step === 'plain') {
+        els.scene.classList.add('hidden');
+        drawTeddy(task.f.plain, true);
+        enterStep('fancy');
+      } else {
+        finishTeddy();
+      }
+      return;
+    }
+    attempts++;
+    box.classList.remove('wrong');
+    void box.offsetWidth;
+    box.classList.add('wrong');
+    if (attempts < 2) {
+      speak(step === 'fancy' ? notFancy(o) : notPlain(o.plain));
+      return;
+    }
+    els.opts.querySelectorAll('.opt')[currentOpts.indexOf(task.f)].classList.add('hint');
+    speak(step === 'fancy' ? hintFancy(task.f) : hintWord(task.f.plain));
+  }
+
+  /* any feeling is right: he shows that face, and Teddy pulls it too */
+  function enterShow(o) {
+    var w = task.fancy ? o.fancy : o.plain;
+    task.f = o;
+    step = 'show';
+    words.push({ word: w, pic: o.pic });
+    drawTeddy(o.plain, true);
+    els.teddy.classList.remove('small');
+    els.lead.textContent = o.pic + ' ' + w;
+    show(['lead', 'teddyBox', 'btnRow'], ['sayBtn', 'tickBtn']);
+    lastLine = youPick(w);
+    speak(lastLine);
+  }
+
+  function finishYou() {
+    if (mode !== 'teddy' || step !== 'show') return;
+    stopAll();
+    var w = task.fancy ? task.f.fancy : task.f.plain;
+    finished(youGoal(w), 'GOAL! ⚽ ' + task.f.pic + ' ' + w);
+  }
+
+  function finishTeddy() {
+    var f = task.f;
+    words.push({ word: f.fancy, pic: f.pic });
+    finished(teddyGoal(f), 'GOAL! ⚽ ' + f.pic + ' ' + f.fancy);
+  }
+
+  function finished(line, leadText) {
+    mode = 'finished';
+    step = 'done';
+    scoreGoal();
+    els.lead.textContent = leadText;
+    els.nextBtn.textContent = nextLabel();
+    show(['lead', 'teddyBox', 'btnRow'], ['sayBtn', 'nextBtn']);
+    lastLine = line;
+    speak(line);
+  }
+
+  function nextRound() {
+    stopAll();
+    round++;
+    if (round >= ROUNDS_PER_HALF) {
+      if (half === 1) enterHalfTime(); else enterFullTime();
+      return;
+    }
+    if (half === 1) enterMaths(); else enterTeddy();
+  }
+
+  /* ================= Board ================= */
+  function renderBoard(list) {
+    els.board.innerHTML = '';
+    list.forEach(function (w) {
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.textContent = w.pic + ' ' + w.word;
+      b.addEventListener('click', function () { stopAll(); speak(w.word); });
+      els.board.appendChild(b);
+    });
+  }
+
+  function enterHalfTime() {
+    mode = 'board';
+    half = 2;
+    round = 0;
+    els.half.textContent = 'Half time';
+    els.boardTitle.textContent = '📣 Half time!';
+    els.boardText.textContent = goals + ' ⚽ · Next: Teddy 🧸';
+    els.boardBtn.textContent = 'Second half ➜';
+    renderBoard([]);
+    show(['boardBox']);
+    speak(halfTimeSay(goals));
+  }
+
+  function enterFullTime() {
+    mode = 'board';
+    half = 3;
+    els.half.textContent = 'Full time';
+    els.boardTitle.textContent = '🏆 Full time!';
+    els.boardText.textContent = goals + ' ⚽';
+    els.boardBtn.textContent = 'Play again ⚽';
+    renderBoard(words);
+    show(['boardBox']);
+    celebrate(45);
+    speak(fullTimeSay(goals));
+  }
+
+  /* ================= Match ================= */
+  function mathsPool(lowMore, highMore, lowLess, highLess) {
+    var out = [], n;
+    for (n = lowMore; n <= highMore; n++) out.push({ op: 'more', n: n });
+    for (n = lowLess; n <= highLess; n++) out.push({ op: 'less', n: n });
+    return shuffle(out);
+  }
+
+  /* more and less take turns, and no number comes twice in a match */
+  function buildMaths() {
+    var opFirst = Math.random() < 0.5 ? 'more' : 'less';
+    var used = {}, out = [];
+    function take(pool, op) {
+      for (var i = 0; i < pool.length; i++) {
+        if (pool[i].op === op && !used[pool[i].n]) {
+          used[pool[i].n] = 1;
+          return pool[i];
+        }
+      }
+      return pool[0];
+    }
+    var small = mathsPool(1, 9, 2, 10), big = mathsPool(10, 19, 11, 20);
+    for (var r = 0; r < ROUNDS_PER_HALF; r++) {
+      var op = r % 2 === 0 ? opFirst : (opFirst === 'more' ? 'less' : 'more');
+      out.push(take(r < ONE_FRAME_ROUNDS ? small : big, op));
+    }
+    return out;
+  }
+
+  /* you, two faces, two stories, you again with the interesting words */
+  function buildTeddy() {
+    var f = shuffle(FEELINGS);
+    return [
+      { kind: 'you', f: null, fancy: false },
+      { kind: 'face', f: f[0] },
+      { kind: 'face', f: f[1] },
+      { kind: 'story', f: f[2] },
+      { kind: 'story', f: f[3] },
+      { kind: 'you', f: null, fancy: true }
+    ];
+  }
+
+  function startMatch() {
+    stopAll();
+    queue1 = buildMaths();
+    queue2 = buildTeddy();
+    goals = 0;
+    words = [];
+    half = 1;
+    round = 0;
+    enterMaths();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasSpeech) {
+      pickVoice();
+      /* iOS: speech has to start inside this tap */
+      try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+    }
+    preload(phraseList());
+    els.startOverlay.remove();
+    startMatch();
+  });
+
+  document.addEventListener('pointerdown', dragDown);
+  document.addEventListener('pointermove', dragMove);
+  document.addEventListener('pointerup', dragUp);
+  document.addEventListener('pointercancel', dragUp);
+  els.frames.addEventListener('click', tapFrames);
+
+  els.countBtn.addEventListener('click', function () {
+    if (mode === 'maths' && !busy) { stopAll(); countDots(); }
+  });
+  els.sayBtn.addEventListener('click', function () {
+    if (busy) return;
+    if (mode === 'teddy' && step !== 'show') readStep();
+    else if (lastLine) sayLine(lastLine);
+  });
+  els.tickBtn.addEventListener('click', function () {
+    if (mode === 'maths') checkDots();
+    else finishYou();
+  });
+  els.nextBtn.addEventListener('click', nextRound);
+
+  els.boardBtn.addEventListener('click', function () {
+    stopAll();
+    if (half === 2) { enterTeddy(); readStep(feelIntro()); }
+    else startMatch();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>
