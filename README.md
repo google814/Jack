@@ -25,7 +25,7 @@ Browser games for Jack. No build tools needed — every game is a single HTML fi
 
 **New homework** is the top section of the All view: the homework cards (`data-group="homework"`) whose `data-new` is less than 14 days old, shown there as **copies**. The originals also stay in their subject section, so a subject never looks empty because its newest game is homework. The copies have no `id` and still show the score badge (it is set from `data-hw`).
 
-**What's new** is the ✨ NEW strip between the header and the tabs: up to three chips for the newest things, newest first, each one tappable and speakable, with "more ▸" for the rest. It is fed by the `WHATS_NEW` array at the top of the script in `index.html`; entries older than 21 days drop out by themselves and the strip disappears when nothing is left. A card whose `data-new` date is less than 14 days old also wears a small yellow **NEW** ribbon.
+**Calendar:** at the top of the page a month view shows on which day each game arrived (icons per day, tap a day for its games, ◂ ▸ to change month). It reads the `data-new` date of every card; there is no second list. The old `WHATS_NEW` array is kept only because `jack_homework.py` writes into it and is no longer displayed. The *Most played* and *Try these* shelves in the *All* view use `localStorage` key `jackPlays` (`{href: {n, last}}`, counted per device when a card is tapped on this page) plus each game's own saved score; *Try these* lists never-played games oldest first (not Chess, not fresh homework). A card whose `data-new` date is less than 14 days old also wears a small yellow **NEW** ribbon.
 
 Adding a game: drop a self-contained `new-game/index.html` into the repo and add a `.card` to the `.lineup` in `index.html` (icon, name, one-word description, `data-say`) — plus the two attributes the start page filters and sorts on:
 
@@ -33,7 +33,7 @@ Adding a game: drop a self-contained `new-game/index.html` into the repo and add
 - `data-subject="reading" | "writing" | "maths" | "deutsch" | "chess"` — **required**: the section the card sits in. A card without it still shows up (🔢 icon → maths, everything else → reading), but fix it.
 - `data-new="YYYY-MM-DD"` — the day it was added (the day its folder first landed in this repo), so it gets the NEW ribbon for two weeks, sorts into place and (for homework) counts as New homework for 14 days.
 
-…and a `WHATS_NEW` entry (`date`, `icon`, `text`, `href`, `say`) so it shows up in the NEW strip.
+…(the `data-new` date puts it in the calendar; a `WHATS_NEW` entry is no longer needed).
 
 Order rule: **newest first.** In every section the cards are sorted by `data-new` (newest first; on the same day the order in `index.html` decides), and chess is always the last card, full width. The start page sorts itself when it loads, so a new card can go anywhere at the top of the line-up — but keep `index.html` in the same order so the source reads like the page.
 

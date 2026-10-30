@@ -257,25 +257,77 @@
   .say.speaking, .mini-say.speaking { animation: pulse .7s ease infinite; }
   @keyframes pulse { 50% { transform: scale(1.14); } }
 
-  /* ---------- what's new: the newest things, right at the top ---------- */
-  .whatsnew {
+  /* ---------- calendar: which games arrived on which day ---------- */
+  .cal {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 10px;
-    padding: 8px 10px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
     border-radius: 18px;
     border: 2px solid var(--chalk-dim);
     background: rgba(0,0,0,.3);
+    width: 100%;
+    max-width: 640px;
+    margin-inline: auto;
   }
-  .whatsnew h2 {
+  .cal-head { display: flex; align-items: center; gap: 6px; }
+  .cal-head h2 {
+    flex: 1;
+    text-align: center;
     font-family: var(--display);
-    font-size: clamp(.72rem, 1.7vmin, .95rem);
+    font-size: clamp(.8rem, 2vmin, 1.05rem);
     font-weight: 400;
     letter-spacing: .1em;
     color: #ffd400;
   }
-  .whatsnew-list { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 240px; }
+  .cal-nav {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--chalk-dim);
+    background: none;
+    color: var(--chalk);
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+  .cal-nav:disabled { opacity: .25; cursor: default; }
+  .cal-nav:not(:disabled):hover { color: #ffd400; border-color: #ffd400; }
+  .cal-nav:focus-visible { outline: 4px solid #ffd400; outline-offset: 3px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-dow {
+    text-align: center;
+    font-size: .7rem;
+    letter-spacing: .08em;
+    color: var(--chalk-dim);
+  }
+  .cal-day {
+    min-height: 50px;
+    padding: 3px 2px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: rgba(255,255,255,.04);
+    color: var(--chalk-dim);
+    font-family: var(--read);
+    font-size: .72rem;
+    display: flex;
+    flex-direction: column;
+    flex-flow: row wrap;
+    align-content: flex-start;
+    justify-content: center;
+    gap: 0 3px;
+    cursor: default;
+  }
+  .cal-day > span:first-child { flex: 0 0 100%; text-align: center; }
+  .cal-cnt { display: none; font-size: .65rem; font-weight: 700; }
+  .cal-day.has { background: rgba(255,255,255,.12); color: var(--chalk); cursor: pointer; }
+  .cal-day.has:hover { border-color: #ffd400; }
+  .cal-day.today { border-color: var(--chalk); }
+  .cal-day.sel { background: #ffd400; color: #06251a; border-color: #ffd400; }
+  .cal-day:focus-visible { outline: 4px solid #ffd400; outline-offset: 2px; }
+  .cal-day:disabled { opacity: .45; }
+  .cal-ico { font-size: .95rem; line-height: 1.1; white-space: nowrap; }
+  .cal-more { font-size: .65rem; font-weight: 700; }
+  .cal-day.pad { background: none; }
+  .whatsnew-list { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 0 auto; }
   .chip {
     display: inline-flex;
     align-items: center;
@@ -297,20 +349,6 @@
   a.chip-link:hover { color: #ffd400; }
   a.chip-link:focus-visible { outline: 4px solid #ffd400; outline-offset: 3px; border-radius: 999px; }
   .chip-ico { font-size: 1.1rem; }
-  .whatsnew .more {
-    margin-left: auto;
-    min-height: 40px;
-    padding: 6px 14px;
-    border-radius: 999px;
-    border: 2px solid var(--chalk-dim);
-    background: none;
-    color: var(--chalk);
-    font-family: var(--read);
-    font-size: clamp(.75rem, 1.6vmin, .9rem);
-    cursor: pointer;
-  }
-  .whatsnew .more:hover { color: #ffd400; border-color: #ffd400; }
-  .whatsnew .more:focus-visible { outline: 4px solid #ffd400; outline-offset: 3px; }
 
   /* small round say-it badge used by the chips and the filter tabs */
   .mini-say {
@@ -456,6 +494,13 @@
     .pitch::after { display: none; }
   }
 
+  @media (max-width: 460px) {
+    .cal { padding: 8px 6px; }
+    .cal-grid { gap: 3px; }
+    .cal-day { min-height: 46px; font-size: .68rem; }
+    .cal-ico.x2, .cal-ico.x3, .cal-more { display: none; }
+    .cal-cnt { display: inline; }
+  }
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
@@ -469,10 +514,15 @@
     <p class="prompt">Tap a game to play. Tap <span aria-hidden="true">🔊</span> to hear its name.</p>
   </header>
 
-  <section class="whatsnew" id="whatsnew" aria-label="What's new" hidden>
-    <h2>✨ NEW</h2>
+  <section class="cal" id="cal" aria-label="New games calendar">
+    <div class="cal-head">
+      <button class="cal-nav" id="cal-prev" type="button" aria-label="Previous month">◂</button>
+      <h2 id="cal-title"></h2>
+      <button class="mini-say" id="cal-say" type="button" aria-label="Say the month">🔊</button>
+      <button class="cal-nav" id="cal-next" type="button" aria-label="Next month">▸</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
     <div class="whatsnew-list" id="whatsnew-list"></div>
-    <button class="more" id="whatsnew-more" type="button" aria-expanded="false" hidden>more ▸</button>
   </section>
 
   <nav class="filters" aria-label="Choose what to play">
@@ -801,7 +851,8 @@
 (function () {
   'use strict';
 
-  /* Adding a game: add a card with data-group + data-subject + data-new, and a WHATS_NEW entry. */
+  /* Adding a game: add a card with data-group + data-subject + data-new. data-new feeds the calendar;
+     WHATS_NEW is kept only because jack_homework.py writes into it (no longer displayed). */
   var WHATS_NEW = [
     { date: '2026-10-30', icon: '🔤', text: "Pumpkin Fat", href: 'hw-20261030-music-pumpkin-fat/', say: "New homework: Pumpkin Fat." },
     { date: '2026-10-30', icon: '🔤', text: "Editing a Sprite", href: 'hw-20261030-computing-l2-y1-editing--1/', say: "New homework: Editing a Sprite." },
@@ -882,6 +933,49 @@
 
   } catch (e) { /* private mode — badges are a bonus */ }
 
+  /* ---- play counter: counts taps on a card from this page, per device ---- */
+  var PLAYS_KEY = 'jackPlays';
+  function readPlays() {
+    try { return JSON.parse(localStorage.getItem(PLAYS_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function playsOf(c) {
+    var r = readPlays()[c.getAttribute('href')];
+    return r && r.n ? r.n : 0;
+  }
+  document.addEventListener('click', function (ev) {
+    if (ev.target && ev.target.closest && ev.target.closest('.say, .mini-say')) return;
+    var c = ev.target && ev.target.closest ? ev.target.closest('a.card') : null;
+    if (!c) return;
+    try {
+      var all = readPlays(), k = c.getAttribute('href');
+      var t = new Date();
+      all[k] = { n: ((all[k] && all[k].n) || 0) + 1,
+                 last: t.getFullYear() + '-' + ('0' + (t.getMonth() + 1)).slice(-2) + '-' + ('0' + t.getDate()).slice(-2) };
+      localStorage.setItem(PLAYS_KEY, JSON.stringify(all));
+    } catch (e) { /* private mode */ }
+  });
+  /* the score each game saves itself, so games played before the counter existed still count */
+  var SCORE = {
+    'reading-game/':  function () { return num('jackReadFootballs'); },
+    'match-game/':    function () { return num('jackMatchFootballs'); },
+    'letters-game/':  function () { return (localStorage.getItem('jackLettersDone') || '').length; },
+    'math-game/':     function () { return num('jackMathFootballs'); },
+    'big-numbers/':   function () { return num('jackBigFootballs'); },
+    'apples-game/':   function () { return num('jackApplesFootballs'); },
+    'sight-words/':   function () { return num('jackSightStars'); },
+    'clock-game/':    function () { return num('jackClockFootballs'); },
+    'ten-frames/':    function () { return num('jackFramesFootballs'); },
+    'chess/':         function () { return num('jackChessXp'); }
+  };
+  function scoreOf(c) {
+    try {
+      var hw = c.getAttribute('data-hw');
+      if (hw) return num(hw);
+      var f = SCORE[c.getAttribute('href')];
+      return f ? f() : 0;
+    } catch (e) { return 0; }
+  }
+
   /* ---- speak the card name, same voice as the games ---- */
   var hasTTS = 'speechSynthesis' in window;
   var voice = null;
@@ -949,33 +1043,52 @@
     if (prompt) prompt.textContent = 'Tap a game to play.';
   }
 
-  /* ---- what's new: the newest things first, nothing older than 21 days ---- */
-  var strip     = document.getElementById('whatsnew');
+  /* ---- calendar: one cell per day, icons of the games that arrived that day ---- */
+  var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var ORD = ['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth','eleventh','twelfth','thirteenth','fourteenth','fifteenth','sixteenth','seventeenth','eighteenth','nineteenth','twentieth','twenty-first','twenty-second','twenty-third','twenty-fourth','twenty-fifth','twenty-sixth','twenty-seventh','twenty-eighth','twenty-ninth','thirtieth','thirty-first'];
+  var NUMW = ['No','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten'];
+  var calGrid  = document.getElementById('cal-grid');
+  var calTitle = document.getElementById('cal-title');
+  var calPrev  = document.getElementById('cal-prev');
+  var calNext  = document.getElementById('cal-next');
+  var calSay   = document.getElementById('cal-say');
   var stripList = document.getElementById('whatsnew-list');
-  var stripMore = document.getElementById('whatsnew-more');
-  var stripOpen = false;
 
-  function freshNews() {
-    return WHATS_NEW
-      .filter(function (n) { return daysOld(n.date) <= NEW_STRIP_DAYS; })
-      .sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
+  var byDay = {};
+  document.querySelectorAll('.lineup .card[data-new]').forEach(function (c) {
+    var d = c.getAttribute('data-new');
+    var nm = c.querySelector('.name');
+    var ic = c.querySelector('.icon');
+    (byDay[d] = byDay[d] || []).push({
+      icon: ic ? ic.textContent : '⚽',
+      text: nm ? nm.textContent : '',
+      href: c.getAttribute('href'),
+      say: c.getAttribute('data-say') || ''
+    });
+  });
+  var dayKeys = Object.keys(byDay).sort();
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function ym(iso) { return iso.slice(0, 7); }
+  var todayIso = (function () { var t = new Date(); return t.getFullYear() + '-' + pad2(t.getMonth() + 1) + '-' + pad2(t.getDate()); })();
+  var firstYM = dayKeys.length ? ym(dayKeys[0]) : ym(todayIso);
+  var lastYM  = ym(todayIso) > (dayKeys.length ? ym(dayKeys[dayKeys.length - 1]) : '') ? ym(todayIso) : ym(dayKeys[dayKeys.length - 1] || todayIso);
+  var viewYM  = dayKeys.length ? ym(dayKeys[dayKeys.length - 1]) : ym(todayIso);
+  var selDay  = dayKeys.length ? dayKeys[dayKeys.length - 1] : '';
+  function shiftYM(v, d) {
+    var y = parseInt(v.slice(0, 4), 10), m = parseInt(v.slice(5), 10) - 1 + d;
+    y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+    return y + '-' + pad2(m + 1);
   }
 
-  function renderNews() {
-    if (!strip || !stripList || !stripMore) return;
-    var items = freshNews();
-    if (!items.length) { strip.hidden = true; return; }
-    strip.hidden = false;
-
-    var shown = stripOpen ? items : items.slice(0, 3);
+  function renderChips() {
+    if (!stripList) return;
     stripList.textContent = '';
-    shown.forEach(function (n) {
+    (byDay[selDay] || []).forEach(function (n) {
       var chip = document.createElement('span');
       chip.className = 'chip';
-
-      var link = document.createElement(n.href ? 'a' : 'span');
+      var link = document.createElement('a');
       link.className = 'chip-link';
-      if (n.href) link.href = n.href;
+      link.href = n.href;
       var ico = document.createElement('span');
       ico.className = 'chip-ico';
       ico.setAttribute('aria-hidden', 'true');
@@ -984,7 +1097,6 @@
       txt.textContent = n.text;
       link.appendChild(ico);
       link.appendChild(txt);
-
       var say = document.createElement('button');
       say.className = 'mini-say';
       say.type = 'button';
@@ -992,21 +1104,76 @@
       say.setAttribute('aria-label', 'Say: ' + n.text);
       say.textContent = '🔊';
       if (!hasTTS) say.style.display = 'none';
-
       chip.appendChild(link);
       chip.appendChild(say);
       stripList.appendChild(chip);
     });
-
-    stripMore.hidden = items.length <= 3;
-    stripMore.textContent = stripOpen ? 'less ◂' : 'more ▸';
-    stripMore.setAttribute('aria-expanded', stripOpen ? 'true' : 'false');
   }
 
-  if (stripMore) {
-    stripMore.addEventListener('click', function () { stripOpen = !stripOpen; renderNews(); });
+  function dayLine(iso) {
+    var n = (byDay[iso] || []).length;
+    var day = parseInt(iso.slice(8), 10), mon = parseInt(iso.slice(5, 7), 10) - 1;
+    return (NUMW[n] || n) + ' new game' + (n === 1 ? '' : 's') + ' on the ' + ORD[day] + ' of ' + MONTHS[mon] + '.';
   }
-  renderNews();
+
+  function renderCal() {
+    if (!calGrid) return;
+    var y = parseInt(viewYM.slice(0, 4), 10), m = parseInt(viewYM.slice(5), 10) - 1;
+    calTitle.textContent = MONTHS[m] + ' ' + y;
+    calPrev.disabled = viewYM <= firstYM;
+    calNext.disabled = viewYM >= lastYM;
+    calGrid.textContent = '';
+    ['Mo','Tu','We','Th','Fr','Sa','Su'].forEach(function (w) {
+      var h = document.createElement('div'); h.className = 'cal-dow'; h.textContent = w; calGrid.appendChild(h);
+    });
+    var lead = (new Date(y, m, 1).getDay() + 6) % 7;
+    var days = new Date(y, m + 1, 0).getDate();
+    for (var i = 0; i < lead; i++) {
+      var p = document.createElement('div'); p.className = 'cal-day pad'; p.setAttribute('aria-hidden', 'true'); calGrid.appendChild(p);
+    }
+    for (var d = 1; d <= days; d++) {
+      var iso = viewYM + '-' + pad2(d);
+      var list = byDay[iso] || [];
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cal-day' + (list.length ? ' has' : '') + (iso === todayIso ? ' today' : '') + (iso === selDay ? ' sel' : '');
+      b.setAttribute('data-day', iso);
+      if (!list.length) b.disabled = true;
+      b.setAttribute('aria-label', list.length ? dayLine(iso) : String(d));
+      var num = document.createElement('span'); num.textContent = d; b.appendChild(num);
+      list.slice(0, 3).forEach(function (g, k) {
+        var s1 = document.createElement('span');
+        s1.className = 'cal-ico x' + (k + 1);
+        s1.setAttribute('aria-hidden', 'true');
+        s1.textContent = g.icon;
+        b.appendChild(s1);
+      });
+      if (list.length > 1) {
+        var ct = document.createElement('span'); ct.className = 'cal-cnt'; ct.textContent = '×' + list.length; b.appendChild(ct);
+      }
+      if (list.length > 3) {
+        var mo = document.createElement('span'); mo.className = 'cal-more'; mo.textContent = '+' + (list.length - 3); b.appendChild(mo);
+      }
+      calGrid.appendChild(b);
+    }
+  }
+
+  if (calGrid) {
+    calGrid.addEventListener('click', function (ev) {
+      var b = ev.target.closest ? ev.target.closest('.cal-day.has') : null;
+      if (!b) return;
+      selDay = b.getAttribute('data-day');
+      renderCal(); renderChips();
+      speak(dayLine(selDay), null);
+    });
+    calPrev.addEventListener('click', function () { viewYM = shiftYM(viewYM, -1); renderCal(); });
+    calNext.addEventListener('click', function () { viewYM = shiftYM(viewYM, 1); renderCal(); });
+    calSay.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      speak(MONTHS[parseInt(viewYM.slice(5), 10) - 1] + ' ' + viewYM.slice(0, 4) + '.', calSay);
+    });
+    renderCal(); renderChips();
+  }
 
   /* ---- NEW ribbon on a card added in the last two weeks ---- */
   document.querySelectorAll('.card[data-new]').forEach(function (c) {
@@ -1029,6 +1196,8 @@
     { key: 'chess',   ico: '♟️', word: 'Chess',   say: 'Chess.' }
   ];
   var NEWHW = { key: 'new', ico: '📚', word: 'New homework', say: 'New homework.' };
+  var MOST  = { key: 'most', ico: '⭐', word: 'Most played', say: 'Most played.' };
+  var TRY   = { key: 'try', ico: '🌱', word: 'Try these', say: 'Try these.' };
   var HW    = { key: 'homework', ico: '📚', word: 'Homework', say: 'Homework.' };
   var GROUPS = ['all', 'homework'].concat(SUBJECTS.map(function (x) { return x.key; }));
 
@@ -1100,6 +1269,21 @@
       parts.push([NEWHW, cards.filter(function (x) {
         return x.c.getAttribute('data-group') === 'homework' && daysOld(x.d) <= NEW_RIBBON_DAYS;
       }), true]);
+      var isNewHw = function (x) { return x.c.getAttribute('data-group') === 'homework' && daysOld(x.d) <= NEW_RIBBON_DAYS; };
+      var stat = cards.map(function (x) { return { x: x, p: playsOf(x.c), sc: scoreOf(x.c) }; });
+      var most = stat.filter(function (r) { return r.p > 0 || r.sc > 0; })
+        .sort(function (a, b) { return (b.p - a.p) || (b.sc - a.sc) || byNewest(a.x, b.x); })
+        .slice(0, 6);
+      var inMost = most.map(function (r) { return r.x; });
+      var tryList = stat.filter(function (r) { return inMost.indexOf(r.x) < 0 && !isNewHw(r.x) && r.x.s !== 'chess'; })
+        .sort(function (a, b) {
+          var an = (a.p === 0 && a.sc === 0) ? 0 : 1, bn = (b.p === 0 && b.sc === 0) ? 0 : 1;
+          if (an !== bn) return an - bn;
+          if (an === 0) return -byNewest(a.x, b.x);      /* never played: oldest first = forgotten */
+          return (a.p - b.p) || (a.sc - b.sc);
+        }).slice(0, 8);
+      parts.push([MOST, most.map(function (r) { return r.x; }), true]);
+      parts.push([TRY, tryList.map(function (r) { return r.x; }), true]);
       SUBJECTS.forEach(function (def) {
         parts.push([def, cards.filter(function (x) { return x.s === def.key; }), false]);
       });
@@ -1119,7 +1303,7 @@
     });
     var live = shelves.querySelectorAll('.card');
     for (var n = 0; n < live.length; n++) {
-      live[n].style.animationDelay = (0.05 + n * 0.07).toFixed(2) + 's';
+      live[n].style.animationDelay = (0.05 + Math.min(n, 12) * 0.07).toFixed(2) + 's';
       shown++;
     }
     if (grid) grid.hidden = shown > 0;
