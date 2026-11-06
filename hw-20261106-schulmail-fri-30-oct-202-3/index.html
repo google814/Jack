@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#7c2d12">
+<title>Shape Boxes &amp; Rapunzel ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Rapunzel">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #431407 0%, #9a3412 50%, #431407 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body.story { background: linear-gradient(160deg, #3b0764 0%, #7e22ce 52%, #3b0764 100%); }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    background: rgba(0,0,0,.24);
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.6rem); flex: 0 1 auto; min-width: 0; }
+  @media (max-width: 620px) { header h1 { display: none; } }
+  #half {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.3rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2vh, 20px);
+    padding: clamp(8px, 2vh, 22px) 12px calc(clamp(10px, 2.4vh, 24px) + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1.1rem, 3vmin, 1.6rem); font-weight: 800; }
+
+  /* ---------- First half: the shape and the boxes ---------- */
+  #shapeStage { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2.4vh, 24px); width: 100%; }
+  #belt {
+    width: min(92vw, 560px);
+    display: flex;
+    justify-content: center;
+    padding: 8px 0 14px;
+    background: repeating-linear-gradient(90deg, #374151 0 18px, #4b5563 18px 36px) bottom / 100% 14px no-repeat;
+  }
+  #shapeBtn {
+    --s: clamp(130px, 34vmin, 230px);
+    width: var(--s);
+    height: var(--s);
+    border: none;
+    border-radius: 24px;
+    background: #fff7ed;
+    box-shadow: 0 8px 0 rgba(0,0,0,.3);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform .6s cubic-bezier(.5,-.2,.7,1), opacity .6s ease;
+  }
+  #shapeBtn.enter { animation: slideIn .7s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes slideIn {
+    0% { transform: translateX(-70vw) rotate(-20deg); }
+    100% { transform: translateX(0) rotate(0); }
+  }
+  #shapeBtn svg { width: 100%; height: 100%; display: block; }
+  .corner { opacity: 0; }
+  .corner.lit { opacity: 1; }
+  .corner circle { fill: #facc15; stroke: #1e293b; stroke-width: 2; }
+  .corner text { font-size: 11px; font-weight: 900; fill: #1e293b; text-anchor: middle; dominant-baseline: central; }
+
+  #boxes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(8px, 2vmin, 16px);
+    width: min(96vw, 760px);
+  }
+  @media (max-width: 560px) { #boxes { grid-template-columns: repeat(2, 1fr); } }
+  .box {
+    position: relative;
+    background: linear-gradient(180deg, #d6a46b 0%, #b7814a 100%);
+    border: 4px solid #7c4a1e;
+    border-top-width: 14px;
+    border-radius: 10px 10px 16px 16px;
+    padding: 8px 6px 6px;
+    min-height: clamp(120px, 22vh, 180px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    cursor: pointer;
+    box-shadow: 0 8px 0 rgba(0,0,0,.3);
+    color: #3b1d06;
+  }
+  .box:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+  .box .icon { width: clamp(56px, 12vmin, 86px); height: clamp(56px, 12vmin, 86px); }
+  .box .word { font-weight: 900; font-size: clamp(.95rem, 2.6vmin, 1.25rem); background: #fff7ed; border-radius: 8px; padding: 1px 8px; }
+  .box .bin { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; min-height: 26px; }
+  .box .bin svg { width: 24px; height: 24px; animation: bounceIn .5s ease; }
+  .box.wrong { animation: shake .4s ease; background: linear-gradient(180deg, #fca5a5, #f87171); }
+  .box.hint { outline: 6px solid #fde047; outline-offset: 3px; animation: pulse 1.1s ease infinite; }
+  .box.got { outline: 6px solid #4ade80; outline-offset: 3px; }
+  .hear {
+    position: absolute;
+    top: -6px; right: -6px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    background: #1e293b;
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 3px 0 rgba(0,0,0,.3);
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+
+  /* ---------- Second half: the story cards ---------- */
+  #storyStage { display: flex; flex-direction: column; align-items: center; gap: clamp(12px, 3vh, 28px); width: 100%; }
+  #slots, #pool {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(6px, 1.6vmin, 14px);
+    width: min(96vw, 820px);
+  }
+  @media (max-width: 560px) { #pool { grid-template-columns: repeat(2, 1fr); } #slots { gap: 4px; } }
+  .slot {
+    position: relative;
+    border: 4px dashed rgba(255,255,255,.55);
+    border-radius: 18px;
+    min-height: clamp(70px, 14vh, 130px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .slot .num {
+    position: absolute; top: 4px; left: 8px;
+    font-weight: 900; font-size: clamp(1rem, 3vmin, 1.5rem); opacity: .8;
+  }
+  .slot .card { width: 100%; min-height: 0; height: 100%; border-width: 3px; box-shadow: none; }
+  .slot .card .pic { font-size: clamp(1.1rem, 4.2vmin, 2.2rem); }
+  .slot .card .tower { height: clamp(34px, 7vh, 64px); }
+  .card {
+    position: relative;
+    background: #fff;
+    color: #1e293b;
+    border: 5px solid #fde047;
+    border-radius: 18px;
+    min-height: clamp(110px, 20vh, 170px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    cursor: pointer;
+    box-shadow: 0 8px 0 rgba(0,0,0,.3);
+  }
+  .card:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+  .card .pic { display: flex; align-items: flex-end; justify-content: center; gap: 2px; font-size: clamp(1.8rem, 6.5vmin, 3.4rem); line-height: 1; }
+  .card.wrong { animation: shake .4s ease; border-color: #f87171; }
+  .card.hint { outline: 6px solid #4ade80; outline-offset: 3px; animation: pulse 1.1s ease infinite; }
+  .card.reading { outline: 6px solid #fde047; outline-offset: 3px; transform: scale(1.06); }
+  .card.placed { border-color: #4ade80; }
+  .tower { height: clamp(60px, 12vh, 104px); width: auto; display: block; }
+
+  /* ---------- Second half: who is it? ---------- */
+  #options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(8px, 2vmin, 18px);
+    width: min(96vw, 760px);
+  }
+  @media (max-width: 560px) { #options { grid-template-columns: repeat(2, 1fr); } }
+  .opt {
+    font-family: inherit;
+    background: #fff;
+    color: #1e293b;
+    border: 5px solid #c4b5fd;
+    border-radius: 22px;
+    min-height: clamp(120px, 22vh, 190px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 8px 0 rgba(0,0,0,.3);
+  }
+  .opt:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+  .opt .face { font-size: clamp(3rem, 11vmin, 5.4rem); line-height: 1; }
+  .opt .tower { height: clamp(64px, 12vmin, 96px); }
+  .opt .name { font-weight: 900; font-size: clamp(1rem, 2.8vmin, 1.3rem); }
+  .opt.wrong { animation: shake .4s ease; border-color: #f87171; background: #fee2e2; }
+  .opt.hint { outline: 6px solid #fde047; outline-offset: 3px; animation: pulse 1.1s ease infinite; }
+  .opt.got { border-color: #4ade80; background: #dcfce7; animation: bounceIn .5s ease; }
+
+  /* ---------- Buttons ---------- */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(11px, 2vh, 17px) clamp(20px, 5vw, 40px);
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.quiet {
+    background: rgba(0,0,0,.32);
+    box-shadow: none;
+    font-size: clamp(.9rem, 2.2vmin, 1.15rem);
+    padding: clamp(10px, 1.6vh, 14px) clamp(16px, 4vw, 30px);
+  }
+
+  /* ---------- Boards ---------- */
+  #boardBox { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
+  #boardTitle { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); font-weight: 800; }
+  #boardPics { font-size: clamp(2rem, 8vmin, 4rem); }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #431407 0%, #7e22ce 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 6vmin, 2.8rem); }
+  #startOverlay .pics { font-size: clamp(2.2rem, 9vmin, 4rem); }
+  #startOverlay p { max-width: 30ch; opacity: .92; font-size: clamp(.95rem, 2.4vmin, 1.2rem); line-height: 1.5; }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 58px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Shape boxes &amp; Rapunzel</h1>
+  <span id="half">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead hidden" id="lead"></p>
+
+  <div id="shapeStage" class="hidden">
+    <div id="belt">
+      <button id="shapeBtn" type="button" aria-label="The shape"><svg id="shapeSvg" viewBox="-50 -50 100 100"></svg></button>
+    </div>
+    <div id="boxes"></div>
+  </div>
+
+  <div id="storyStage" class="hidden">
+    <div id="slots"></div>
+    <div id="pool"></div>
+  </div>
+
+  <div id="descStage" class="hidden">
+    <div id="options"></div>
+  </div>
+
+  <div class="row hidden" id="btnRow">
+    <button class="btn quiet" id="sayBtn">🔊 Say it again</button>
+    <button class="btn quiet" id="storyBtn">📖 Hear the story</button>
+    <button class="btn big" id="nextBtn">Next ➜</button>
+  </div>
+
+  <div id="boardBox" class="hidden">
+    <div id="boardTitle"></div>
+    <div id="boardPics"></div>
+    <p id="boardText" class="lead"></p>
+    <div class="row">
+      <button class="btn quiet" id="boardSayBtn">🔊 Say it again</button>
+      <button class="btn big" id="boardBtn"></button>
+    </div>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>⚽ Shape boxes &amp; Rapunzel ⚽</h2>
+  <div class="pics">🔺🟦⚪ 📦 👸🧙‍♀️🤴</div>
+  <p>First half: sort the 2D shapes into the correct boxes.<br>Second half: Rapunzel — put the story in order and find who is described.</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower talking</label>
+  <button id="resetBtn">Reset score</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Homework =================
+     Schulmail Fri, 30 Oct 2026: Homework This Week.
+     Mathematics - Seesaw: "We have been looking at 2D shapes. Please complete
+       the activity on Seesaw by sorting the shapes into the correct boxes."
+     English - paper: "We have been exploring our new book, Rapunzel. Please
+       complete the worksheet on sequencing and descriptions."
+
+     First half (maths): eight shapes ride in on a belt — circles, triangles,
+     squares and rectangles in different sizes, colours and turns (a square
+     turned round is still a square). He taps the correct box and the shape
+     drops in. Tapping the shape counts its corners out loud; the 🔊 on a box
+     says its name. Wrong box: "Not the square box. Try again."; a second
+     miss names the shape, says its sides and lights the right box.
+     Second half (English): first the story of Rapunzel is read out, picture
+     by picture, then the four pictures are shuffled and he puts them back in
+     order ("What happens first?"). Then five descriptions: "Who has long
+     golden hair?" and he taps Rapunzel, the witch, the prince or the tower.
+     One football ⚽ for every shape, for the story in order and for every
+     description. */
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🔺', '🟦', '👸'];
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so the phrase list for the clips can be generated straight out of
+     this block (tools/gen-phrases.js). */
+
+  var WORDS = ['zero', 'one', 'two', 'three', 'four', 'five',
+               'six', 'seven', 'eight', 'nine', 'ten'];
+
+  var SHAPES = ['circle', 'triangle', 'square', 'rectangle'];
+  var SIDES = { circle: 0, triangle: 3, square: 4, rectangle: 4 };
+  var SHAPE_FACT = {
+    circle: 'A circle is round. It has no corners.',
+    triangle: 'A triangle has three sides and three corners.',
+    square: 'A square has four sides, all the same length.',
+    rectangle: 'A rectangle has four sides, two long and two short.'
+  };
+  var SHAPE_ROUNDS = 8;
+  var DESC_ROUNDS = 5;
+
+  /* the story of Rapunzel, in order, one line per picture */
+  var STORY = [
+    'The witch locks Rapunzel in a tall tower.',
+    'The prince calls: Rapunzel, Rapunzel, let down your hair!',
+    'The prince climbs up her long golden hair.',
+    'Rapunzel and the prince live happily ever after.'
+  ];
+
+  var WHO = ['rapunzel', 'witch', 'prince', 'tower'];
+  var WHO_NAME = { rapunzel: 'Rapunzel', witch: 'the witch', prince: 'the prince', tower: 'the tower' };
+  var QUESTIONS = [
+    { who: 'rapunzel', ask: 'Who has long golden hair?', yes: 'Rapunzel has long golden hair.' },
+    { who: 'rapunzel', ask: 'Who sings at the tower window?', yes: 'Rapunzel sings at the tower window.' },
+    { who: 'witch', ask: 'Who is wicked and mean?', yes: 'The witch is wicked and mean.' },
+    { who: 'witch', ask: 'Who is old and unkind?', yes: 'The witch is old and unkind.' },
+    { who: 'prince', ask: 'Who is brave and rides a horse?', yes: 'The prince is brave and rides a horse.' },
+    { who: 'prince', ask: 'Who climbs up the tower?', yes: 'The prince climbs up the tower.' },
+    { who: 'tower', ask: 'What is tall and made of stone?', yes: 'The tower is tall and made of stone.' },
+    { who: 'tower', ask: 'What has no stairs and no door?', yes: 'The tower has no stairs and no door.' }
+  ];
+
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  /* ----- first half: shapes ----- */
+  function shapeAsk() { return 'Put the shape in the correct box.'; }
+  function firstShapeSay() {
+    return 'We have been looking at 2D shapes. Sort the shapes into the correct boxes. ' + shapeAsk();
+  }
+  function boxSay(s) { return cap(s) + ' box.'; }
+  function shapeYes(s) { return 'Goal! It is a ' + s + '. ' + SHAPE_FACT[s]; }
+  function shapeNo(tapped) { return 'Not the ' + tapped + ' box. Try again.'; }
+  function shapeHint(s) { return 'It is a ' + s + '. ' + SHAPE_FACT[s] + ' Find the ' + s + ' box.'; }
+  function sidesTotal(s) {
+    var n = SIDES[s];
+    return n ? cap(WORDS[n]) + ' corners and ' + WORDS[n] + ' sides.' : SHAPE_FACT.circle;
+  }
+  function halfTimeSay() {
+    return 'Half time! You sorted ' + WORDS[SHAPE_ROUNDS] + ' shapes into the correct boxes. ' +
+           'In the second half, we read our new book, Rapunzel.';
+  }
+
+  /* ----- second half: sequencing ----- */
+  function storyIntroSay() { return 'Listen to the story of Rapunzel.'; }
+  function seqAsk(i) {
+    if (i <= 0) return 'What happens first?';
+    if (i >= STORY.length - 1) return 'What happens at the end?';
+    return 'What happens next?';
+  }
+  function storyStartSay() { return 'Now put the story in order. ' + seqAsk(0); }
+  function storyGoalSay() { return 'Goal! The story is in order.'; }
+  /* a picture put in its place: "Yes! <that line>. What happens next?" */
+  function seqYesAsk(i) {
+    return 'Yes! ' + STORY[i] + ' ' + (i >= STORY.length - 1 ? storyGoalSay() : seqAsk(i + 1));
+  }
+  function seqNoSay(i) { return 'Not yet. That happens later. ' + seqAsk(i); }
+  function seqHint(i) { return 'Listen. ' + STORY[i] + ' Find this picture.'; }
+
+  /* ----- second half: descriptions ----- */
+  function descFirstSay(q) { return 'Now listen to the descriptions. ' + q.ask; }
+  function descYes(q) { return 'Goal! ' + q.yes; }
+  function descNo(who) { return 'That is ' + WHO_NAME[who] + '. Try again.'; }
+  function descHint(q) { return 'Listen again. ' + q.ask; }
+
+  function fullTimeSay() {
+    return 'Full time! You sorted the shapes into the correct boxes. ' +
+           'You put the story of Rapunzel in order and found the descriptions. Brilliant!';
+  }
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i, n, s;
+    function add(x) { var k = bare(x); if (k && !seen[k]) { seen[k] = 1; out.push(x); } }
+    function addAll(text) { var p = segments(text); for (var k = 0; k < p.length; k++) add(p[k]); }
+    addAll(firstShapeSay());
+    addAll(shapeAsk());
+    for (n = 1; n <= 4; n++) add(WORDS[n]);
+    for (i = 0; i < SHAPES.length; i++) {
+      s = SHAPES[i];
+      addAll(boxSay(s));
+      addAll(SHAPE_FACT[s]);
+      addAll(shapeYes(s));
+      addAll(shapeNo(s));
+      addAll(shapeHint(s));
+      addAll(sidesTotal(s));
+    }
+    addAll(halfTimeSay());
+    addAll(storyIntroSay());
+    addAll(storyStartSay());
+    addAll(storyGoalSay());
+    for (i = 0; i < STORY.length; i++) {
+      addAll(STORY[i]);
+      addAll(seqAsk(i));
+      addAll(seqYesAsk(i));
+      addAll(seqNoSay(i));
+      addAll(seqHint(i));
+    }
+    for (i = 0; i < QUESTIONS.length; i++) {
+      addAll(QUESTIONS[i].ask);
+      addAll(descFirstSay(QUESTIONS[i]));
+      addAll(descYes(QUESTIONS[i]));
+      addAll(descHint(QUESTIONS[i]));
+    }
+    for (i = 0; i < WHO.length; i++) addAll(descNo(WHO[i]));
+    addAll(fullTimeSay());
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') return;
+  window.__phrases = phraseList;
+
+  /* ================= State ================= */
+  var SCORE_KEY = 'jackHw_hw20261106schulmailfri30oct2023';
+  var SLOW_KEY  = 'jackHw_hw20261106schulmailfri30oct2023_slow';
+
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var half = 1;
+  var round = 0;
+  var mode = 'start';     /* start | shape | listen | story | desc | won | board */
+  var busy = false;
+  var attempts = 0;
+  var shapeQueue = [];
+  var cur = null;         /* the shape on the belt */
+  var storyPos = 0;       /* next slot to fill */
+  var descQueue = [];
+  var q = null;           /* current description */
+  var goals = 0;          /* footballs this match */
+  var flowToken = 0;      /* cancels a talking sequence */
+  var countToken = 0;     /* cancels counting out loud */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), half: $('half'), lead: $('lead'),
+    shapeStage: $('shapeStage'), shapeBtn: $('shapeBtn'), shapeSvg: $('shapeSvg'), boxes: $('boxes'),
+    storyStage: $('storyStage'), slots: $('slots'), pool: $('pool'),
+    descStage: $('descStage'), options: $('options'),
+    btnRow: $('btnRow'), sayBtn: $('sayBtn'), storyBtn: $('storyBtn'), nextBtn: $('nextBtn'),
+    boardBox: $('boardBox'), boardTitle: $('boardTitle'), boardPics: $('boardPics'),
+    boardText: $('boardText'), boardSayBtn: $('boardSayBtn'), boardBtn: $('boardBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Voice =================
+     He cannot read yet, so every line is spoken. The browser's own voice
+     sounds like a computer, so every line is pre-rendered with a neural
+     en-GB voice (tools/build-audio.py) and played back through Web Audio,
+     segment by segment. speechSynthesis is only the fallback for a segment
+     that has no clip. speak() calls done() when the line has finished — with
+     a timer as a safety net, because iOS does not always fire onend. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/hw-20261106-schulmail-fri-30-oct-202-3/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Serena|Kate|Martha|Stephanie|Fiona|Samantha|Karen|Moira)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) ||
+      find(gb, /Google UK English Female/i) ||
+      find(gb, female) || gb[0] ||
+      find(en, good) || find(en, female) || en[0] || null;
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  /* the fallback: only used for a segment that has no clip */
+  function say(text, my, done, rate) {
+    window.__clipMisses.push(text);
+    var factor = slow ? 1.25 : 1;
+    if (!hasSpeech) {
+      setTimeout(function () { if (my === speakToken && done) done(); }, (600 + text.length * 45) * factor);
+      return;
+    }
+    var finished = false;
+    var guard = null;
+    var fin = function () {
+      if (finished) return;
+      finished = true;
+      clearTimeout(guard);
+      if (my === speakToken && done) done();
+    };
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = 'en-GB';
+      u.rate = (rate || 0.9) * (slow ? 0.8 : 1);
+      u.onend = fin;
+      u.onerror = fin;
+      guard = setTimeout(fin, (2500 + text.length * 110) * factor);
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { fin(); }
+  }
+
+  /* Plays a list of clip texts one after another, a breath between them.
+     `done` fires after the last one, unless something talked over it. */
+  function speakParts(parts, done, rate) {
+    stopSpeaking();
+    var my = speakToken;
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) { if (done) done(); return; }
+    if (!hasTTS) {
+      var len = parts.join(' ').length;
+      if (done) setTimeout(function () { if (my === speakToken) done(); }, (600 + len * 45) * (slow ? 1.25 : 1));
+      return;
+    }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(parts[i], my, onward, rate); });
+        } else {
+          say(parts[i], my, onward, rate);
+        }
+      })(0);
+    });
+  }
+
+  /* one line, cut into its segments */
+  function speak(text, done, rate) {
+    speakParts(segments(text), done, rate);
+  }
+
+  if (hasSpeech) {
+    pickVoice();
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function stopAll() {
+    flowToken++;
+    countToken++;
+    stopSpeaking();
+    clearCorners();
+  }
+
+  /* Run a list of { act, say } one after another, each line waiting for
+     the one before it to finish. Anything else that talks stops it. */
+  function sequence(list) {
+    var token = ++flowToken;
+    (function next(i) {
+      if (token !== flowToken || i >= list.length) return;
+      var s = list[i];
+      if (s.act) s.act();
+      if (s.say) speak(s.say, function () { setTimeout(function () { next(i + 1); }, 300); }, s.rate);
+      else setTimeout(function () { next(i + 1); }, s.wait || 500);
+    })(0);
+  }
+
+  /* ================= Small helpers ================= */
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function scoreGoal() {
+    footballs++;
+    goals++;
+    save();
+    renderScore(true);
+    celebrate(22);
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function wiggle(el, cls) {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+
+  /* ================= Screens ================= */
+  var ALL = ['lead', 'shapeStage', 'storyStage', 'descStage', 'btnRow', 'boardBox'];
+  function show(list, buttons) {
+    ALL.forEach(function (id) { els[id].classList.toggle('hidden', list.indexOf(id) === -1); });
+    buttons = buttons || [];
+    ['sayBtn', 'storyBtn', 'nextBtn'].forEach(function (id) {
+      els[id].classList.toggle('hidden', buttons.indexOf(id) === -1);
+    });
+  }
+
+  /* ================= Drawing ================= */
+  var COLORS = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#14b8a6'];
+  var TRIANGLES = [
+    [[0, -36], [40, 32], [-40, 32]],      /* even sides */
+    [[-34, -34], [-34, 34], [34, 34]],    /* square corner */
+    [[0, -42], [22, 38], [-22, 38]],      /* tall and thin */
+    [[-42, 28], [42, 28], [12, -30]]      /* lop-sided */
+  ];
+
+  function makeShape(kind) {
+    var sh = { kind: kind, rot: 0, r: 0, pts: null, color: pick(COLORS) };
+    if (kind === 'circle') {
+      sh.r = 26 + Math.random() * 14;
+    } else if (kind === 'square') {
+      var s = (48 + Math.random() * 18) / 2;
+      sh.pts = [[-s, -s], [s, -s], [s, s], [-s, s]];
+      sh.rot = pick([0, 0, 45, 20, -15]);
+    } else if (kind === 'rectangle') {
+      var w = (72 + Math.random() * 12) / 2, h = (28 + Math.random() * 12) / 2;
+      sh.pts = [[-w, -h], [w, -h], [w, h], [-w, h]];
+      sh.rot = pick([0, 90, 0, 15, -20]);
+    } else {
+      sh.pts = pick(TRIANGLES);
+      sh.rot = pick([0, 0, 20, -25, 180]);
+    }
+    return sh;
+  }
+
+  function shapeMarkup(sh, corners) {
+    var g = '<g transform="rotate(' + sh.rot + ')">';
+    if (sh.kind === 'circle') {
+      g += '<circle r="' + sh.r.toFixed(1) + '" fill="' + sh.color + '" stroke="#1e293b" stroke-width="3"/>';
+    } else {
+      var p = sh.pts.map(function (pt) { return pt[0].toFixed(1) + ',' + pt[1].toFixed(1); }).join(' ');
+      g += '<polygon points="' + p + '" fill="' + sh.color + '" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/>';
+      if (corners) {
+        sh.pts.forEach(function (pt, i) {
+          g += '<g class="corner" transform="translate(' + pt[0].toFixed(1) + ',' + pt[1].toFixed(1) + ')">' +
+               '<circle r="8"/><text transform="rotate(' + (-sh.rot) + ')">' + (i + 1) + '</text></g>';
+        });
+      }
+    }
+    return g + '</g>';
+  }
+
+  /* the outline on the front of each box */
+  var ICONS = {
+    circle: { kind: 'circle', rot: 0, r: 34 },
+    triangle: { kind: 'triangle', rot: 0, pts: [[0, -36], [40, 32], [-40, 32]] },
+    square: { kind: 'square', rot: 0, pts: [[-30, -30], [30, -30], [30, 30], [-30, 30]] },
+    rectangle: { kind: 'rectangle', rot: 0, pts: [[-44, -22], [44, -22], [44, 22], [-44, 22]] }
+  };
+
+  function iconMarkup(kind) {
+    var ic = ICONS[kind];
+    var g = shapeMarkup({ kind: kind, rot: 0, r: ic.r || 0, pts: ic.pts, color: '#fff7ed' }, false);
+    return '<svg class="icon" viewBox="-50 -50 100 100">' + g + '</svg>';
+  }
+
+  function towerSVG(hair) {
+    return '<svg class="tower" viewBox="0 0 44 90" aria-hidden="true">' +
+      '<polygon points="22,2 40,24 4,24" fill="#dc2626" stroke="#7f1d1d" stroke-width="2" stroke-linejoin="round"/>' +
+      '<rect x="8" y="24" width="28" height="64" fill="#9ca3af" stroke="#4b5563" stroke-width="2"/>' +
+      '<path d="M8 44h28M8 60h28M8 76h28M18 24v20M28 44v16M16 60v16M26 76v12" stroke="#6b7280" stroke-width="1.5" fill="none"/>' +
+      '<rect x="16" y="30" width="12" height="13" rx="6" fill="#fde047" stroke="#4b5563" stroke-width="1.5"/>' +
+      (hair ? '<path d="M22 40 C 30 52, 14 62, 24 72 S 18 84, 22 89" stroke="#facc15" stroke-width="5" fill="none" stroke-linecap="round"/>' : '') +
+      '</svg>';
+  }
+
+  /* ================= First half: shape boxes ================= */
+  function buildBoxes() {
+    els.boxes.innerHTML = '';
+    SHAPES.forEach(function (kind) {
+      var b = document.createElement('div');
+      b.className = 'box';
+      b.setAttribute('role', 'button');
+      b.setAttribute('data-kind', kind);
+      b.innerHTML = '<button class="hear" type="button" aria-label="Say the name">🔊</button>' +
+        iconMarkup(kind) + '<span class="word">' + kind + '</span><span class="bin"></span>';
+      b.addEventListener('click', function () { tapBox(kind, b); });
+      b.querySelector('.hear').addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (mode === 'start' || mode === 'board') return;
+        stopAll();
+        speak(boxSay(kind));
+      });
+      els.boxes.appendChild(b);
+    });
+  }
+
+  function boxEl(kind) { return els.boxes.querySelector('.box[data-kind="' + kind + '"]'); }
+
+  function clearBoxMarks() {
+    var bs = els.boxes.querySelectorAll('.box');
+    for (var i = 0; i < bs.length; i++) bs[i].classList.remove('hint', 'wrong', 'got');
+  }
+
+  function clearCorners() {
+    var cs = els.shapeSvg.querySelectorAll('.corner');
+    for (var i = 0; i < cs.length; i++) cs[i].classList.remove('lit');
+  }
+
+  function enterShapeRound() {
+    stopAll();
+    mode = 'shape';
+    busy = false;
+    attempts = 0;
+    cur = shapeQueue[round];
+    document.body.classList.remove('story');
+    els.half.textContent = 'First half · ' + (round + 1) + '/' + SHAPE_ROUNDS;
+    els.shapeBtn.style.transition = 'none';
+    els.shapeBtn.style.transform = '';
+    els.shapeBtn.style.opacity = '1';
+    void els.shapeBtn.offsetWidth;
+    els.shapeBtn.style.transition = '';
+    els.shapeSvg.innerHTML = shapeMarkup(cur, true);
+    wiggle(els.shapeBtn, 'enter');
+    clearBoxMarks();
+    els.lead.textContent = 'Put the shape in the correct box. 📦';
+    show(['lead', 'shapeStage', 'btnRow'], ['sayBtn']);
+    var line = round === 0 ? firstShapeSay() : shapeAsk();
+    setTimeout(function () { if (mode === 'shape' && attempts === 0 && !busy) speak(line); }, 450);
+  }
+
+  /* tapping the shape counts its corners out loud */
+  function countCorners() {
+    if (mode !== 'shape' || busy) return;
+    stopAll();
+    var token = ++countToken;
+    var cs = els.shapeSvg.querySelectorAll('.corner');
+    if (!cs.length) { speak(sidesTotal(cur.kind)); return; }
+    var i = 0;
+    (function tick() {
+      if (token !== countToken) return;
+      if (i >= cs.length) {
+        setTimeout(function () { if (token === countToken) speak(sidesTotal(cur.kind)); }, 250);
+        return;
+      }
+      cs[i].classList.add('lit');
+      speak(WORDS[i + 1], null, 0.85);
+      i++;
+      setTimeout(tick, slow ? 1050 : 800);
+    })();
+  }
+
+  function tapBox(kind, el) {
+    if (mode !== 'shape' || busy) return;
+    stopAll();
+    if (kind !== cur.kind) {
+      attempts++;
+      wiggle(el, 'wrong');
+      setTimeout(function () { el.classList.remove('wrong'); }, 600);
+      if (attempts >= 2) {
+        boxEl(cur.kind).classList.add('hint');
+        speak(shapeHint(cur.kind));
+      } else {
+        speak(shapeNo(kind));
+      }
+      return;
+    }
+    busy = true;
+    mode = 'won';
+    clearBoxMarks();
+    el.classList.add('got');
+    /* the shape flies into its box */
+    var a = els.shapeBtn.getBoundingClientRect(), b = el.getBoundingClientRect();
+    var dx = (b.left + b.width / 2) - (a.left + a.width / 2);
+    var dy = (b.top + b.height / 2) - (a.top + a.height / 2);
+    els.shapeBtn.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.2) rotate(30deg)';
+    els.shapeBtn.style.opacity = '0';
+    var sh = cur;
+    setTimeout(function () {
+      var bin = el.querySelector('.bin');
+      bin.insertAdjacentHTML('beforeend', '<svg viewBox="-50 -50 100 100">' + shapeMarkup(sh, false) + '</svg>');
+    }, 600);
+    scoreGoal();
+    var last = round === SHAPE_ROUNDS - 1;
+    els.lead.textContent = 'GOAL! ⚽ It is a ' + sh.kind + '.';
+    els.nextBtn.textContent = last ? 'Half time ➜' : 'Next ➜';
+    show(['lead', 'shapeStage', 'btnRow'], ['nextBtn']);
+    sequence([{ say: shapeYes(sh.kind) }, { act: nextRound }]);
+  }
+
+  /* ================= Second half: the story in order ================= */
+  var STORY_PICS = [
+    function () { return '<span>🧙‍♀️</span>' + towerSVG(false) + '<span>🔒</span>'; },
+    function () { return '<span>🤴</span><span>📣</span>' + towerSVG(false); },
+    function () { return towerSVG(true) + '<span>🤴</span><span>⬆️</span>'; },
+    function () { return '<span>👸</span><span>❤️</span><span>🤴</span>'; }
+  ];
+
+  function makeCard(i) {
+    var c = document.createElement('div');
+    c.className = 'card';
+    c.setAttribute('role', 'button');
+    c.setAttribute('data-i', String(i));
+    c.innerHTML = '<button class="hear" type="button" aria-label="Hear this picture">🔊</button>' +
+      '<div class="pic">' + STORY_PICS[i]() + '</div>';
+    c.addEventListener('click', function () { tapCard(i, c); });
+    c.querySelector('.hear').addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (mode !== 'story' && mode !== 'won') return;
+      stopAll();
+      speak(STORY[i]);
+    });
+    return c;
+  }
+
+  function cardEl(i) { return els.storyStage.querySelector('.card[data-i="' + i + '"]'); }
+
+  function buildSlots() {
+    els.slots.innerHTML = '';
+    for (var i = 0; i < STORY.length; i++) {
+      var s = document.createElement('div');
+      s.className = 'slot';
+      s.innerHTML = '<span class="num">' + (i + 1) + '</span>';
+      els.slots.appendChild(s);
+    }
+  }
+
+  function enterStory() {
+    stopAll();
+    mode = 'listen';
+    busy = false;
+    attempts = 0;
+    storyPos = 0;
+    document.body.classList.add('story');
+    els.half.textContent = 'Second half · Story';
+    buildSlots();
+    els.pool.innerHTML = '';
+    for (var i = 0; i < STORY.length; i++) els.pool.appendChild(makeCard(i));
+    els.lead.textContent = 'Listen to the story of Rapunzel. 👂';
+    show(['lead', 'storyStage', 'btnRow'], ['sayBtn']);
+    playListen();
+  }
+
+  function markReading(k) {
+    var cs = els.pool.querySelectorAll('.card');
+    for (var c = 0; c < cs.length; c++) cs[c].classList.toggle('reading', cs[c].getAttribute('data-i') === String(k));
+  }
+
+  /* the story read out in order, each picture lighting up; then shuffled */
+  function playListen() {
+    var list = [{ say: storyIntroSay() }];
+    STORY.forEach(function (line, i) {
+      list.push({ act: function () { markReading(i); }, say: line });
+    });
+    list.push({ act: function () { markReading(-1); shufflePool(); }, wait: 400 });
+    list.push({ act: function () {
+      mode = 'story';
+      els.lead.textContent = 'Put the story in order. ' + leadAsk(0);
+      show(['lead', 'storyStage', 'btnRow'], ['sayBtn', 'storyBtn']);
+    }, say: storyStartSay() });
+    sequence(list);
+  }
+
+  function shufflePool() {
+    var order;
+    do { order = shuffle([0, 1, 2, 3]); } while (order.join() === '0,1,2,3');
+    order.forEach(function (i) { els.pool.appendChild(cardEl(i)); });
+  }
+
+  function leadAsk(i) {
+    return i <= 0 ? '1️⃣ What happens first?' : i >= STORY.length - 1 ? '🏁 What happens at the end?' : '➡️ What happens next?';
+  }
+
+  function tapCard(i, el) {
+    if (mode !== 'story' || busy) return;
+    if (el.classList.contains('placed')) return;
+    stopAll();
+    if (i !== storyPos) {
+      attempts++;
+      wiggle(el, 'wrong');
+      setTimeout(function () { el.classList.remove('wrong'); }, 600);
+      if (attempts >= 2) {
+        cardEl(storyPos).classList.add('hint');
+        speak(seqHint(storyPos));
+      } else {
+        speak(seqNoSay(storyPos));
+      }
+      return;
+    }
+    attempts = 0;
+    el.classList.remove('hint', 'wrong');
+    el.classList.add('placed');
+    els.slots.children[storyPos].appendChild(el);
+    storyPos++;
+    if (storyPos < STORY.length) {
+      els.lead.textContent = leadAsk(storyPos);
+      speak(seqYesAsk(storyPos - 1));
+      return;
+    }
+    busy = true;
+    mode = 'won';
+    scoreGoal();
+    els.lead.textContent = 'GOAL! ⚽ The story is in order.';
+    els.nextBtn.textContent = 'Next ➜';
+    show(['lead', 'storyStage', 'btnRow'], ['storyBtn', 'nextBtn']);
+    sequence([{ say: seqYesAsk(STORY.length - 1) }, { act: nextRound }]);
+  }
+
+  /* the whole story again, without lighting up the pictures */
+  function hearStory() {
+    var list = [];
+    STORY.forEach(function (line) { list.push({ say: line }); });
+    if (mode === 'story') list.push({ say: seqAsk(storyPos) });
+    stopAll();
+    sequence(list);
+  }
+
+  /* ================= Second half: descriptions ================= */
+  var WHO_PIC = {
+    rapunzel: function () { return '<span class="face">👸</span>'; },
+    witch: function () { return '<span class="face">🧙‍♀️</span>'; },
+    prince: function () { return '<span class="face">🤴</span>'; },
+    tower: function () { return towerSVG(false); }
+  };
+  var WHO_LABEL = { rapunzel: 'Rapunzel', witch: 'witch', prince: 'prince', tower: 'tower' };
+
+  function enterDesc() {
+    stopAll();
+    mode = 'desc';
+    busy = false;
+    attempts = 0;
+    q = descQueue[round - 1];
+    els.half.textContent = 'Second half · ' + round + '/' + DESC_ROUNDS;
+    els.options.innerHTML = '';
+    shuffle(WHO).forEach(function (who) {
+      var b = document.createElement('button');
+      b.className = 'opt';
+      b.type = 'button';
+      b.setAttribute('data-who', who);
+      b.innerHTML = WHO_PIC[who]() + '<span class="name">' + WHO_LABEL[who] + '</span>';
+      b.addEventListener('click', function () { tapOption(who, b); });
+      els.options.appendChild(b);
+    });
+    els.lead.textContent = '👂 ' + q.ask;
+    show(['lead', 'descStage', 'btnRow'], ['sayBtn']);
+    var line = round === 1 ? descFirstSay(q) : q.ask;
+    setTimeout(function () { if (mode === 'desc' && attempts === 0) speak(line); }, 350);
+  }
+
+  function tapOption(who, el) {
+    if (mode !== 'desc' || busy) return;
+    stopAll();
+    if (who !== q.who) {
+      attempts++;
+      wiggle(el, 'wrong');
+      setTimeout(function () { el.classList.remove('wrong'); }, 600);
+      if (attempts >= 2) {
+        els.options.querySelector('.opt[data-who="' + q.who + '"]').classList.add('hint');
+        speak(descNo(who), function () { speak(descHint(q)); });
+      } else {
+        speak(descNo(who));
+      }
+      return;
+    }
+    busy = true;
+    mode = 'won';
+    el.classList.remove('hint');
+    el.classList.add('got');
+    scoreGoal();
+    els.lead.textContent = 'GOAL! ⚽ ' + q.yes;
+    els.nextBtn.textContent = round === DESC_ROUNDS ? 'Full time ➜' : 'Next ➜';
+    show(['lead', 'descStage', 'btnRow'], ['nextBtn']);
+    sequence([{ say: descYes(q) }, { act: nextRound }]);
+  }
+
+  /* ================= Flow ================= */
+  function nextRound() {
+    stopAll();
+    round++;
+    if (half === 1) {
+      if (round >= SHAPE_ROUNDS) enterHalfTime(); else enterShapeRound();
+    } else {
+      if (round > DESC_ROUNDS) enterFullTime(); else enterDesc();
+    }
+  }
+
+  function enterHalfTime() {
+    mode = 'board';
+    half = 2;
+    round = 0;
+    els.half.textContent = 'Half time';
+    els.boardTitle.textContent = '📣 Half time!';
+    els.boardPics.textContent = '📦 ⚪ 🔺 🟦 ▬';
+    els.boardText.textContent = SHAPE_ROUNDS + ' shapes sorted · Next: Rapunzel 👸';
+    els.boardBtn.textContent = 'Second half ➜';
+    show(['boardBox']);
+    celebrate(30);
+    speak(halfTimeSay());
+  }
+
+  function enterFullTime() {
+    mode = 'board';
+    half = 3;
+    document.body.classList.add('story');
+    els.half.textContent = 'Full time';
+    els.boardTitle.textContent = '🏆 Full time!';
+    els.boardPics.textContent = '🔺🟦⚪ 👸🤴🧙‍♀️';
+    els.boardText.textContent = goals + ' ⚽ this match';
+    els.boardBtn.textContent = 'Play again ⚽';
+    show(['boardBox']);
+    celebrate(45);
+    speak(fullTimeSay());
+  }
+
+  function buildQueues() {
+    /* two of every shape, never the same shape twice in a row */
+    var kinds;
+    do {
+      kinds = shuffle(SHAPES.concat(SHAPES));
+      var ok = true;
+      for (var i = 1; i < kinds.length; i++) if (kinds[i] === kinds[i - 1]) ok = false;
+    } while (!ok);
+    shapeQueue = kinds.map(makeShape);
+    /* one description for every picture, plus one more */
+    var byWho = {};
+    shuffle(QUESTIONS).forEach(function (x) { if (!byWho[x.who]) byWho[x.who] = x; });
+    var picked = WHO.map(function (w) { return byWho[w]; });
+    var rest = QUESTIONS.filter(function (x) { return picked.indexOf(x) === -1; });
+    picked.push(pick(rest));
+    descQueue = shuffle(picked).slice(0, DESC_ROUNDS);
+  }
+
+  function startMatch() {
+    stopAll();
+    buildQueues();
+    goals = 0;
+    half = 1;
+    round = 0;
+    els.boxes.querySelectorAll('.bin').forEach(function (b) { b.innerHTML = ''; });
+    enterShapeRound();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasSpeech) {
+      pickVoice();
+      /* iOS: speech has to start inside this tap */
+      try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+    }
+    preload(phraseList());
+    els.startOverlay.remove();
+    startMatch();
+  });
+
+  els.shapeBtn.addEventListener('click', countCorners);
+
+  els.sayBtn.addEventListener('click', function () {
+    if (mode === 'shape') { stopAll(); speak(attempts >= 2 ? shapeHint(cur.kind) : shapeAsk()); }
+    else if (mode === 'listen') { stopAll(); playListen(); }
+    else if (mode === 'story') { stopAll(); speak(seqAsk(storyPos)); }
+    else if (mode === 'desc') { stopAll(); speak(q.ask); }
+  });
+  els.storyBtn.addEventListener('click', hearStory);
+  els.nextBtn.addEventListener('click', function () { if (mode === 'won') nextRound(); });
+
+  els.boardSayBtn.addEventListener('click', function () {
+    stopAll();
+    speak(half === 2 ? halfTimeSay() : fullTimeSay());
+  });
+  els.boardBtn.addEventListener('click', function () {
+    stopAll();
+    if (half === 2) enterStory();
+    else startMatch();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  buildBoxes();
+  renderScore(false);
+})();
+</script>
+</body>
+</html>

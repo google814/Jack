@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>Shape Families ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Shape Families">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #134e4a 0%, #0f766e 52%, #134e4a 100%);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    background: rgba(0,0,0,.24);
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.6rem); flex: 0 1 auto; min-width: 0; }
+  @media (max-width: 620px) { header h1 { display: none; } }
+  #half {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.3rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2vh, 20px);
+    padding: clamp(8px, 2vh, 22px) 10px calc(clamp(10px, 2.4vh, 24px) + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1.05rem, 2.8vmin, 1.5rem); font-weight: 700; }
+
+  #play {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(10px, 2.4vh, 24px);
+    width: 100%;
+  }
+
+  /* ---------- The shape to sort ---------- */
+  #shapeBox {
+    --s: clamp(120px, 34vmin, 250px);
+    width: var(--s);
+    height: var(--s);
+    background: #fff;
+    border-radius: 26px;
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    display: grid;
+    place-items: center;
+    position: relative;
+  }
+  #shape {
+    width: 88%;
+    height: 88%;
+    touch-action: none;
+    cursor: grab;
+    position: relative;
+    z-index: 5;
+  }
+  #shape.dragging { cursor: grabbing; z-index: 50; filter: drop-shadow(0 10px 8px rgba(0,0,0,.35)); }
+  #shape.fly { transition: transform .5s ease-in, opacity .5s ease-in; }
+  #shape.back { transition: transform .25s ease-out; }
+  #shape.pop { animation: popIn .45s ease; }
+  @keyframes popIn {
+    0% { transform: scale(.2); opacity: 0; }
+    70% { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  #shape svg { width: 100%; height: 100%; display: block; overflow: visible; pointer-events: none; }
+  svg .body { stroke: #1e293b; stroke-width: 3; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  svg .side { stroke: transparent; stroke-width: 9; stroke-linecap: round; vector-effect: non-scaling-stroke; fill: none; }
+  svg .side.lit { stroke: #facc15; }
+  svg .corner { fill: transparent; }
+  svg .corner.lit { fill: #1e293b; }
+  svg .body.lit { stroke: #facc15; stroke-width: 9; }
+
+  /* ---------- The shape family houses ---------- */
+  #houses {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(6px, 1.6vmin, 14px);
+    width: 100%;
+    max-width: 760px;
+  }
+  .house {
+    --c: #fff;
+    font-family: inherit;
+    position: relative;
+    min-height: clamp(110px, 25vh, 210px);
+    padding: clamp(8px, 1.6vmin, 14px) 4px 8px;
+    border: 5px solid var(--c);
+    border-top-width: 14px;
+    border-radius: 18px 18px 14px 14px;
+    background: rgba(255,255,255,.94);
+    color: #1e293b;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 7px 0 rgba(0,0,0,.25);
+  }
+  .house:active { transform: translateY(3px); box-shadow: 0 4px 0 rgba(0,0,0,.25); }
+  .house[data-k="circle"]    { --c: #ef4444; }
+  .house[data-k="triangle"]  { --c: #f59e0b; }
+  .house[data-k="square"]    { --c: #3b82f6; }
+  .house[data-k="rectangle"] { --c: #22c55e; }
+  .house .icon { width: clamp(38px, 10vmin, 74px); height: clamp(38px, 10vmin, 74px); }
+  .house .icon svg { width: 100%; height: 100%; overflow: visible; }
+  .house .icon .body { fill: #fff; stroke: var(--c); stroke-width: 5; stroke-dasharray: 7 5; }
+  .house .name { font-size: clamp(.62rem, 2vmin, 1rem); font-weight: 800; color: #334155; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .house .minis { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; max-width: 100%; }
+  .house .minis svg { width: clamp(15px, 3.8vmin, 26px); height: clamp(15px, 3.8vmin, 26px); overflow: visible; animation: bounceIn .5s ease; }
+  .house .minis svg .body { stroke-width: 1.5; }
+  .house .num {
+    position: absolute; top: -16px; right: -10px;
+    min-width: 30px; height: 30px; border-radius: 999px;
+    background: #facc15; color: #1e293b; font-weight: 900; font-size: 1rem;
+    display: grid; place-items: center; padding: 0 6px;
+    box-shadow: 0 3px 0 rgba(0,0,0,.25);
+  }
+  .house.over, .house.lit {
+    outline: 6px solid #facc15;
+    outline-offset: 3px;
+  }
+  .house.lit { animation: pulse 1.1s ease infinite; }
+  .house.glow {
+    outline: 6px dashed #facc15;
+    outline-offset: 3px;
+    animation: pulse 1s ease infinite;
+  }
+  .house.wrong { background: #fecaca; animation: shake .4s ease; }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* short landscape phone: shape beside the houses */
+  @media (max-height: 480px) and (min-aspect-ratio: 4/3) {
+    #play { flex-direction: row; justify-content: center; }
+    #shapeBox { --s: clamp(110px, 44vh, 200px); flex: 0 0 auto; }
+    #houses { max-width: 560px; }
+    .house { min-height: clamp(96px, 46vh, 190px); }
+  }
+
+  /* ---------- Buttons ---------- */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(11px, 2vh, 17px) clamp(20px, 5vw, 40px);
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #14b8a6, #0f766e);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.quiet {
+    background: rgba(0,0,0,.32);
+    box-shadow: none;
+    font-size: clamp(.9rem, 2.2vmin, 1.15rem);
+    padding: clamp(10px, 1.6vh, 14px) clamp(16px, 4vw, 30px);
+  }
+
+  #boardBox { display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.6vh, 14px); }
+  #boardTitle { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); font-weight: 800; }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #134e4a 0%, #0f766e 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 6vmin, 2.8rem); }
+  #startOverlay p { max-width: 30ch; opacity: .92; font-size: clamp(.95rem, 2.4vmin, 1.2rem); line-height: 1.5; }
+  #startOverlay .fam { font-size: clamp(2rem, 8vmin, 3.4rem); letter-spacing: .2em; }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 58px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Shape families</h1>
+  <span id="half">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead" id="lead"></p>
+
+  <div id="play">
+    <div id="shapeBox" class="hidden"><div id="shape"></div></div>
+    <div id="houses">
+      <button class="house" type="button" data-k="circle"><span class="icon"></span><span class="name">Circles</span><span class="minis"></span></button>
+      <button class="house" type="button" data-k="triangle"><span class="icon"></span><span class="name">Triangles</span><span class="minis"></span></button>
+      <button class="house" type="button" data-k="square"><span class="icon"></span><span class="name">Squares</span><span class="minis"></span></button>
+      <button class="house" type="button" data-k="rectangle"><span class="icon"></span><span class="name">Rectangles</span><span class="minis"></span></button>
+    </div>
+  </div>
+
+  <div class="row" id="btnRow">
+    <button class="btn quiet" id="sayBtn">🔊 Say it again</button>
+    <button class="btn big hidden" id="nextBtn">Next ➜</button>
+  </div>
+
+  <div id="boardBox" class="hidden">
+    <div id="boardTitle"></div>
+    <p id="boardText" class="lead"></p>
+    <div class="row">
+      <button class="btn quiet" id="boardSayBtn">🔊 Say them all</button>
+      <button class="btn big" id="boardBtn"></button>
+    </div>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>⚽ Shape families ⚽</h2>
+  <div class="fam">⚪🔺🟦▬</div>
+  <p>Sort the shapes into the correct shape families.<br>Circles · Triangles · Squares · Rectangles</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower talking</label>
+  <button id="resetBtn">Reset score</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Homework =================
+     Mathematics - Homework Week 8: shape.
+     "In Mathematics this week we have been looking at shape.
+      Task - please sort the shapes into the correct shape families."
+
+     A match starts by meeting the four shape families (circles, triangles,
+     squares, rectangles), each read out with its sides and corners. Then he
+     sorts shapes into their family houses — tap a house or drag the shape
+     into it. Tapping the shape counts its sides out loud.
+     First half: plain shapes. Second half: tricky ones (turned, very small,
+     very big, long and thin, upside down, a triangle that looks different)
+     — still in the same family. One football ⚽ for every shape sorted. */
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🔺', '🟦', '⚪'];
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so tools/phrases/hw-20261106-mathematics-homework-wee-2.txt is
+     generated straight out of this block (tools/gen-phrases.js). */
+
+  var SHAPES_PER_HALF = 6;
+
+  var FAMILIES = ['circle', 'triangle', 'square', 'rectangle'];
+  var PLURAL = { circle: 'circles', triangle: 'triangles', square: 'squares', rectangle: 'rectangles' };
+  var SIDES = { circle: 0, triangle: 3, square: 4, rectangle: 4 };
+
+  var NUM = ['zero', 'one', 'two', 'three', 'four', 'five', 'six',
+             'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+
+  var PRAISE = ['Yes!', 'Goal!', 'Well done!', 'Brilliant!', 'Super sorting!'];
+
+  /* second half: which tricky look can each family have */
+  var TRICKS = {
+    turned:    ['triangle', 'square', 'rectangle'],
+    small:     ['circle', 'triangle', 'square', 'rectangle'],
+    big:       ['circle', 'triangle', 'square', 'rectangle'],
+    long:      ['triangle', 'rectangle'],
+    upside:    ['triangle'],
+    different: ['triangle']
+  };
+
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  var INTRO = [
+    'In Mathematics this week we have been looking at shape.',
+    'Please sort the shapes into the correct shape families.',
+    'Here are the shape families.'
+  ];
+  var YOUR_TURN = 'Now it is your turn! Tap the right family, or drag the shape into it.';
+
+  function factSay(k) {
+    if (k === 'circle') return 'A circle is round. It has no sides and no corners.';
+    if (k === 'triangle') return 'A triangle has three sides and three corners.';
+    if (k === 'square') return 'A square has four sides, all the same length. It has four corners.';
+    return 'A rectangle has four sides, two long and two short. It has four corners.';
+  }
+  /* meeting the families: "Circles. A circle is round. ..." */
+  function meetSay(k) { return cap(PLURAL[k]) + '. ' + factSay(k); }
+  /* a house tapped outside a round */
+  function houseSay(k) { return 'The ' + k + ' family. ' + factSay(k); }
+
+  function askSay(half, first) {
+    var q = 'Which shape family does it belong to?';
+    if (half === 2 && first) {
+      return 'Now the tricky shapes! A shape can be turned, small, big, or long and thin. It is still in its family. ' + q;
+    }
+    return q;
+  }
+
+  /* counting the sides: "one", "two", ... then "Three sides and three corners." */
+  function countSay(n) { return NUM[n]; }
+  function sidesSay(k) {
+    if (k === 'circle') return 'It is round. No sides and no corners.';
+    var n = SIDES[k];
+    return cap(NUM[n]) + ' sides and ' + NUM[n] + ' corners.';
+  }
+
+  function wrongSay(tapped, actual) {
+    var not = 'Not the ' + tapped + ' family. ';
+    if (actual === 'circle') return not + 'This shape is round. Try again.';
+    if (tapped === 'square' && actual === 'rectangle') return not + 'The sides are not all the same length. Try again.';
+    if (tapped === 'rectangle' && actual === 'square') return not + 'All four sides are the same length. Try again.';
+    return not + 'Tap the shape and count the sides. Try again.';
+  }
+  function revealSay(k) { return 'This is a ' + k + '. ' + factSay(k) + ' Put it in the ' + k + ' family.'; }
+
+  function trickSay(trick, k) {
+    if (trick === 'turned') return 'It is turned, but it is still a ' + k + '.';
+    if (trick === 'small') return 'It is very small, but it is still a ' + k + '.';
+    if (trick === 'big') return 'It is very big, but it is still a ' + k + '.';
+    if (trick === 'long') return 'It is long and thin, but it is still a ' + k + '.';
+    if (trick === 'upside') return 'It is upside down, but it is still a ' + k + '.';
+    return 'It looks different, but it has three sides, so it is still a triangle.';
+  }
+  function rightSay(k, trick, p) {
+    return PRAISE[p] + ' ' + (trick ? trickSay(trick, k) : 'It is a ' + k + '.') +
+           ' It goes in the ' + k + ' family.';
+  }
+
+  function sortedSay(n) { return 'You sorted ' + NUM[n] + (n === 1 ? ' shape' : ' shapes') + ' into their families.'; }
+  function halfTimeSay(n) { return 'Half time! ' + sortedSay(n) + ' In the second half, look out for tricky shapes.'; }
+  function fullTimeSay(n) { return 'Full time! ' + sortedSay(n) + ' Brilliant!'; }
+  /* the houses at half time and full time: "Three triangles." */
+  function boardSay(k, n) { return cap(NUM[n]) + ' ' + (n === 1 ? k : PLURAL[k]) + '.'; }
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i, j, n, p, k, t, trick;
+    function add(s) { var b = bare(s); if (b && !seen[b]) { seen[b] = 1; out.push(s); } }
+    function addAll(text) { var s = segments(text); for (var q = 0; q < s.length; q++) add(s[q]); }
+    for (i = 0; i < INTRO.length; i++) addAll(INTRO[i]);
+    addAll(YOUR_TURN);
+    for (i = 0; i < FAMILIES.length; i++) {
+      k = FAMILIES[i];
+      addAll(meetSay(k));
+      addAll(houseSay(k));
+      addAll(sidesSay(k));
+      addAll(revealSay(k));
+      for (j = 0; j < FAMILIES.length; j++) {
+        if (j !== i) addAll(wrongSay(FAMILIES[j], k));
+      }
+    }
+    addAll(askSay(1, true));
+    addAll(askSay(1, false));
+    addAll(askSay(2, true));
+    addAll(askSay(2, false));
+    for (n = 1; n <= 4; n++) add(countSay(n));
+    for (p = 0; p < PRAISE.length; p++) {
+      for (i = 0; i < FAMILIES.length; i++) addAll(rightSay(FAMILIES[i], null, p));
+      for (trick in TRICKS) {
+        if (!TRICKS.hasOwnProperty(trick)) continue;
+        for (t = 0; t < TRICKS[trick].length; t++) addAll(rightSay(TRICKS[trick][t], trick, p));
+      }
+    }
+    for (n = 1; n <= SHAPES_PER_HALF * 2; n++) {
+      addAll(halfTimeSay(n));
+      addAll(fullTimeSay(n));
+      for (i = 0; i < FAMILIES.length; i++) addAll(boardSay(FAMILIES[i], n));
+    }
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') return;
+  window.__phrases = phraseList;
+
+  /* ================= State ================= */
+  var SCORE_KEY = 'jackHw_hw20261106mathematicshomeworkwee2';
+  var SLOW_KEY  = 'jackHw_hw20261106mathematicshomeworkwee2_slow';
+
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var half = 1;
+  var idx = 0;
+  var queue1 = [], queue2 = [];
+  var cur = null;          /* the shape on screen: { kind, trick, form, aspect, rot, scale, color } */
+  var counts = {};         /* family -> shapes sorted this match */
+  var sorted = 0;
+  var attempts = 0;
+  var busy = false;
+  var mode = 'start';      /* start | meet | round | scored | board */
+  var flowToken = 0;       /* cancels a talking sequence */
+  var countToken = 0;      /* cancels counting the sides */
+  var moveToken = 0;       /* cancels the step to the next shape */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), half: $('half'), lead: $('lead'),
+    play: $('play'), shapeBox: $('shapeBox'), shape: $('shape'), houses: $('houses'),
+    btnRow: $('btnRow'), sayBtn: $('sayBtn'), nextBtn: $('nextBtn'),
+    boardBox: $('boardBox'), boardTitle: $('boardTitle'), boardText: $('boardText'),
+    boardSayBtn: $('boardSayBtn'), boardBtn: $('boardBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+  var HOUSES = {};
+  Array.prototype.forEach.call(document.querySelectorAll('.house'), function (h) { HOUSES[h.getAttribute('data-k')] = h; });
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Voice =================
+     He cannot read yet, so every line is spoken. The browser's own voice
+     sounds like a computer, so every line is pre-rendered with a neural
+     en-GB voice (tools/build-audio.py) and played back through Web Audio,
+     segment by segment. speechSynthesis is only the fallback for a segment
+     that has no clip. speak() calls done() when the line has finished — with
+     a timer as a safety net, because iOS does not always fire onend. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/hw-20261106-mathematics-homework-wee-2/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Serena|Kate|Martha|Stephanie|Fiona|Samantha|Karen|Moira)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) ||
+      find(gb, /Google UK English Female/i) ||
+      find(gb, female) || gb[0] ||
+      find(en, good) || find(en, female) || en[0] || null;
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  /* the fallback: only used for a segment that has no clip */
+  function say(text, my, done, rate) {
+    window.__clipMisses.push(text);
+    var factor = slow ? 1.25 : 1;
+    if (!hasSpeech) {
+      setTimeout(function () { if (my === speakToken && done) done(); }, (600 + text.length * 45) * factor);
+      return;
+    }
+    var finished = false;
+    var guard = null;
+    var fin = function () {
+      if (finished) return;
+      finished = true;
+      clearTimeout(guard);
+      if (my === speakToken && done) done();
+    };
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = 'en-GB';
+      u.rate = (rate || 0.9) * (slow ? 0.8 : 1);
+      u.onend = fin;
+      u.onerror = fin;
+      guard = setTimeout(fin, (2500 + text.length * 110) * factor);
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { fin(); }
+  }
+
+  /* Plays a list of clip texts one after another, a breath between them.
+     `done` fires after the last one, unless something talked over it. */
+  function speakParts(parts, done, rate) {
+    stopSpeaking();
+    var my = speakToken;
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) { if (done) done(); return; }
+    if (!hasTTS) {
+      var len = parts.join(' ').length;
+      if (done) setTimeout(function () { if (my === speakToken) done(); }, (600 + len * 45) * (slow ? 1.25 : 1));
+      return;
+    }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(parts[i], my, onward, rate); });
+        } else {
+          say(parts[i], my, onward, rate);
+        }
+      })(0);
+    });
+  }
+
+  /* one line, cut into its segments */
+  function speak(text, done, rate) {
+    speakParts(segments(text), done, rate);
+  }
+
+  if (hasSpeech) {
+    pickVoice();
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function stopAll() {
+    flowToken++;
+    countToken++;
+    stopSpeaking();
+  }
+
+  /* Run a list of { act, say } one after another, each line waiting for
+     the one before it to finish. Anything else that talks stops it. */
+  function sequence(list) {
+    var token = ++flowToken;
+    (function next(i) {
+      if (token !== flowToken || i >= list.length) return;
+      var s = list[i];
+      if (s.act) s.act();
+      if (s.say) speak(s.say, function () { setTimeout(function () { next(i + 1); }, 300); }, s.rate);
+      else setTimeout(function () { next(i + 1); }, s.wait || 500);
+    })(0);
+  }
+
+  /* ================= Drawing the shapes ================= */
+  var NS = 'http://www.w3.org/2000/svg';
+  var COLOURS = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7', '#ec4899'];
+
+  /* corner points before turning and fitting into the 100 x 100 box */
+  function rawPoints(s) {
+    if (s.kind === 'square') return [[0, 0], [1, 0], [1, 1], [0, 1]];
+    if (s.kind === 'rectangle') return [[0, 0], [s.aspect, 0], [s.aspect, 1], [0, 1]];
+    if (s.form === 'tall') return [[0.5, 0], [0.86, 2.5], [0.14, 2.5]];
+    if (s.form === 'right') return [[0, 0], [0, 1.3], [1.9, 1.3]];
+    if (s.form === 'scalene') return [[0.35, 0], [2, 1.15], [0, 0.85]];
+    return [[0.5, 0], [1, 0.866], [0, 0.866]];
+  }
+
+  function fitPoints(s) {
+    var pts = rawPoints(s), a = (s.rot || 0) * Math.PI / 180;
+    var cos = Math.cos(a), sin = Math.sin(a);
+    pts = pts.map(function (p) { return [p[0] * cos - p[1] * sin, p[0] * sin + p[1] * cos]; });
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    pts.forEach(function (p) {
+      minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]);
+      minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]);
+    });
+    var size = 86 * (s.scale || 0.8);
+    var k = size / Math.max(maxX - minX, maxY - minY);
+    var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    return pts.map(function (p) { return [50 + (p[0] - cx) * k, 50 + (p[1] - cy) * k]; });
+  }
+
+  function el(name, attrs) {
+    var e = document.createElementNS(NS, name);
+    for (var a in attrs) e.setAttribute(a, attrs[a]);
+    return e;
+  }
+
+  /* opts.sides: add the side lines and corner dots that light up when counting */
+  function shapeSvg(s, opts) {
+    opts = opts || {};
+    var svg = el('svg', { viewBox: '0 0 100 100', 'aria-hidden': 'true' });
+    if (s.kind === 'circle') {
+      svg.appendChild(el('circle', { 'class': 'body', cx: 50, cy: 50, r: 43 * (s.scale || 0.8), fill: s.color || '#fff' }));
+      return svg;
+    }
+    var pts = fitPoints(s);
+    svg.appendChild(el('polygon', {
+      'class': 'body', fill: s.color || '#fff',
+      points: pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ')
+    }));
+    if (opts.sides) {
+      for (var i = 0; i < pts.length; i++) {
+        var p = pts[i], q = pts[(i + 1) % pts.length];
+        svg.appendChild(el('line', { 'class': 'side', x1: p[0], y1: p[1], x2: q[0], y2: q[1] }));
+      }
+      for (var j = 0; j < pts.length; j++) {
+        svg.appendChild(el('circle', { 'class': 'corner', cx: pts[j][0], cy: pts[j][1], r: 4 }));
+      }
+    }
+    return svg;
+  }
+
+  function drawHouseIcons() {
+    FAMILIES.forEach(function (k) {
+      var icon = HOUSES[k].querySelector('.icon');
+      icon.innerHTML = '';
+      icon.appendChild(shapeSvg({ kind: k, aspect: 1.7, scale: 0.95, color: '#fff' }));
+    });
+  }
+
+  /* ================= Small helpers ================= */
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function pickOne(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+
+  /* never the same family twice in a row if it can be helped */
+  function spread(list) {
+    for (var tries = 0; tries < 30; tries++) {
+      var s = shuffle(list), ok = true;
+      for (var i = 1; i < s.length; i++) if (s[i].kind === s[i - 1].kind) { ok = false; break; }
+      if (ok) return s;
+    }
+    return shuffle(list);
+  }
+
+  function clearHouseMarks() {
+    FAMILIES.forEach(function (k) { HOUSES[k].classList.remove('lit', 'glow', 'over', 'wrong'); });
+  }
+
+  /* ================= The shapes of a match ================= */
+  function plainShape(kind) {
+    return {
+      kind: kind, trick: null, form: 'equi',
+      aspect: rnd(1.6, 2.1), rot: 0, scale: rnd(0.68, 0.86),
+      color: pickOne(COLOURS)
+    };
+  }
+
+  function trickyShape(kind, trick) {
+    var s = plainShape(kind);
+    s.trick = trick;
+    if (trick === 'turned') {
+      s.rot = kind === 'square' ? pickOne([45, 30, -30]) : kind === 'rectangle' ? pickOne([35, -40, 60, 90]) : pickOne([90, -90, 30]);
+      if (kind === 'rectangle' && s.rot === 90) s.aspect = 2.2;
+    } else if (trick === 'small') {
+      s.scale = 0.3;
+    } else if (trick === 'big') {
+      s.scale = 1.08;
+    } else if (trick === 'long') {
+      if (kind === 'rectangle') { s.aspect = 4.2; s.scale = 0.95; } else { s.form = 'tall'; s.scale = 0.92; }
+    } else if (trick === 'upside') {
+      s.rot = 180;
+    } else if (trick === 'different') {
+      s.form = pickOne(['right', 'scalene']);
+      s.scale = 0.84;
+    }
+    return s;
+  }
+
+  function buildQueues() {
+    var plain = FAMILIES.map(plainShape);
+    plain.push(plainShape(pickOne(FAMILIES)));
+    plain.push(plainShape(pickOne(FAMILIES)));
+    queue1 = spread(plain).slice(0, SHAPES_PER_HALF);
+
+    var combos = [];
+    for (var trick in TRICKS) {
+      if (!TRICKS.hasOwnProperty(trick)) continue;
+      TRICKS[trick].forEach(function (k) { combos.push({ kind: k, trick: trick }); });
+    }
+    combos = shuffle(combos);
+    var picked = [];
+    FAMILIES.forEach(function (k) {
+      for (var i = 0; i < combos.length; i++) {
+        if (combos[i].kind === k) { picked.push(combos.splice(i, 1)[0]); return; }
+      }
+    });
+    while (picked.length < SHAPES_PER_HALF && combos.length) {
+      var c = combos.shift();
+      /* no trick twice */
+      if (picked.some(function (p) { return p.trick === c.trick; }) && combos.length > SHAPES_PER_HALF) continue;
+      picked.push(c);
+    }
+    queue2 = spread(picked.map(function (c) { return trickyShape(c.kind, c.trick); })).slice(0, SHAPES_PER_HALF);
+  }
+
+  /* ================= Screens ================= */
+  function show(opts) {
+    els.shapeBox.classList.toggle('hidden', !opts.shape);
+    els.btnRow.classList.toggle('hidden', !opts.buttons);
+    els.boardBox.classList.toggle('hidden', !opts.board);
+    els.nextBtn.classList.toggle('hidden', !opts.next);
+  }
+
+  /* ================= Meeting the families ================= */
+  function enterMeet() {
+    stopAll();
+    mode = 'meet';
+    els.half.textContent = 'Meet the families';
+    els.lead.textContent = 'The shape families 👀';
+    els.nextBtn.textContent = 'My turn ➜';
+    show({ buttons: true, next: true });
+    playMeet();
+  }
+
+  function playMeet() {
+    clearHouseMarks();
+    var list = [];
+    for (var i = 0; i < INTRO.length; i++) list.push({ say: INTRO[i] });
+    FAMILIES.forEach(function (k) {
+      list.push({ act: function () { clearHouseMarks(); HOUSES[k].classList.add('lit'); }, say: meetSay(k) });
+    });
+    list.push({ act: clearHouseMarks, say: YOUR_TURN });
+    sequence(list);
+  }
+
+  /* ================= A shape ================= */
+  function queue() { return half === 1 ? queue1 : queue2; }
+
+  function resetShapeEl() {
+    var s = els.shape;
+    s.className = '';
+    s.style.transform = '';
+    s.style.opacity = '';
+  }
+
+  function enterShape() {
+    stopAll();
+    moveToken++;
+    mode = 'round';
+    busy = false;
+    attempts = 0;
+    cur = queue()[idx];
+    clearHouseMarks();
+    els.half.textContent = (half === 1 ? 'First half · ' : 'Second half · ') + (idx + 1) + '/' + SHAPES_PER_HALF;
+    els.lead.textContent = 'Which family? 🤔';
+    resetShapeEl();
+    els.shape.innerHTML = '';
+    els.shape.appendChild(shapeSvg(cur, { sides: true }));
+    void els.shape.offsetWidth;
+    els.shape.classList.add('pop');
+    show({ shape: true, buttons: true });
+    var first = idx === 0;
+    setTimeout(function () {
+      if (mode === 'round' && !busy && cur === queue()[idx]) speak(askSay(half, first));
+    }, 350);
+  }
+
+  /* tap the shape: count its sides out loud, each side lighting up */
+  function countSides() {
+    if (mode !== 'round' || busy) return;
+    var token = ++countToken;
+    flowToken++;
+    var svg = els.shape.querySelector('svg');
+    if (!svg) return;
+    var lit = svg.querySelectorAll('.lit');
+    for (var c = 0; c < lit.length; c++) lit[c].classList.remove('lit');
+    if (cur.kind === 'circle') {
+      var body = svg.querySelector('.body');
+      body.classList.add('lit');
+      speak(sidesSay('circle'), function () { if (token === countToken) body.classList.remove('lit'); });
+      return;
+    }
+    var sides = svg.querySelectorAll('.side');
+    var corners = svg.querySelectorAll('.corner');
+    var i = 0;
+    (function tick() {
+      if (token !== countToken) return;
+      if (i >= sides.length) {
+        for (var j = 0; j < corners.length; j++) corners[j].classList.add('lit');
+        setTimeout(function () {
+          if (token !== countToken) return;
+          speak(sidesSay(cur.kind));
+        }, 250);
+        return;
+      }
+      sides[i].classList.add('lit');
+      speak(countSay(i + 1), null, 0.85);
+      i++;
+      setTimeout(tick, slow ? 1050 : 800);
+    })();
+  }
+
+  function snapBack() {
+    var s = els.shape;
+    s.classList.remove('dragging', 'pop', 'fly');
+    s.classList.add('back');
+    s.style.transform = '';
+    setTimeout(function () { s.classList.remove('back'); }, 300);
+  }
+
+  function choose(k) {
+    if (mode !== 'round' || busy || !cur) return;
+    stopAll();
+    var house = HOUSES[k];
+    if (k !== cur.kind) {
+      attempts++;
+      snapBack();
+      house.classList.remove('wrong');
+      void house.offsetWidth;
+      house.classList.add('wrong');
+      setTimeout(function () { house.classList.remove('wrong'); }, 450);
+      if (attempts >= 2) {
+        HOUSES[cur.kind].classList.add('glow');
+        speak(revealSay(cur.kind));
+      } else {
+        speak(wrongSay(k, cur.kind));
+      }
+      return;
+    }
+    scored(house);
+  }
+
+  function scored(house) {
+    busy = true;
+    mode = 'scored';
+    clearHouseMarks();
+    var shape = cur;
+    counts[shape.kind] = (counts[shape.kind] || 0) + 1;
+    sorted++;
+    footballs++;
+    save();
+    renderScore(true);
+    celebrate(18);
+
+    /* the shape flies into its house */
+    /* the box, not the shape: after a drag the shape still carries its drag offset */
+    var from = els.shapeBox.getBoundingClientRect();
+    var to = house.querySelector('.minis').getBoundingClientRect();
+    var dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+    var dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+    els.shape.classList.remove('dragging', 'pop', 'back');
+    void els.shape.offsetWidth;
+    els.shape.classList.add('fly');
+    els.shape.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.12)';
+    els.shape.style.opacity = '0';
+    setTimeout(function () {
+      house.querySelector('.minis').appendChild(shapeSvg(shape));
+      updateNum(shape.kind);
+    }, 480);
+
+    els.lead.textContent = 'GOAL! ⚽';
+    var last = idx === SHAPES_PER_HALF - 1;
+    els.nextBtn.textContent = last ? (half === 1 ? 'Half time ➜' : 'Full time ➜') : 'Next ➜';
+    show({ shape: true, buttons: true, next: true });
+    var my = ++moveToken;
+    speak(rightSay(shape.kind, shape.trick, Math.floor(Math.random() * PRAISE.length)), function () {
+      setTimeout(function () { if (my === moveToken && mode === 'scored') advance(); }, 600);
+    });
+  }
+
+  function updateNum(k) {
+    var h = HOUSES[k], n = h.querySelector('.num');
+    if (!counts[k]) { if (n) n.remove(); return; }
+    if (!n) { n = document.createElement('span'); n.className = 'num'; h.appendChild(n); }
+    n.textContent = String(counts[k]);
+  }
+
+  function advance() {
+    if (mode !== 'scored') return;
+    stopAll();
+    moveToken++;
+    idx++;
+    if (idx >= SHAPES_PER_HALF) {
+      if (half === 1) enterHalfTime(); else enterFullTime();
+      return;
+    }
+    enterShape();
+  }
+
+  /* ================= Half time / full time ================= */
+  function enterHalfTime() {
+    mode = 'board';
+    els.half.textContent = 'Half time';
+    els.lead.textContent = '';
+    els.boardTitle.textContent = '📣 Half time!';
+    els.boardText.textContent = sorted + ' shapes sorted · next: tricky shapes';
+    els.boardBtn.textContent = 'Second half ➜';
+    show({ board: true });
+    speak(halfTimeSay(sorted));
+  }
+
+  function enterFullTime() {
+    mode = 'board';
+    half = 3;
+    els.half.textContent = 'Full time';
+    els.lead.textContent = '';
+    els.boardTitle.textContent = '🏆 Full time!';
+    els.boardText.textContent = sorted + ' shapes sorted · ' + sorted + ' ⚽';
+    els.boardBtn.textContent = 'Play again ⚽';
+    show({ board: true });
+    celebrate(45);
+    speak(fullTimeSay(sorted));
+  }
+
+  function sayAll() {
+    var list = [];
+    FAMILIES.forEach(function (k) {
+      if (!counts[k]) return;
+      list.push({ act: function () { clearHouseMarks(); HOUSES[k].classList.add('lit'); }, say: boardSay(k, counts[k]) });
+    });
+    list.push({ act: clearHouseMarks });
+    stopAll();
+    sequence(list);
+  }
+
+  /* ================= Match ================= */
+  function startMatch() {
+    stopAll();
+    buildQueues();
+    counts = {};
+    sorted = 0;
+    half = 1;
+    idx = 0;
+    FAMILIES.forEach(function (k) { HOUSES[k].querySelector('.minis').innerHTML = ''; updateNum(k); });
+    enterMeet();
+  }
+
+  /* ================= Dragging the shape ================= */
+  var drag = null;
+
+  function houseAt(x, y) {
+    for (var i = 0; i < FAMILIES.length; i++) {
+      var r = HOUSES[FAMILIES[i]].getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return FAMILIES[i];
+    }
+    return null;
+  }
+  function markOver(k) {
+    FAMILIES.forEach(function (f) { HOUSES[f].classList.toggle('over', f === k); });
+  }
+
+  els.shape.addEventListener('pointerdown', function (e) {
+    if (mode !== 'round' || busy) return;
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
+    try { els.shape.setPointerCapture(e.pointerId); } catch (err) {}
+    e.preventDefault();
+  });
+  els.shape.addEventListener('pointermove', function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.moved && Math.sqrt(dx * dx + dy * dy) > 12) {
+      drag.moved = true;
+      stopAll();
+      els.shape.classList.remove('pop', 'back');
+      els.shape.classList.add('dragging');
+    }
+    if (drag.moved) {
+      els.shape.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.8)';
+      markOver(houseAt(e.clientX, e.clientY));
+    }
+  });
+  function endDrag(e, cancelled) {
+    if (!drag || e.pointerId !== drag.id) return;
+    var d = drag;
+    drag = null;
+    try { els.shape.releasePointerCapture(e.pointerId); } catch (err) {}
+    markOver(null);
+    if (!d.moved) { if (!cancelled) countSides(); return; }
+    var k = cancelled ? null : houseAt(e.clientX, e.clientY);
+    if (k && mode === 'round' && !busy) choose(k);
+    else snapBack();
+  }
+  els.shape.addEventListener('pointerup', function (e) { endDrag(e, false); });
+  els.shape.addEventListener('pointercancel', function (e) { endDrag(e, true); });
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasSpeech) {
+      pickVoice();
+      /* iOS: speech has to start inside this tap */
+      try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+    }
+    preload(phraseList());
+    els.startOverlay.remove();
+    startMatch();
+  });
+
+  FAMILIES.forEach(function (k) {
+    HOUSES[k].addEventListener('click', function () {
+      if (mode === 'round') { choose(k); return; }
+      if (mode === 'meet') {
+        stopAll();
+        clearHouseMarks();
+        HOUSES[k].classList.add('lit');
+        speak(houseSay(k), function () { HOUSES[k].classList.remove('lit'); });
+        return;
+      }
+      if (mode === 'board') {
+        stopAll();
+        clearHouseMarks();
+        HOUSES[k].classList.add('lit');
+        speak(counts[k] ? boardSay(k, counts[k]) : houseSay(k), function () { HOUSES[k].classList.remove('lit'); });
+      }
+    });
+  });
+
+  els.sayBtn.addEventListener('click', function () {
+    if (mode === 'meet') { stopAll(); playMeet(); return; }
+    if (mode === 'round' && !busy) {
+      stopAll();
+      if (attempts >= 2) speak(revealSay(cur.kind));
+      else speak(askSay(half, false));
+      return;
+    }
+    if (mode === 'scored' && cur) {
+      var my = ++moveToken;
+      stopAll();
+      speak(rightSay(cur.kind, cur.trick, 0), function () {
+        setTimeout(function () { if (my === moveToken && mode === 'scored') advance(); }, 600);
+      });
+    }
+  });
+  els.nextBtn.addEventListener('click', function () {
+    if (mode === 'meet') { stopAll(); half = 1; idx = 0; enterShape(); return; }
+    if (mode === 'scored') advance();
+  });
+
+  els.boardSayBtn.addEventListener('click', sayAll);
+  els.boardBtn.addEventListener('click', function () {
+    stopAll();
+    clearHouseMarks();
+    if (half === 1) { half = 2; idx = 0; enterShape(); }
+    else startMatch();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  drawHouseIcons();
+  els.lead.textContent = 'The shape families 👀';
+  renderScore(false);
+})();
+</script>
+</body>
+</html>

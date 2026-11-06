@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>3D Shape Hunt ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Shape Hunt">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #134e4a 0%, #0f766e 52%, #134e4a 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    background: rgba(0,0,0,.24);
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.6rem); flex: 0 1 auto; min-width: 0; }
+  @media (max-width: 620px) { header h1 { display: none; } }
+  #half {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.3rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2vh, 20px);
+    padding: clamp(8px, 2vh, 22px) 12px calc(clamp(10px, 2.4vh, 24px) + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1.15rem, 3.4vmin, 1.8rem); font-weight: 800; }
+  .lead .w { color: #fde047; }
+
+  /* ---------- Shape cards (SVG drawings) ---------- */
+  .shape svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .shape svg .f1 { fill: #fef3c7; }
+  .shape svg .f2 { fill: #fbbf24; }
+  .shape svg .f3 { fill: #d97706; }
+  .shape svg path, .shape svg rect, .shape svg circle, .shape svg ellipse, .shape svg polygon, .shape svg polyline, .shape svg line {
+    stroke: #78350f; stroke-width: 2.2; stroke-linejoin: round;
+  }
+  .shape svg .hl { fill: #fff; opacity: .7; stroke: none; }
+  .shape svg .dash { fill: none; stroke-dasharray: 4 4; opacity: .55; }
+
+  #cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(8px, 2vmin, 18px);
+    justify-content: center;
+    max-width: 760px;
+  }
+  .card {
+    --s: clamp(96px, 24vmin, 180px);
+    width: var(--s);
+    height: calc(var(--s) * 1.18);
+    padding: calc(var(--s) * .1) calc(var(--s) * .1) calc(var(--s) * .04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    background: #fff;
+    color: #1e293b;
+    border: none;
+    border-bottom: 7px solid rgba(0,0,0,.28);
+    border-radius: 22px;
+    cursor: pointer;
+  }
+  .card .shape { width: 100%; flex: 1; min-height: 0; }
+  .card .name { font-size: calc(var(--s) * .13); font-weight: 900; margin-top: 4px; min-height: 1.2em; }
+  #cards.quiz .card .name { visibility: hidden; }
+  .card:active { transform: translateY(4px); border-bottom-width: 3px; }
+  .card.saying { outline: 6px solid #fde047; outline-offset: 3px; animation: pop .5s ease; }
+  .card.wrong { background: #fecaca; animation: shake .4s ease; }
+  .card.right { background: #bbf7d0; animation: pop .5s ease; }
+  #cards.quiz .card.right .name { visibility: visible; }
+  .card.glow, .obj.glow { animation: pulse 1s ease infinite; outline: 6px solid #fde047; outline-offset: 3px; }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* ---------- The house (shape hunt) ---------- */
+  #huntBox { display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.8vh, 16px); width: 100%; }
+  #hint {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: inherit;
+    font-size: clamp(1rem, 3vmin, 1.4rem);
+    font-weight: 900;
+    color: #1e293b;
+    background: #fff;
+    border: 4px solid #fde047;
+    border-radius: 20px;
+    padding: 8px 18px 8px 10px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,.25);
+  }
+  #hint .shape { width: clamp(64px, 14vmin, 104px); height: clamp(64px, 14vmin, 104px); }
+  #room {
+    position: relative;
+    width: min(96vw, 760px);
+    border-radius: 24px;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, #fde8d0 0%, #fbd5b0 66%, #a16207 66%, #92400e 100%);
+    box-shadow: 0 10px 0 rgba(0,0,0,.25);
+    padding: clamp(16px, 4vmin, 34px) clamp(8px, 2vmin, 20px) clamp(14px, 3vmin, 26px);
+  }
+  #room::before {      /* a window on the wall */
+    content: "";
+    position: absolute;
+    left: 8%; top: 10%;
+    width: 16%; height: 26%;
+    background: linear-gradient(180deg, #bae6fd, #7dd3fc);
+    border: 5px solid #fff;
+    border-radius: 6px;
+    opacity: .85;
+  }
+  #room::after {       /* a picture frame */
+    content: "";
+    position: absolute;
+    right: 9%; top: 12%;
+    width: 12%; height: 18%;
+    background: #fca5a5;
+    border: 5px solid #92400e;
+    border-radius: 4px;
+    opacity: .7;
+  }
+  #objects {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(8px, 2vmin, 18px);
+    justify-content: center;
+    align-items: flex-end;
+    min-height: clamp(140px, 30vmin, 230px);
+    padding-top: clamp(30px, 8vmin, 70px);
+  }
+  .obj {
+    --o: clamp(74px, 18vmin, 140px);
+    width: var(--o);
+    height: var(--o);
+    font-size: calc(var(--o) * .66);
+    line-height: 1;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,.55);
+    border: none;
+    border-radius: 22px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,.2);
+  }
+  .obj:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.2); }
+  .obj.wrong { background: #fecaca; animation: shake .4s ease; }
+  .obj.right { background: #bbf7d0; animation: pop .5s ease; }
+
+  /* ---------- Photos ---------- */
+  #album { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; min-height: 10px; }
+  .photo {
+    --p: clamp(62px, 13vmin, 96px);
+    width: var(--p);
+    font-family: inherit;
+    background: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 6px 4px;
+    box-shadow: 0 4px 10px rgba(0,0,0,.35);
+    cursor: pointer;
+    transform: rotate(-3deg);
+  }
+  .photo:nth-child(even) { transform: rotate(3deg); }
+  .photo .pic {
+    height: calc(var(--p) * .78);
+    display: grid;
+    place-items: center;
+    font-size: calc(var(--p) * .5);
+    background: #fde8d0;
+    border-radius: 3px;
+  }
+  .photo .shape { height: calc(var(--p) * .38); margin-top: 3px; }
+  .photo.new { animation: drop .7s ease; }
+  .photo.saying { outline: 4px solid #fde047; outline-offset: 3px; }
+  @keyframes drop {
+    0% { transform: translateY(-60vh) rotate(-30deg) scale(1.6); }
+    100% { transform: translateY(0) rotate(-3deg) scale(1); }
+  }
+  #flash {
+    position: fixed; inset: 0; background: #fff; z-index: 50;
+    pointer-events: none; opacity: 0;
+  }
+  #flash.go { animation: flash .45s ease-out; }
+  @keyframes flash { 0% { opacity: .95; } 100% { opacity: 0; } }
+
+  /* ---------- Buttons ---------- */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(11px, 2vh, 17px) clamp(20px, 5vw, 40px);
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #14b8a6, #0f766e);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.quiet {
+    background: rgba(0,0,0,.32);
+    box-shadow: none;
+    font-size: clamp(.9rem, 2.2vmin, 1.15rem);
+    padding: clamp(10px, 1.6vh, 14px) clamp(16px, 4vw, 30px);
+  }
+
+  /* ---------- Board ---------- */
+  #boardBox { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
+  #boardTitle { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); font-weight: 800; }
+  #board { display: flex; flex-wrap: wrap; gap: clamp(8px, 1.6vmin, 14px); justify-content: center; max-width: 760px; }
+  #board .card { --s: clamp(80px, 17vmin, 130px); }
+  #board .photo { --p: clamp(80px, 17vmin, 130px); }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #134e4a 0%, #0f766e 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 6vmin, 2.8rem); }
+  #startOverlay p { max-width: 30ch; opacity: .92; font-size: clamp(.95rem, 2.4vmin, 1.2rem); line-height: 1.5; }
+  #startOverlay .emo { font-size: clamp(2.4rem, 9vmin, 4.4rem); letter-spacing: .1em; }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 58px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>3D Shape Hunt</h1>
+  <span id="half">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead hidden" id="lead"></p>
+
+  <div id="cards" class="hidden"></div>
+
+  <div id="huntBox" class="hidden">
+    <button id="hint" type="button"><span class="shape"></span><span id="hintText"></span></button>
+    <div id="room"><div id="objects"></div></div>
+    <div id="album"></div>
+  </div>
+
+  <div class="row hidden" id="btnRow">
+    <button class="btn quiet" id="sayBtn">🔊 Say it again</button>
+    <button class="btn big" id="nextBtn">Next ➜</button>
+  </div>
+
+  <div id="boardBox" class="hidden">
+    <div id="boardTitle"></div>
+    <p id="boardText" class="lead"></p>
+    <div id="board"></div>
+    <div class="row">
+      <button class="btn quiet" id="boardSayBtn">🔊 Say them all</button>
+      <button class="btn big" id="boardBtn"></button>
+    </div>
+  </div>
+</main>
+
+<div id="flash"></div>
+
+<div id="startOverlay">
+  <h2>⚽ 3D Shape Hunt ⚽</h2>
+  <div class="emo">🎲 📦 ⚽ 🥫 🍦</div>
+  <p>Cube · Cuboid · Sphere · Cylinder · Cone · Pyramid<br>Go on a 3D shape hunt around the house and take pictures 📸</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower talking</label>
+  <button id="resetBtn">Reset score</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Homework =================
+     Mathematics - Homework Week 9: 3D shapes.
+     "In Mathematics this week we have been looking at 3D shapes.
+      Task - Go on a 3D shape hunt around your house and take pictures of
+      the shapes you find."
+
+     A match starts by meeting the six 3D shapes (cube, cuboid, sphere,
+     cylinder, cone, pyramid), each one shown and read out.
+     First half: he hears "Find the cube!" and taps the right drawing.
+     Second half is the shape hunt: a room in the house with four things in
+     it, he hears "Find a cylinder in the house!", taps the tin and it gets
+     its picture taken (camera flash, a photo drops into the album).
+     A wrong tap names what he tapped ("The orange is a sphere.").
+     One football ⚽ for every shape he finds. */
+
+  var ROUNDS_PER_HALF = 6;
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '📸', '🎲'];
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so the phrase list for the clips can be generated straight out of
+     this block. */
+
+  var WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six',
+               'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+
+  var SHAPES = ['cube', 'cuboid', 'sphere', 'cylinder', 'cone', 'pyramid'];
+
+  var FACTS = {
+    cube: 'All its faces are squares.',
+    cuboid: 'It is like a box.',
+    sphere: 'It is round like a ball.',
+    cylinder: 'It has two flat circles.',
+    cone: 'It has a point at the top.',
+    pyramid: 'Its triangles meet at a point.'
+  };
+
+  /* things around the house (no pyramid: there is no good one to draw) */
+  var OBJECTS = [
+    { id: 'dice',     e: '🎲', name: 'dice',            shape: 'cube' },
+    { id: 'ice',      e: '🧊', name: 'ice cube',        shape: 'cube' },
+    { id: 'present',  e: '🎁', name: 'present',         shape: 'cube' },
+    { id: 'box',      e: '📦', name: 'box',             shape: 'cuboid' },
+    { id: 'brick',    e: '🧱', name: 'brick',           shape: 'cuboid' },
+    { id: 'juice',    e: '🧃', name: 'juice box',       shape: 'cuboid' },
+    { id: 'football', e: '⚽', name: 'football',        shape: 'sphere' },
+    { id: 'orange',   e: '🍊', name: 'orange',          shape: 'sphere' },
+    { id: 'basket',   e: '🏀', name: 'basketball',      shape: 'sphere' },
+    { id: 'tin',      e: '🥫', name: 'tin',             shape: 'cylinder' },
+    { id: 'loo',      e: '🧻', name: 'toilet roll',     shape: 'cylinder' },
+    { id: 'drum',     e: '🥁', name: 'drum',            shape: 'cylinder' },
+    { id: 'icecream', e: '🍦', name: 'ice cream cone',  shape: 'cone' },
+    { id: 'popper',   e: '🎉', name: 'party popper',    shape: 'cone' }
+  ];
+  var HUNT_SHAPES = ['cube', 'cuboid', 'sphere', 'cylinder', 'cone'];
+
+  var INTRO_SAY = 'In Mathematics this week we have been looking at 3D shapes. Meet the 3D shapes!';
+  var YOUR_TURN_SAY = 'Now it is your turn! Listen and tap the right shape.';
+  var HUNT_TASK_SAY = 'Go on a 3D shape hunt around your house and take pictures of the shapes you find.';
+
+  function meetSay(s) { return 'This is a ' + s + '. ' + FACTS[s]; }
+  function findSay(s) { return 'Find the ' + s + '!'; }
+  function isSay(s) { return 'That is a ' + s + '.'; }
+  function firstAskSay(s) { return 'Listen and tap the right shape. ' + findSay(s); }
+  function wrongShapeSay(w, t) { return isSay(w) + ' ' + findSay(t); }
+  function showShapeSay(t) { return 'Look! This is the ' + t + '. Tap it.'; }
+  function yesShapeSay(s) { return 'Yes! ' + isSay(s); }
+
+  function huntSay(s) { return 'Find a ' + s + ' in the house!'; }
+  function huntFirstSay(s) { return HUNT_TASK_SAY + ' ' + huntSay(s); }
+  function objSay(o) { return 'The ' + o.name + ' is a ' + o.shape + '.'; }
+  function wrongObjSay(o, t) { return 'Not that one. ' + objSay(o) + ' ' + huntSay(t); }
+  function showObjSay(o) { return 'Look! ' + objSay(o) + ' Tap it to take a picture.'; }
+  function snapSay(o) { return 'Snap! ' + objSay(o); }
+
+  function halfTimeSay(n) {
+    return 'Half time! You found ' + WORDS[n] + ' 3D shapes. ' +
+           'In the second half, go on a 3D shape hunt around the house!';
+  }
+  function fullTimeSay(n) {
+    return 'Full time! You took ' + WORDS[n] + ' pictures of 3D shapes. Brilliant! ' +
+           'Now go on a 3D shape hunt around your house and take pictures of the shapes you find.';
+  }
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i, j, n;
+    function add(s) { var k = bare(s); if (k && !seen[k]) { seen[k] = 1; out.push(s); } }
+    function addAll(text) { var p = segments(text); for (var k = 0; k < p.length; k++) add(p[k]); }
+    addAll(INTRO_SAY);
+    addAll(YOUR_TURN_SAY);
+    addAll(HUNT_TASK_SAY);
+    for (i = 0; i < SHAPES.length; i++) {
+      var s = SHAPES[i];
+      addAll(meetSay(s));
+      addAll(findSay(s));
+      addAll(firstAskSay(s));
+      addAll(isSay(s));
+      addAll(showShapeSay(s));
+      addAll(yesShapeSay(s));
+      for (j = 0; j < SHAPES.length; j++) {
+        if (j !== i) addAll(wrongShapeSay(SHAPES[j], s));
+      }
+    }
+    for (i = 0; i < HUNT_SHAPES.length; i++) {
+      addAll(huntSay(HUNT_SHAPES[i]));
+      addAll(huntFirstSay(HUNT_SHAPES[i]));
+    }
+    for (i = 0; i < OBJECTS.length; i++) {
+      var o = OBJECTS[i];
+      addAll(objSay(o));
+      addAll(showObjSay(o));
+      addAll(snapSay(o));
+      for (j = 0; j < HUNT_SHAPES.length; j++) {
+        if (HUNT_SHAPES[j] !== o.shape) addAll(wrongObjSay(o, HUNT_SHAPES[j]));
+      }
+    }
+    for (n = 0; n <= 12; n++) {
+      addAll(halfTimeSay(n));
+      addAll(fullTimeSay(n));
+    }
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') return;
+  window.__phrases = phraseList;
+
+  /* ================= State ================= */
+  var SCORE_KEY = 'jackHw_hw20261106mathematicshomeworkwee';
+  var SLOW_KEY  = 'jackHw_hw20261106mathematicshomeworkwee_slow';
+
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var half = 1;
+  var round = 0;
+  var serial = 0;           /* changes every round, so a late callback can tell */
+  var queue1 = [], queue2 = [];
+  var found = [];           /* shapes found in the first half */
+  var photos = [];          /* objects photographed in the second half */
+  var target = null;        /* shape name (half 1) or object (half 2) */
+  var attempts = 0;
+  var mode = 'start';       /* start | meet | round | finished | board */
+  var flowToken = 0;        /* cancels a talking sequence */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), half: $('half'), lead: $('lead'),
+    cards: $('cards'), huntBox: $('huntBox'), hint: $('hint'), hintText: $('hintText'),
+    objects: $('objects'), album: $('album'),
+    btnRow: $('btnRow'), sayBtn: $('sayBtn'), nextBtn: $('nextBtn'),
+    boardBox: $('boardBox'), boardTitle: $('boardTitle'), boardText: $('boardText'),
+    board: $('board'), boardSayBtn: $('boardSayBtn'), boardBtn: $('boardBtn'),
+    flash: $('flash'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Voice =================
+     He cannot read yet, so every line is spoken. The browser's own voice
+     sounds like a computer, so every line is pre-rendered with a neural
+     en-GB voice (tools/build-audio.py) and played back through Web Audio,
+     segment by segment. speechSynthesis is only the fallback for a segment
+     that has no clip. speak() calls done() when the line has finished — with
+     a timer as a safety net, because iOS does not always fire onend. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/hw-20261106-mathematics-homework-wee/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Serena|Kate|Martha|Stephanie|Fiona|Samantha|Karen|Moira)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) ||
+      find(gb, /Google UK English Female/i) ||
+      find(gb, female) || gb[0] ||
+      find(en, good) || find(en, female) || en[0] || null;
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  /* the fallback: only used for a segment that has no clip */
+  function say(text, my, done, rate) {
+    window.__clipMisses.push(text);
+    var factor = slow ? 1.25 : 1;
+    if (!hasSpeech) {
+      setTimeout(function () { if (my === speakToken && done) done(); }, (600 + text.length * 45) * factor);
+      return;
+    }
+    var finished = false;
+    var guard = null;
+    var fin = function () {
+      if (finished) return;
+      finished = true;
+      clearTimeout(guard);
+      if (my === speakToken && done) done();
+    };
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = 'en-GB';
+      u.rate = (rate || 0.9) * (slow ? 0.8 : 1);
+      u.onend = fin;
+      u.onerror = fin;
+      guard = setTimeout(fin, (2500 + text.length * 110) * factor);
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { fin(); }
+  }
+
+  /* Plays a list of clip texts one after another, a breath between them.
+     `done` fires after the last one, unless something talked over it. */
+  function speakParts(parts, done, rate) {
+    stopSpeaking();
+    var my = speakToken;
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) { if (done) done(); return; }
+    if (!hasTTS) {
+      var len = parts.join(' ').length;
+      if (done) setTimeout(function () { if (my === speakToken) done(); }, (600 + len * 45) * (slow ? 1.25 : 1));
+      return;
+    }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(parts[i], my, onward, rate); });
+        } else {
+          say(parts[i], my, onward, rate);
+        }
+      })(0);
+    });
+  }
+
+  /* one line, cut into its segments */
+  function speak(text, done, rate) {
+    speakParts(segments(text), done, rate);
+  }
+
+  if (hasSpeech) {
+    pickVoice();
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function stopAll() {
+    flowToken++;
+    stopSpeaking();
+  }
+
+  /* Run a list of { act, say } one after another, each line waiting for
+     the one before it to finish. Anything else that talks stops it. */
+  function sequence(list) {
+    var token = ++flowToken;
+    (function next(i) {
+      if (token !== flowToken || i >= list.length) return;
+      var s = list[i];
+      if (s.act) s.act();
+      if (s.say) speak(s.say, function () { setTimeout(function () { next(i + 1); }, 300); }, s.rate);
+      else setTimeout(function () { next(i + 1); }, s.wait || 500);
+    })(0);
+  }
+
+  /* ================= Shape drawings =================
+     Flat fills only (no gradients: a gradient id inside a hidden SVG stops
+     working for its copies). Every shape the same colours, so he learns the
+     form, not a colour. */
+  var DRAW = {
+    cube:
+      '<polygon class="f1" points="18,36 40,18 84,18 62,36"/>' +
+      '<polygon class="f3" points="62,36 84,18 84,62 62,80"/>' +
+      '<rect class="f2" x="18" y="36" width="44" height="44"/>',
+    cuboid:
+      '<polygon class="f1" points="6,46 24,30 94,30 76,46"/>' +
+      '<polygon class="f3" points="76,46 94,30 94,62 76,78"/>' +
+      '<rect class="f2" x="6" y="46" width="70" height="32"/>',
+    sphere:
+      '<circle class="f2" cx="50" cy="50" r="38"/>' +
+      '<ellipse class="dash" cx="50" cy="50" rx="38" ry="11"/>' +
+      '<ellipse class="hl" cx="36" cy="34" rx="10" ry="7"/>',
+    cylinder:
+      '<path class="f2" d="M24 24 L24 78 A26 9 0 0 0 76 78 L76 24 Z"/>' +
+      '<ellipse class="f1" cx="50" cy="24" rx="26" ry="9"/>',
+    cone:
+      '<path class="f2" d="M50 10 L22 80 A28 9 0 0 0 78 80 Z"/>' +
+      '<ellipse class="hl" cx="42" cy="50" rx="3" ry="14"/>' +
+      '<path class="dash" d="M22 80 A28 9 0 0 1 78 80"/>',
+    pyramid:
+      '<polygon class="f2" points="50,10 14,74 58,86"/>' +
+      '<polygon class="f3" points="50,10 58,86 86,68"/>' +
+      '<polyline class="dash" points="14,74 42,62 86,68"/>' +
+      '<line class="dash" x1="50" y1="10" x2="42" y2="62"/>'
+  };
+  function shapeSVG(s) {
+    return '<svg viewBox="0 0 100 100" aria-hidden="true">' + DRAW[s] + '</svg>';
+  }
+
+  /* ================= Small helpers ================= */
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function pickOne(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  /* ================= Screens ================= */
+  var ALL = ['lead', 'cards', 'huntBox', 'btnRow', 'boardBox'];
+  function show(list, buttons) {
+    ALL.forEach(function (id) { els[id].classList.toggle('hidden', list.indexOf(id) === -1); });
+    buttons = buttons || [];
+    ['sayBtn', 'nextBtn'].forEach(function (id) {
+      els[id].classList.toggle('hidden', buttons.indexOf(id) === -1);
+    });
+  }
+
+  function makeCard(s, onTap) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'card';
+    b.setAttribute('data-shape', s);
+    b.innerHTML = '<span class="shape">' + shapeSVG(s) + '</span><span class="name">' + s + '</span>';
+    b.addEventListener('click', function () { onTap(s, b); });
+    return b;
+  }
+
+  function makePhoto(o, onTap) {
+    var p = document.createElement('button');
+    p.type = 'button';
+    p.className = 'photo';
+    p.innerHTML = '<div class="pic">' + o.e + '</div><div class="shape">' + shapeSVG(o.shape) + '</div>';
+    p.addEventListener('click', function () { onTap(o, p); });
+    return p;
+  }
+
+  function sayPhoto(o, el) {
+    stopAll();
+    var all = document.querySelectorAll('.photo');
+    for (var i = 0; i < all.length; i++) all[i].classList.toggle('saying', all[i] === el);
+    speak(objSay(o), function () { el.classList.remove('saying'); });
+  }
+
+  /* ================= Meet the shapes ================= */
+  function enterMeet() {
+    stopAll();
+    mode = 'meet';
+    els.half.textContent = 'Meet the shapes';
+    els.lead.textContent = 'Meet the 3D shapes 👀';
+    els.cards.className = '';
+    els.cards.innerHTML = '';
+    SHAPES.forEach(function (s) {
+      els.cards.appendChild(makeCard(s, function (sh, el) { sayCard(sh, el); }));
+    });
+    els.nextBtn.textContent = 'My turn ➜';
+    show(['lead', 'cards', 'btnRow'], ['sayBtn', 'nextBtn']);
+    playMeet();
+  }
+
+  function markSaying(el) {
+    var all = els.cards.querySelectorAll('.card');
+    for (var i = 0; i < all.length; i++) all[i].classList.toggle('saying', all[i] === el);
+  }
+
+  function sayCard(s, el) {
+    stopAll();
+    markSaying(el);
+    speak(meetSay(s), function () { el.classList.remove('saying'); });
+  }
+
+  function playMeet() {
+    var cards = els.cards.querySelectorAll('.card');
+    var list = [{ act: function () { markSaying(null); }, say: INTRO_SAY }];
+    SHAPES.forEach(function (s, i) {
+      list.push({ act: function () { markSaying(cards[i]); }, say: meetSay(s) });
+    });
+    list.push({ act: function () { markSaying(null); } });
+    sequence(list);
+  }
+
+  /* ================= First half: find the shape ================= */
+  function enterShapeRound() {
+    stopAll();
+    mode = 'round';
+    serial++;
+    attempts = 0;
+    target = queue1[round];
+    els.half.textContent = 'First half · ' + (round + 1) + '/' + ROUNDS_PER_HALF;
+    var n = round < 3 ? 3 : 4;
+    var others = shuffle(SHAPES.filter(function (s) { return s !== target; })).slice(0, n - 1);
+    var opts = shuffle(others.concat([target]));
+    els.cards.className = 'quiz';
+    els.cards.innerHTML = '';
+    opts.forEach(function (s) { els.cards.appendChild(makeCard(s, answerShape)); });
+    els.lead.innerHTML = 'Find the <span class="w">' + target + '</span>! 🔎';
+    show(['lead', 'cards', 'btnRow'], ['sayBtn']);
+    var line = round === 0 ? YOUR_TURN_SAY + ' ' + findSay(target) : findSay(target);
+    var my = serial;
+    setTimeout(function () { if (mode === 'round' && serial === my && attempts === 0) speak(line); }, 300);
+  }
+
+  function answerShape(s, el) {
+    if (mode !== 'round' || half !== 1) return;
+    stopAll();
+    if (s !== target) {
+      attempts++;
+      el.classList.remove('wrong');
+      void el.offsetWidth;
+      el.classList.add('wrong');
+      if (attempts >= 2) {
+        var right = els.cards.querySelector('[data-shape="' + target + '"]');
+        if (right) right.classList.add('glow');
+        speak(showShapeSay(target));
+      } else {
+        speak(wrongShapeSay(s, target));
+      }
+      return;
+    }
+    var all = els.cards.querySelectorAll('.card');
+    for (var i = 0; i < all.length; i++) all[i].classList.remove('glow', 'wrong');
+    el.classList.add('right');
+    found.push(target);
+    scored(yesShapeSay(target), 'GOAL! ⚽ That is a <span class="w">' + target + '</span>');
+  }
+
+  /* ================= Second half: the shape hunt ================= */
+  function enterHuntRound() {
+    stopAll();
+    mode = 'round';
+    serial++;
+    attempts = 0;
+    target = queue2[round];
+    els.half.textContent = 'Shape hunt · ' + (round + 1) + '/' + ROUNDS_PER_HALF;
+    var otherShapes = shuffle(HUNT_SHAPES.filter(function (s) { return s !== target.shape; })).slice(0, 3);
+    var things = otherShapes.map(function (s) {
+      return pickOne(OBJECTS.filter(function (o) { return o.shape === s; }));
+    });
+    things = shuffle(things.concat([target]));
+    els.objects.innerHTML = '';
+    things.forEach(function (o) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'obj';
+      b.setAttribute('data-id', o.id);
+      b.textContent = o.e;
+      b.addEventListener('click', function () { answerObj(o, b); });
+      els.objects.appendChild(b);
+    });
+    els.hint.querySelector('.shape').innerHTML = shapeSVG(target.shape);
+    els.hintText.textContent = 'Find a ' + target.shape + '!';
+    els.lead.innerHTML = '📸 3D shape hunt';
+    show(['lead', 'huntBox', 'btnRow'], ['sayBtn']);
+    var line = round === 0 ? huntFirstSay(target.shape) : huntSay(target.shape);
+    var my = serial;
+    setTimeout(function () { if (mode === 'round' && serial === my && attempts === 0) speak(line); }, 300);
+  }
+
+  function answerObj(o, el) {
+    if (mode !== 'round' || half !== 2) return;
+    stopAll();
+    if (o.shape !== target.shape) {
+      attempts++;
+      el.classList.remove('wrong');
+      void el.offsetWidth;
+      el.classList.add('wrong');
+      if (attempts >= 2) {
+        var right = els.objects.querySelector('[data-id="' + target.id + '"]');
+        if (right) right.classList.add('glow');
+        speak(showObjSay(target));
+      } else {
+        speak(wrongObjSay(o, target.shape));
+      }
+      return;
+    }
+    var all = els.objects.querySelectorAll('.obj');
+    for (var i = 0; i < all.length; i++) all[i].classList.remove('glow', 'wrong');
+    el.classList.add('right');
+    /* take the picture */
+    els.flash.classList.remove('go');
+    void els.flash.offsetWidth;
+    els.flash.classList.add('go');
+    photos.push(o);
+    var p = makePhoto(o, sayPhoto);
+    p.classList.add('new');
+    els.album.appendChild(p);
+    scored(snapSay(o), '📸 Snap! The ' + o.name + ' is a <span class="w">' + o.shape + '</span>');
+  }
+
+  /* ================= A football ================= */
+  function scored(line, leadHtml) {
+    mode = 'finished';
+    footballs++;
+    save();
+    renderScore(true);
+    celebrate(18);
+    els.lead.innerHTML = leadHtml;
+    var last = round === ROUNDS_PER_HALF - 1;
+    els.nextBtn.textContent = last ? (half === 1 ? 'Half time ➜' : 'Full time ➜') : 'Next ➜';
+    show(half === 1 ? ['lead', 'cards', 'btnRow'] : ['lead', 'huntBox', 'btnRow'], ['nextBtn']);
+    var my = serial;
+    speak(line, function () {
+      /* on to the next one by itself; Next ➜ is there for the impatient */
+      setTimeout(function () { if (mode === 'finished' && serial === my) nextRound(); }, 900);
+    });
+  }
+
+  function nextRound() {
+    stopAll();
+    if (mode === 'meet') { half = 1; round = 0; enterShapeRound(); return; }
+    if (mode !== 'finished') return;
+    round++;
+    if (round >= ROUNDS_PER_HALF) {
+      if (half === 1) enterHalfTime(); else enterFullTime();
+      return;
+    }
+    if (half === 1) enterShapeRound(); else enterHuntRound();
+  }
+
+  function sayAgain() {
+    if (mode === 'meet') { playMeet(); return; }
+    if (mode !== 'round' && mode !== 'finished') return;
+    stopAll();
+    if (half === 1) speak(mode === 'finished' ? yesShapeSay(target) : findSay(target));
+    else speak(mode === 'finished' ? objSay(target) : huntSay(target.shape));
+  }
+
+  /* ================= Boards ================= */
+  function enterHalfTime() {
+    serial++;
+    mode = 'board';
+    half = 2;
+    round = 0;
+    els.half.textContent = 'Half time';
+    els.boardTitle.textContent = '📣 Half time!';
+    els.boardText.textContent = 'Next: a 3D shape hunt around the house 📸';
+    els.boardBtn.textContent = 'Shape hunt ➜';
+    els.board.innerHTML = '';
+    found.forEach(function (s) {
+      els.board.appendChild(makeCard(s, function (sh, el) { sayBoardCard(sh, el); }));
+    });
+    show(['boardBox']);
+    speak(halfTimeSay(found.length));
+  }
+
+  function sayBoardCard(s, el) {
+    stopAll();
+    var all = els.board.querySelectorAll('.card');
+    for (var i = 0; i < all.length; i++) all[i].classList.toggle('saying', all[i] === el);
+    speak(meetSay(s), function () { el.classList.remove('saying'); });
+  }
+
+  function enterFullTime() {
+    serial++;
+    mode = 'board';
+    half = 3;
+    els.half.textContent = 'Full time';
+    els.boardTitle.textContent = '🏆 Full time!';
+    els.boardText.textContent = photos.length + ' pictures 📸 · ' + (found.length + photos.length) + ' ⚽';
+    els.boardBtn.textContent = 'Play again ⚽';
+    els.board.innerHTML = '';
+    photos.forEach(function (o) { els.board.appendChild(makePhoto(o, sayPhoto)); });
+    show(['boardBox']);
+    celebrate(45);
+    speak(fullTimeSay(photos.length));
+  }
+
+  function sayAll() {
+    var items = els.board.children;
+    var list = [];
+    var setOn = function (k) {
+      return function () { for (var c = 0; c < items.length; c++) items[c].classList.toggle('saying', c === k); };
+    };
+    if (half === 2) {
+      found.forEach(function (s, i) { list.push({ act: setOn(i), say: meetSay(s) }); });
+    } else {
+      photos.forEach(function (o, i) { list.push({ act: setOn(i), say: objSay(o) }); });
+    }
+    list.push({ act: setOn(-1) });
+    sequence(list);
+  }
+
+  /* ================= Match ================= */
+  function buildQueues() {
+    queue1 = shuffle(SHAPES).slice(0, ROUNDS_PER_HALF);
+    /* every hunt shape once, plus one more, never twice in a row */
+    var shapes = shuffle(HUNT_SHAPES);
+    var extra = pickOne(HUNT_SHAPES.filter(function (s) { return s !== shapes[shapes.length - 1]; }));
+    shapes.push(extra);
+    var used = {};
+    queue2 = shapes.slice(0, ROUNDS_PER_HALF).map(function (s) {
+      var pool = OBJECTS.filter(function (o) { return o.shape === s && !used[o.id]; });
+      var o = pickOne(pool);
+      used[o.id] = 1;
+      return o;
+    });
+  }
+
+  function startMatch() {
+    stopAll();
+    buildQueues();
+    found = [];
+    photos = [];
+    els.album.innerHTML = '';
+    half = 1;
+    round = 0;
+    enterMeet();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasSpeech) {
+      pickVoice();
+      /* iOS: speech has to start inside this tap */
+      try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+    }
+    preload(phraseList());
+    els.startOverlay.remove();
+    startMatch();
+  });
+
+  els.hint.addEventListener('click', function () {
+    if (half !== 2 || !target || (mode !== 'round' && mode !== 'finished')) return;
+    stopAll();
+    speak(huntSay(target.shape));
+  });
+  els.sayBtn.addEventListener('click', sayAgain);
+  els.nextBtn.addEventListener('click', nextRound);
+
+  els.boardSayBtn.addEventListener('click', sayAll);
+  els.boardBtn.addEventListener('click', function () {
+    stopAll();
+    if (half === 2) enterHuntRound();
+    else startMatch();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>
