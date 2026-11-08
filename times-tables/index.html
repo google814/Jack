@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#7c2d12">
+<title>Jack's Times Tables</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Times Tables">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #1e3a8a, #6d28d9 55%, #1e3a8a);
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;          /* the whole game always fits on one screen */
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  a:focus-visible, button:focus-visible { outline: 3px solid #fde047; outline-offset: 2px; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(0,0,0,.26);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none; color: #f1f5f9;
+    font-size: 1.5rem; line-height: 1;
+    min-width: 44px; min-height: 44px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    background: rgba(255,255,255,.13);
+  }
+  header h1 { font-size: clamp(1rem, 2.8vw, 1.5rem); white-space: nowrap; }
+  /* on a phone the score matters more than the title */
+  @media (max-width: 560px) { header h1 { display: none; } }
+  #score {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1px;
+    font-size: 1.25rem;
+    justify-content: flex-end;
+    overflow: hidden;
+    max-height: 2.2rem;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.2rem; margin-left: 6px; }
+  #settingsBtn {
+    background: none; border: none; color: #f1f5f9;
+    font-size: 1.2rem; opacity: .5; cursor: pointer;
+    min-width: 44px; min-height: 44px;
+  }
+
+  /* ---------- progress: how far through the hundred ---------- */
+  #progress {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    background: rgba(0,0,0,.14);
+  }
+  #progBar {
+    flex: 1;
+    height: 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.16);
+    overflow: hidden;
+  }
+  #progBar i {
+    display: block; height: 100%; width: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #86efac, #fde047);
+    transition: width .5s ease;
+  }
+  #progText { font-weight: 800; font-size: .95rem; white-space: nowrap; min-width: 4.6em; text-align: right; }
+
+  /* ---------- stage ---------- */
+  main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2vh, 22px);
+    padding: clamp(8px, 1.6vh, 18px) 10px calc(clamp(8px, 1.6vh, 18px) + env(safe-area-inset-bottom));
+    text-align: center;
+    overflow: hidden;
+  }
+  .hidden { display: none !important; }
+
+  #problem {
+    flex: 0 0 auto;
+    font-size: clamp(2.6rem, 11vmin, 6rem);
+    font-weight: 900;
+    line-height: 1.1;
+    cursor: pointer;
+    padding: .05em .35em;
+    border-radius: 18px;
+    text-shadow: 0 5px 16px rgba(0,0,0,.35);
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  #problem:hover { background: rgba(255,255,255,.1); }
+
+  /* counting up the table: 8, 16, 24 … 56 */
+  #seq { display: flex; flex-wrap: wrap; gap: clamp(5px, 1.4vmin, 12px); justify-content: center; max-width: min(100%, 760px); }
+  #seq .chip {
+    min-width: clamp(42px, 10vmin, 78px);
+    padding: clamp(5px, 1.2vmin, 12px) clamp(4px, 1vmin, 10px);
+    border-radius: 14px;
+    background: rgba(255,255,255,.16);
+    font-size: clamp(1.1rem, 4.4vmin, 2.2rem);
+    font-weight: 900;
+    cursor: pointer;
+    animation: pop .35s ease both;
+  }
+  #seq .chip.last { background: #fde047; color: #0f172a; }
+
+  /* ---------- answer tiles ---------- */
+  #tiles {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(10px, 2.4vmin, 20px);
+    width: min(100%, 440px);
+  }
+  /* iPad on its side: all four in one row */
+  @media (min-width: 760px) and (min-aspect-ratio: 5/4) {
+    #tiles { grid-template-columns: repeat(4, 1fr); width: min(100%, 860px); }
+  }
+  .tile {
+    min-width: 44px; min-height: 44px;
+    height: clamp(76px, 14vh, 130px);
+    border: none;
+    border-radius: 22px;
+    font-family: inherit;
+    font-size: clamp(2.2rem, 8.5vmin, 4rem);
+    font-weight: 900;
+    color: #0f172a;
+    cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .tile:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .tile.shake { animation: shake .35s ease; }
+  .tile:disabled { opacity: .3; cursor: default; box-shadow: none; }
+  /* after the second miss: this is the one */
+  .tile.hint {
+    box-shadow: 0 0 0 6px #fde047, 0 0 28px 6px rgba(253,224,71,.85);
+    animation: pulseWord 1.2s ease-in-out infinite;
+  }
+  #tiles.locked .tile { pointer-events: none; }
+  #tiles.locked .tile:not(:disabled):not(.hint) { opacity: .55; }
+
+  /* the countdown bar of the "listen and think" pause */
+  #lockBar {
+    flex: 0 0 auto;
+    height: 10px;
+    width: min(80%, 320px);
+    border-radius: 999px;
+    background: rgba(255,255,255,.16);
+    overflow: hidden;
+  }
+  #lockBar i { display: block; height: 100%; width: 100%; border-radius: 999px; background: #fde047; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    font-family: inherit; font-weight: 800; color: #0f172a;
+    border: none; border-radius: 999px; cursor: pointer;
+    min-height: 44px;
+    padding: clamp(9px, 1.6vh, 14px) clamp(18px, 4vw, 30px);
+    font-size: clamp(.9rem, 2.4vmin, 1.2rem);
+    background: #fde047;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .btn.ghost { background: rgba(255,255,255,.14); color: #f1f5f9; box-shadow: none; }
+  #nextBtn { font-size: clamp(1.1rem, 3.2vmin, 1.6rem); padding: clamp(12px, 2vh, 18px) clamp(26px, 6vw, 44px); }
+
+  /* ---------- the answer ---------- */
+  #cheer { flex: 0 0 auto; font-size: clamp(1.2rem, 4vmin, 2.1rem); font-weight: 900; animation: pop .5s ease; }
+  #equation {
+    flex: 0 0 auto;
+    font-size: clamp(2.4rem, 10vmin, 5.4rem);
+    font-weight: 900;
+    line-height: 1.25;
+    cursor: pointer;
+    padding: .1em .3em;
+    border-radius: 22px;
+    white-space: nowrap;
+  }
+  #equation:hover { background: rgba(255,255,255,.1); }
+  .rainbow {
+    display: inline-block;
+    background: linear-gradient(90deg, #ff3b6b, #ff9f1a, #ffd60a, #2ecc71, #34d399, #8b5cf6, #ff3b6b);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 900;
+    animation: rainbowShift 2.5s linear infinite, pulseWord 1s ease-in-out infinite;
+  }
+
+  /* ---------- overlays ---------- */
+  #startOverlay, #endOverlay, #netOverlay {
+    position: fixed; inset: 0; z-index: 70;
+    background: linear-gradient(160deg, #1e3a8a, #6d28d9 55%, #1e3a8a);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: clamp(16px, 4vh, 32px); text-align: center; padding: 24px;
+  }
+  #netOverlay { background: rgba(15,23,42,.82); z-index: 65; cursor: pointer; }
+  #startOverlay h2, #endOverlay h2, #netOverlay h2 { font-size: clamp(1.5rem, 5.5vmin, 2.8rem); }
+  #startOverlay p, #endOverlay p { max-width: 28ch; opacity: .9; font-size: clamp(.95rem, 2.4vmin, 1.2rem); }
+  #endScore { font-size: clamp(1.4rem, 5vmin, 2.4rem); font-weight: 900; opacity: 1; }
+  #playBtn {
+    width: clamp(120px, 26vmin, 190px);
+    height: clamp(120px, 26vmin, 190px);
+    border-radius: 50%;
+    font-size: clamp(3rem, 10vmin, 5rem);
+    padding: 0;
+    animation: pulseWord 1.6s ease-in-out infinite;
+  }
+
+  /* the net of ten — the same tens net as in Big Numbers, filling up */
+  .net {
+    --bs: clamp(40px, 12vmin, 84px);
+    display: grid;
+    grid-template-columns: repeat(5, var(--bs));
+    gap: calc(var(--bs) * .14);
+    padding: calc(var(--bs) * .26);
+    border-radius: 18px;
+    background: rgba(255,255,255,.13);
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.4);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 2px, transparent 2px 14px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 2px, transparent 2px 14px);
+  }
+  .net span {
+    width: var(--bs); height: var(--bs);
+    display: grid; place-items: center;
+    font-size: calc(var(--bs) * .86); line-height: 1;
+    animation: bounceIn .6s ease both;
+  }
+
+  /* ---------- settings ---------- */
+  #settingsPanel {
+    position: fixed; top: 56px; right: 12px; z-index: 60;
+    background: #fff; color: #0f172a;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; min-height: 44px; padding: 8px 14px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  /* ---------- toast + confetti ---------- */
+  #feedback {
+    position: fixed; left: 50%; bottom: 9vh; transform: translateX(-50%);
+    background: rgba(30,27,75,.92); color: #f1f5f9;
+    font-size: clamp(1rem, 2.8vmin, 1.4rem); font-weight: 700;
+    padding: .55em 1.15em; border-radius: 999px;
+    z-index: 50; pointer-events: none; white-space: nowrap;
+    animation: pop .3s ease;
+  }
+  .confetti { position: fixed; top: -6vh; font-size: 1.8rem; animation: fall linear forwards; pointer-events: none; z-index: 80; }
+
+  /* ---------- keyframes ---------- */
+  @keyframes pop { 0% { transform: scale(.5); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+  @keyframes rainbowShift { to { background-position: 300% 0; } }
+  @keyframes pulseWord { 50% { transform: scale(1.1); } }
+  @keyframes bounceIn {
+    0% { transform: translateY(-40px) scale(.3); opacity: 0; }
+    55% { transform: translateY(6px) scale(1.15); opacity: 1; }
+    75% { transform: translateY(-4px) scale(.95); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  @keyframes fall { to { transform: translateY(115vh) rotate(400deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+    .confetti { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>Jack's Times Tables</h1>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<div id="progress" aria-label="Progress">
+  <div id="progBar"><i></i></div>
+  <span id="progText">0 / 100</span>
+</div>
+
+<main>
+  <!-- play -->
+  <div id="problem" class="hidden"></div>
+  <div id="seq" class="hidden"></div>
+  <div id="tiles" class="hidden"></div>
+  <div id="lockBar" class="hidden"><i></i></div>
+  <button id="hearBtn" class="btn ghost hidden">🔊 Hear it</button>
+
+  <!-- the answer -->
+  <div id="cheer" class="hidden"></div>
+  <div id="equation" class="hidden"></div>
+  <button id="hearAnswerBtn" class="btn ghost hidden">🔊 Hear it</button>
+  <button id="nextBtn" class="btn hidden">Next ➜ ⚽</button>
+</main>
+
+<div id="startOverlay">
+  <h2>✖️ Jack's Times Tables</h2>
+  <p>One times one all the way to ten times ten.</p>
+  <button id="playBtn" class="btn">▶</button>
+</div>
+
+<div id="netOverlay" class="hidden">
+  <h2>🥅 Ten in the net!</h2>
+  <div class="net" id="netBalls"></div>
+</div>
+
+<div id="endOverlay" class="hidden">
+  <h2>🏁 Full time!</h2>
+  <p id="endScore"></p>
+  <button id="playAgainBtn" class="btn">▶ Play again</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <button id="resetBtn">Start again</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say lives in here and nowhere else. It touches no
+     DOM, so tools/phrases/times-tables.txt can be generated straight out of
+     this block (node tools/gen-phrases.js times-tables) and can never drift. */
+
+  var ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+              'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
+              'seventeen', 'eighteen', 'nineteen'];
+  var TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+  /* every number word from zero to one hundred: "twenty-three", "one hundred" */
+  var NUM_WORDS = (function () {
+    var a = [], n, t, o;
+    for (n = 0; n <= 100; n++) {
+      if (n < 20) { a.push(ONES[n]); continue; }
+      if (n === 100) { a.push('one hundred'); continue; }
+      t = Math.floor(n / 10); o = n % 10;
+      a.push(TENS[t] + (o ? '-' + ONES[o] : ''));
+    }
+    return a;
+  })();
+
+  /* counting in a table: "count in eights" */
+  var PLURAL = ['', 'ones', 'twos', 'threes', 'fours', 'fives', 'sixes', 'sevens', 'eights',
+                'nines', 'tens'];
+
+  var PRAISE = ['Goal!', 'Brilliant!', 'Super!', 'Great shot!'];
+
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  /* All hundred sums from 1 x 1 to 10 x 10, each exactly once, mixed up — but
+     always in the same order: a fixed seed (Park-Miller, exact in plain
+     doubles, so it is the same on every phone) shuffles them once. */
+  var PROBLEMS = (function () {
+    var list = [], a, b, i, j, t, seed = 20200614;
+    for (a = 1; a <= 10; a++) for (b = 1; b <= 10; b++) list.push({ a: a, b: b });
+    function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+    for (i = list.length - 1; i > 0; i--) {
+      j = Math.floor(rnd() * (i + 1));
+      t = list[i]; list[i] = list[j]; list[j] = t;
+    }
+    return list;
+  })();
+
+  function answerOf(p) { return p.a * p.b; }
+
+  /* "What is seven times eight?" */
+  function questionText(p) { return 'What is ' + NUM_WORDS[p.a] + ' times ' + NUM_WORDS[p.b] + '?'; }
+
+  /* "Seven times eight is fifty-six." */
+  function answerSentence(p) {
+    return cap(NUM_WORDS[p.a]) + ' times ' + NUM_WORDS[p.b] + ' is ' + NUM_WORDS[answerOf(p)] + '.';
+  }
+
+  /* the steps up the table: 7 x 8 is seven eights, so 8, 16, 24 … 56 */
+  function countSteps(p) {
+    var out = [], i;
+    for (i = 1; i <= p.a; i++) out.push(i * p.b);
+    return out;
+  }
+  function countIntro(p) { return "Let's count in " + PLURAL[p.b] + '.'; }
+  function countLine(p) {
+    var s = countSteps(p), w = [], i;
+    for (i = 0; i < s.length; i++) w.push(NUM_WORDS[s[i]]);
+    return cap(w.join(', ')) + '.';
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i;
+    function add(s) { if (s && !seen[s]) { seen[s] = 1; out.push(s); } }
+    add("Jack's Times Tables.");
+    add("Let's go!");
+    add('Try again');
+    add('Listen again.');
+    add('Ten in the net!');
+    add('Full time!');
+    add('Well done, Jack!');
+    for (i = 0; i < PRAISE.length; i++) add(PRAISE[i]);
+    for (i = 0; i <= 100; i++) add(NUM_WORDS[i]);   /* tapping a step of the count */
+    for (i = 0; i < PROBLEMS.length; i++) {
+      add(questionText(PROBLEMS[i]));
+      add(answerSentence(PROBLEMS[i]));
+      add(countIntro(PROBLEMS[i]));
+      add(countLine(PROBLEMS[i]));
+    }
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') { return; }
+  window.__phrases = phraseList;
+  window.__problems = PROBLEMS;
+
+  var TILE_COLORS = ['#fde047', '#86efac', '#93c5fd', '#f9a8d4', '#fdba74', '#c4b5fd', '#67e8f9'];
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '💛', '✖️'];
+  var LOCK_MS = 3000;          /* the pause after a wrong tap: think, don't just tap through */
+  var NET_MS = 2800;           /* how long the net of ten stays up */
+
+  /* ================= State ================= */
+  var footballs = parseInt(localStorage.getItem('jackTimesFootballs') || '0', 10) || 0;
+  var probIndex = parseInt(localStorage.getItem('jackTimesIndex') || '0', 10) || 0;
+  if (!(probIndex >= 0) || probIndex >= PROBLEMS.length) probIndex = 0;
+  var wrong = 0;               /* misses on the sum on screen */
+  var locked = false;
+  var timers = { lock: null, net: null, next: null };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), problem: $('problem'), seq: $('seq'), tiles: $('tiles'),
+    lockBar: $('lockBar'), lockFill: $('lockBar').querySelector('i'), hearBtn: $('hearBtn'),
+    cheer: $('cheer'), equation: $('equation'), hearAnswerBtn: $('hearAnswerBtn'), nextBtn: $('nextBtn'),
+    progFill: $('progBar').querySelector('i'), progText: $('progText'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    netOverlay: $('netOverlay'), netBalls: $('netBalls'),
+    endOverlay: $('endOverlay'), endScore: $('endScore'), playAgainBtn: $('playAgainBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    try {
+      localStorage.setItem('jackTimesFootballs', String(footballs));
+      localStorage.setItem('jackTimesIndex', String(probIndex));
+    } catch (e) { /* private mode: the game still plays */ }
+  }
+
+  /* ================= Voice =================
+     The browser's own voice sounds like a computer, so every line these
+     games say is pre-rendered with a neural en-GB voice (tools/build-audio.py)
+     and played back through Web Audio. speechSynthesis is only the fallback
+     for a line that has no clip. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/times-tables/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__said = [];        /* every line handed to speak(), for browser checks */
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment: "Goal! Seven times eight is
+     fifty-six." is the praise clip followed by the sentence clip.
+     Written out by hand because a lookbehind regex would not parse on older
+     phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    var BREAK = /^\s*(?:!\s*\.\.\.\s*|\.\.\.\s*)/;
+    while (i < t.length) {
+      var m = BREAK.exec(t.slice(i));
+      if (m && m[0].length) {
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+        i += m[0].length;
+        continue;
+      }
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?' || ch === ':') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+  window.__segments = segments;
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      /* nothing has been tapped yet, so there is no audio context to decode
+         into — just pull the file into the browser cache and try again later */
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips for the screen he is about to tap on, so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var f = clipFor(list[i]);
+        if (f && !buffers[f]) loadClip(f).catch(function () {});
+      }
+    });
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Samantha|Martha|Serena|Kate|Karen|Moira|Zira|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) || find(en, good) ||
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(gb, female) ||
+      find(en, /female|woman/i) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  /* the fallback: only used for a line that has no clip */
+  function say(text, rate, pitch, my, done) {
+    if (!hasSpeech) { if (done) done(); return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = (rate || 0.95);
+      u.pitch = pitch || 1;
+      u.onend = function () { if (my === speakToken && done) done(); };
+      u.onerror = u.onend;
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { if (done) done(); }
+  }
+
+  function speak(text, rate, pitch) {
+    window.__said.push(norm(text));
+    if (!hasTTS) return;
+    stopSpeaking();
+    var my = speakToken;
+    var parts = segments(text);
+    if (!parts.length) return;
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken || i >= parts.length) return;
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) onward();
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            src.start(0);
+          }, function () { say(parts[i], rate, pitch, my, onward); });
+        } else {
+          say(parts[i], rate, pitch, my, onward);
+        }
+      })(0);
+    });
+  }
+
+  window.__speak = speak;    /* lets a browser check drive the voice from outside */
+
+  if (hasSpeech) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+  if (!hasTTS) {
+    els.hearBtn.style.display = 'none';
+    els.hearAnswerBtn.style.display = 'none';
+  }
+
+  /* ================= Small helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1600);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 96) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+      c.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 12) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  /* how many sums are done: the one on screen counts once it is answered */
+  function renderProgress(done) {
+    var d = Math.max(0, Math.min(PROBLEMS.length, done));
+    els.progFill.style.width = (d / PROBLEMS.length * 100) + '%';
+    els.progText.textContent = d + ' / ' + PROBLEMS.length;
+  }
+
+  var STATE_ELS = {
+    play: ['problem', 'tiles', 'hearBtn'],
+    answer: ['cheer', 'equation', 'hearAnswerBtn', 'nextBtn']
+  };
+  function show(state) {
+    [].concat(STATE_ELS.play, STATE_ELS.answer, ['seq', 'lockBar']).forEach(function (id) {
+      els[id].classList.add('hidden');
+    });
+    STATE_ELS[state].forEach(function (id) { els[id].classList.remove('hidden'); });
+  }
+
+  function clearTimers() {
+    clearTimeout(timers.lock); clearTimeout(timers.net); clearTimeout(timers.next);
+    timers.lock = timers.net = timers.next = null;
+  }
+
+  /* ================= Distractors =================
+     The mistakes a six-year-old really makes with a times table: the next or
+     the last step of the same table (a x (b+1), a x (b-1)), adding instead
+     of multiplying (a + b), the two digits the other way round, and one out.
+     Never the right answer twice, nothing below 1 or above 100. */
+  function digitSwap(n) {
+    if (n < 10 || n > 99) return -1;
+    var t = Math.floor(n / 10), o = n % 10;
+    if (o === 0 || o === t) return -1;
+    return o * 10 + t;
+  }
+
+  function optionsFor(p) {
+    var answer = answerOf(p), out = [answer];
+    function tryAdd(v) {
+      if (out.length >= 4 || !(v >= 1) || v > 100 || out.indexOf(v) !== -1) return;
+      out.push(v);
+    }
+    var wanted = shuffle([p.a * (p.b + 1), p.a * (p.b - 1), p.a + p.b, digitSwap(answer)]);
+    wanted.forEach(tryAdd);
+    shuffle([answer + 1, answer - 1]).forEach(tryAdd);
+    /* small sums run out of near misses — the other table's neighbours, then wider */
+    shuffle([(p.a + 1) * p.b, (p.a - 1) * p.b]).forEach(tryAdd);
+    for (var extra = 2; out.length < 4; extra++) { tryAdd(answer + extra); tryAdd(answer - extra); }
+    return out;
+  }
+
+  /* ================= Play ================= */
+  function current() { return PROBLEMS[probIndex]; }
+
+  function setLocked(on) {
+    locked = on;
+    els.tiles.classList.toggle('locked', on);
+  }
+
+  function enterPlay(intro) {
+    var p = current();
+    clearTimers();
+    wrong = 0;
+    setLocked(false);
+    els.endOverlay.classList.add('hidden');
+    els.netOverlay.classList.add('hidden');
+    renderProgress(probIndex);
+
+    els.problem.textContent = p.a + ' × ' + p.b + ' = ?';
+    els.seq.innerHTML = '';
+
+    var opts = shuffle(optionsFor(p));
+    els.tiles.innerHTML = '';
+    opts.forEach(function (num, i) {
+      var tile = document.createElement('button');
+      tile.className = 'tile';
+      tile.textContent = num;
+      tile.setAttribute('data-value', String(num));
+      tile.style.background = TILE_COLORS[i % TILE_COLORS.length];
+      tile.addEventListener('click', function () { onTile(tile, num); });
+      els.tiles.appendChild(tile);
+    });
+
+    show('play');
+
+    preload([questionText(p), answerSentence(p), countIntro(p), countLine(p), 'Try again',
+             'Listen again.'].concat(PRAISE));
+    /* one speak() for the welcome and the first question, or the second would cut off the first */
+    speak((intro ? intro + ' ' : '') + questionText(p), 0.9);
+  }
+
+  /* after two misses: show the steps up the table and light up the right tile */
+  function showCount(p) {
+    var steps = countSteps(p), i;
+    els.seq.innerHTML = '';
+    for (i = 0; i < steps.length; i++) {
+      var chip = document.createElement('span');
+      chip.className = 'chip' + (i === steps.length - 1 ? ' last' : '');
+      chip.textContent = steps[i];
+      chip.style.animationDelay = (i * 0.25) + 's';
+      chip.addEventListener('click', function (n) { speak(NUM_WORDS[n], 0.95); }.bind(null, steps[i]));
+      els.seq.appendChild(chip);
+    }
+    els.seq.classList.remove('hidden');
+    var tiles = els.tiles.querySelectorAll('.tile');
+    for (i = 0; i < tiles.length; i++) {
+      if (parseInt(tiles[i].getAttribute('data-value'), 10) === answerOf(p)) tiles[i].classList.add('hint');
+    }
+  }
+
+  /* the pause after a wrong tap: no tile takes a tap, a bar counts down */
+  function lockTiles(then) {
+    setLocked(true);
+    els.lockBar.classList.remove('hidden');
+    els.lockFill.style.transition = 'none';
+    els.lockFill.style.width = '100%';
+    void els.lockFill.offsetWidth;
+    els.lockFill.style.transition = 'width ' + LOCK_MS + 'ms linear';
+    els.lockFill.style.width = '0%';
+    clearTimeout(timers.lock);
+    timers.lock = setTimeout(function () {
+      timers.lock = null;
+      setLocked(false);
+      els.lockBar.classList.add('hidden');
+      if (then) then();
+    }, LOCK_MS);
+  }
+
+  function onTile(tile, num) {
+    var p = current();
+    if (locked || tile.disabled) return;
+    if (num === answerOf(p)) {
+      setLocked(true);          /* no second football for a double tap */
+      clearTimeout(timers.lock);
+      els.lockBar.classList.add('hidden');
+      footballs++;
+      save();
+      renderScore(true);
+      renderProgress(probIndex + 1);
+      var solved = probIndex + 1;
+      if (solved % 10 === 0 && solved < PROBLEMS.length) {
+        showNet();
+        timers.next = setTimeout(enterAnswer, NET_MS);
+      } else {
+        timers.next = setTimeout(enterAnswer, 350);
+      }
+      return;
+    }
+    wrong++;
+    tile.disabled = true;
+    tile.classList.remove('shake');
+    void tile.offsetWidth;
+    tile.classList.add('shake');
+    showFeedback('Try again 🙂');
+    if (wrong >= 2) {
+      showCount(p);
+      speak('Try again ... ' + countIntro(p) + ' ' + countLine(p), 0.9);
+      lockTiles(null);
+    } else {
+      speak('Try again', 0.95);
+      lockTiles(function () { speak('Listen again. ' + questionText(current()), 0.9); });
+    }
+  }
+
+  /* every ten right: a whole net of footballs */
+  function showNet() {
+    var i;
+    els.netBalls.innerHTML = '';
+    for (i = 0; i < 10; i++) {
+      var b = document.createElement('span');
+      b.textContent = '⚽';
+      b.style.animationDelay = (i * 0.12) + 's';
+      els.netBalls.appendChild(b);
+    }
+    els.netOverlay.classList.remove('hidden');
+    celebrate(36);
+    speak('Ten in the net!', 0.9);
+    /* closed by a timer, not animationend: with reduced motion there is no animation */
+    clearTimeout(timers.net);
+    timers.net = setTimeout(function () { els.netOverlay.classList.add('hidden'); }, NET_MS);
+  }
+
+  /* ================= The answer ================= */
+  function enterAnswer() {
+    var p = current();
+    clearTimers();
+    setLocked(false);
+    els.netOverlay.classList.add('hidden');
+
+    celebrate(24);
+
+    els.equation.innerHTML = '';
+    els.equation.appendChild(document.createTextNode(p.a + ' × ' + p.b + ' = '));
+    var span = document.createElement('span');
+    span.className = 'rainbow';
+    span.textContent = answerOf(p);
+    els.equation.appendChild(span);
+
+    var isLast = probIndex === PROBLEMS.length - 1;
+    var praise = isLast ? 'Well done, Jack!' : PRAISE[Math.floor(Math.random() * PRAISE.length)];
+    els.cheer.textContent = isLast ? '🏆 That was the last one!' : praise + ' ⚽';
+    els.nextBtn.textContent = isLast ? 'Full time ➜ 🏁' : 'Next ➜ ⚽';
+
+    show('answer');
+    speak(praise + ' ' + answerSentence(p), 0.9);
+  }
+
+  function nextProblem() {
+    if (probIndex >= PROBLEMS.length - 1) {
+      probIndex = 0;            /* the hundred are done: the next game starts at the top */
+      save();
+      enterFullTime();
+      return;
+    }
+    probIndex++;
+    save();
+    enterPlay();
+  }
+
+  function enterFullTime() {
+    clearTimers();
+    renderProgress(PROBLEMS.length);
+    els.endScore.textContent = '⚽ ' + footballs;
+    els.endOverlay.classList.remove('hidden');
+    celebrate(50);
+    speak('Full time! Well done, Jack!', 0.9);
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasTTS) pickVoice();
+    els.startOverlay.remove();
+    enterPlay("Jack's Times Tables. Let's go!");
+  });
+
+  els.problem.addEventListener('click', function () { speak(questionText(current()), 0.9); });
+  els.hearBtn.addEventListener('click', function () {
+    var p = current();
+    if (wrong >= 2) speak(questionText(p) + ' ' + countIntro(p) + ' ' + countLine(p), 0.9);
+    else speak(questionText(p), 0.9);
+  });
+  els.equation.addEventListener('click', function () { speak(answerSentence(current()), 0.9); });
+  els.hearAnswerBtn.addEventListener('click', function () { speak(answerSentence(current()), 0.9); });
+  els.nextBtn.addEventListener('click', nextProblem);
+  els.netOverlay.addEventListener('click', function () { els.netOverlay.classList.add('hidden'); });
+
+  els.playAgainBtn.addEventListener('click', function () {
+    probIndex = 0;
+    save();
+    els.endOverlay.classList.add('hidden');
+    enterPlay();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Clear the footballs and start from the first sum?')) {
+      footballs = 0;
+      probIndex = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+      els.endOverlay.classList.add('hidden');
+      enterPlay();
+    }
+  });
+
+  renderScore(false);
+  renderProgress(probIndex);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#7c2d12">
+<title>Jack's Thousands</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Thousands">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #7c2d12, #9a3412 55%, #7c2d12);
+    color: #fff7ed;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;          /* the whole game always fits on one screen */
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    /* one fixed colour per place, everywhere in the game */
+    --cTh: #c084fc;            /* thousands: purple */
+    --cH:  #60a5fa;            /* hundreds:  blue   */
+    --cT:  #4ade80;            /* tens:      green  */
+    --cO:  #fde047;            /* ones:      yellow */
+  }
+
+  a:focus-visible, button:focus-visible { outline: 3px solid #fde047; outline-offset: 2px; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    background: rgba(0,0,0,.26);
+    flex: 0 0 auto;
+  }
+  header .home {
+    text-decoration: none; color: #fff7ed;
+    font-size: 1.5rem; line-height: 1;
+    min-width: 44px; min-height: 44px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    background: rgba(255,255,255,.13);
+  }
+  header h1 { font-size: clamp(1rem, 2.8vw, 1.5rem); white-space: nowrap; }
+  @media (max-width: 560px) { header h1 { display: none; } }
+  #score {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+    overflow: hidden;
+    min-width: 0;
+  }
+  /* a ball in a net: one for every ten right answers */
+  #score .netball {
+    display: inline-grid; place-items: center;
+    width: 30px; height: 30px; font-size: 1.15rem;
+    border-radius: 8px;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.35) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.35) 0 1px, transparent 1px 6px),
+      rgba(0,0,0,.25);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.6);
+  }
+  #score .netball.new { animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.1rem; }
+  /* progress to the next net: ten little dots */
+  #score .prog { display: grid; grid-template-columns: repeat(5, 9px); gap: 2px; }
+  #score .prog i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.22); }
+  #score .prog i.on { background: #fde047; }
+  #settingsBtn {
+    background: none; border: none; color: #fff7ed;
+    font-size: 1.2rem; opacity: .5; cursor: pointer;
+    min-width: 44px; min-height: 44px;
+  }
+
+  /* ---------- stage ---------- */
+  main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(6px, 1.2vh, 14px);
+    padding: clamp(6px, 1.2vh, 14px) 8px calc(clamp(8px, 1.4vh, 16px) + env(safe-area-inset-bottom));
+    text-align: center;
+    overflow: hidden;
+  }
+  .hidden { display: none !important; }
+
+  #top { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 100%; }
+  #problem {
+    font-size: clamp(1.7rem, 6.4vmin, 3.4rem);
+    font-weight: 900;
+    line-height: 1.1;
+    cursor: pointer;
+    padding: .05em .3em;
+    border-radius: 16px;
+    text-shadow: 0 5px 16px rgba(0,0,0,.35);
+    white-space: nowrap;
+  }
+  #problem:hover { background: rgba(255,255,255,.1); }
+  #hearBtn {
+    min-width: 48px; min-height: 48px; border-radius: 50%;
+    border: none; background: rgba(255,255,255,.16); color: inherit;
+    font-size: 1.4rem; cursor: pointer;
+  }
+
+  /* ---------- the place value board ---------- */
+  #board {
+    --s: 40px;                 /* block size, shrunk by fitBoard() */
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    max-width: 820px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+  }
+  #grid {
+    display: grid;
+    grid-template-columns: clamp(22px, 5vmin, 40px) repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    align-items: stretch;
+  }
+  .colhead {
+    border: none; cursor: pointer; font-family: inherit;
+    min-height: 32px;
+    border-radius: 12px 12px 4px 4px;
+    font-weight: 900; font-size: clamp(1rem, 3.4vmin, 1.5rem);
+    color: #1c1917;
+  }
+  .sign {
+    display: grid; place-items: center;
+    font-weight: 900; font-size: clamp(1.4rem, 5vmin, 2.6rem);
+  }
+  .cell {
+    position: relative;
+    min-height: calc(var(--s) + 12px);
+    display: flex; flex-wrap: wrap; align-content: center; justify-content: center;
+    gap: calc(var(--s) * .1);
+    padding: calc(var(--s) * .14) 3px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .cell.row-b { box-shadow: inset 0 0 0 2px rgba(253,224,71,.55); }
+  .cell .dig {
+    position: absolute; top: 2px; left: 4px;
+    font-size: clamp(.7rem, 2.2vmin, 1rem); font-weight: 900; opacity: .8;
+  }
+  .rule { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.75); }
+
+  /* blocks: not to scale, but each place has its own shape and colour */
+  .blk { flex: 0 0 auto; position: relative; transition: transform .25s ease, opacity .25s ease; }
+  .blk.th { width: var(--s); height: var(--s); }
+  .blk.th svg { width: 100%; height: 100%; display: block; }
+  .blk.h {
+    width: var(--s); height: var(--s);
+    border-radius: 3px;
+    background:
+      repeating-linear-gradient(0deg, rgba(30,58,138,.55) 0 1px, transparent 1px calc(var(--s) / 10)),
+      repeating-linear-gradient(90deg, rgba(30,58,138,.55) 0 1px, transparent 1px calc(var(--s) / 10)),
+      var(--cH);
+    box-shadow: inset 0 0 0 1px #1e3a8a;
+  }
+  .blk.t {
+    width: calc(var(--s) * .3); height: var(--s);
+    border-radius: 2px;
+    background:
+      repeating-linear-gradient(0deg, rgba(20,83,45,.6) 0 1px, transparent 1px calc(var(--s) / 10)),
+      var(--cT);
+    box-shadow: inset 0 0 0 1px #14532d;
+  }
+  .blk.o {
+    width: calc(var(--s) * .3); height: calc(var(--s) * .3);
+    border-radius: 2px;
+    background: var(--cO);
+    box-shadow: inset 0 0 0 1px #854d0e;
+  }
+  /* ones and rods sit in fives, so five-and-two is seen, not counted */
+  .five { display: flex; flex-wrap: nowrap; gap: calc(var(--s) * .08); }
+  .five.ones { flex-wrap: wrap; width: calc(var(--s) * .3 * 5 + var(--s) * .08 * 4); justify-content: flex-start; }
+  .blk.glow { box-shadow: 0 0 0 3px #fff, 0 0 12px 4px #fde047; transform: scale(1.08); }
+  .blk.pop { animation: popIn .5s ease; }
+  .blk.cross { opacity: .35; filter: grayscale(1); }
+  .blk.cross::after {
+    content: '✖'; position: absolute; inset: 0;
+    display: grid; place-items: center;
+    color: #fb7185; font-weight: 900; font-size: calc(var(--s) * .35);
+    text-shadow: 0 1px 3px rgba(0,0,0,.6);
+  }
+
+  /* the answer boxes, one per place */
+  .box {
+    height: clamp(48px, 8vh, 78px);
+    border-radius: 12px;
+    background: rgba(0,0,0,.28);
+    border: 3px solid;
+    display: grid; place-items: center;
+    font-size: clamp(1.8rem, 6.5vmin, 3.2rem); font-weight: 900;
+    color: #fff;
+  }
+  .box.set { animation: pop .35s ease; }
+  .box.good { background: rgba(255,255,255,.18); }
+  .box.shake { animation: shake .35s ease; }
+
+  /* ---------- keypad ---------- */
+  #pad {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(56px, 1fr));
+    gap: 5px;
+    width: 100%;
+    max-width: 640px;
+  }
+  .key {
+    min-height: 56px; min-width: 56px;
+    height: clamp(56px, 8.5vh, 84px);
+    border: none; border-radius: 14px;
+    font-family: inherit; font-weight: 900;
+    font-size: clamp(1.6rem, 5vmin, 2.4rem);
+    color: #1c1917; background: #fff7ed;
+    cursor: pointer;
+    box-shadow: 0 5px 0 rgba(0,0,0,.3);
+  }
+  .key:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.3); }
+  .key.del { background: #fdba74; }
+  .key.ok { background: #4ade80; }
+  #pad.locked .key { opacity: .35; box-shadow: none; }
+
+  /* ---------- after the answer ---------- */
+  #after {
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+    min-height: calc(clamp(56px, 8.5vh, 84px) * 2 + 5px);
+  }
+  #cheer { font-size: clamp(1.1rem, 3.6vmin, 1.8rem); font-weight: 900; animation: pop .5s ease; }
+  .btn {
+    font-family: inherit; font-weight: 800; color: #1c1917;
+    border: none; border-radius: 999px; cursor: pointer;
+    min-height: 56px;
+    padding: 10px clamp(20px, 4vw, 34px);
+    font-size: clamp(1.1rem, 3vmin, 1.5rem);
+    background: #fde047;
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .rainbow {
+    background: linear-gradient(90deg, #ff3b6b, #ff9f1a, #ffd60a, #2ecc71, #34d399, #8b5cf6, #ff3b6b);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: rainbowShift 2.5s linear infinite;
+  }
+
+  /* ---------- overlays ---------- */
+  #startOverlay, #endOverlay {
+    position: fixed; inset: 0; z-index: 70;
+    background: linear-gradient(160deg, #7c2d12, #9a3412 55%, #7c2d12);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: clamp(16px, 4vh, 32px); text-align: center; padding: 24px;
+  }
+  #startOverlay h2, #endOverlay h2 { font-size: clamp(1.5rem, 5.5vmin, 2.8rem); }
+  #startOverlay p, #endOverlay p { max-width: 28ch; opacity: .9; font-size: clamp(.95rem, 2.4vmin, 1.2rem); }
+  #endScore { font-size: clamp(1.4rem, 5vmin, 2.4rem); font-weight: 900; opacity: 1; }
+  #playBtn {
+    width: clamp(120px, 26vmin, 190px);
+    height: clamp(120px, 26vmin, 190px);
+    border-radius: 50%;
+    font-size: clamp(3rem, 10vmin, 5rem);
+    padding: 0;
+    animation: pulseWord 1.6s ease-in-out infinite;
+  }
+  #goalFlash {
+    position: fixed; inset: 0; z-index: 75; pointer-events: none;
+    display: grid; place-items: center;
+    font-size: clamp(3rem, 16vmin, 9rem); font-weight: 900;
+    text-shadow: 0 8px 30px rgba(0,0,0,.5);
+    animation: pop .6s ease;
+  }
+
+  /* ---------- settings ---------- */
+  #settingsPanel {
+    position: fixed; top: 56px; right: 12px; z-index: 60;
+    background: #fff; color: #1c1917;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; min-height: 44px; padding: 8px 14px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  /* ---------- toast + confetti ---------- */
+  #feedback {
+    position: fixed; left: 50%; top: 22vh; transform: translateX(-50%);
+    background: rgba(28,25,23,.92); color: #fff7ed;
+    font-size: clamp(1.1rem, 3vmin, 1.5rem); font-weight: 800;
+    padding: .55em 1.15em; border-radius: 999px;
+    z-index: 50; pointer-events: none; white-space: nowrap;
+    animation: pop .3s ease;
+  }
+  .confetti { position: fixed; top: -6vh; font-size: 1.8rem; animation: fall linear forwards; pointer-events: none; z-index: 80; }
+
+  /* ---------- keyframes ---------- */
+  @keyframes pop { 0% { transform: scale(.5); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.25); opacity: 1; } 100% { transform: scale(1); } }
+  @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+  @keyframes rainbowShift { to { background-position: 300% 0; } }
+  @keyframes pulseWord { 50% { transform: scale(1.1); } }
+  @keyframes bounceIn {
+    0% { transform: translateY(-40px) scale(.3); opacity: 0; }
+    55% { transform: translateY(6px) scale(1.15); opacity: 1; }
+    75% { transform: translateY(-4px) scale(.95); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  @keyframes fall { to { transform: translateY(115vh) rotate(400deg); } }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>🧱 Jack's Thousands</h1>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <div id="top" class="hidden">
+    <div id="problem"></div>
+    <button id="hearBtn" title="Hear it">🔊</button>
+  </div>
+  <div id="board" class="hidden"><div id="grid"></div></div>
+  <div id="pad" class="hidden"></div>
+  <div id="after" class="hidden">
+    <div id="cheer"></div>
+    <button id="nextBtn" class="btn">Next ➜</button>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>🧱 Jack's Thousands</h2>
+  <p>Thousands, hundreds, tens and ones.</p>
+  <button id="playBtn" class="btn">▶</button>
+</div>
+
+<div id="endOverlay" class="hidden">
+  <h2>🏁 Full time!</h2>
+  <p id="endScore"></p>
+  <button id="playAgainBtn" class="btn">▶ Play again</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <button id="resetBtn">Start again</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say lives in here and nowhere else, together with
+     the sixty sums and the check that they follow the rules of their step. It
+     touches no DOM, so tools/gen-phrases.js can run this block in Node and ask
+     it for phraseList() (and selfTest()).
+
+     Numbers are never one clip each: they are spoken from small word clips
+     ("three", "thousand", "four", "hundred", "and", "twelve"), joined with
+     " ... " so the player plays them one after another. */
+
+  var ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+              'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
+              'seventeen', 'eighteen', 'nineteen'];
+  var TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+  var WORDS = ['hundred', 'thousand', 'and', 'plus', 'minus', 'equals'];
+
+  /* places, ones first: index 0 = ones … 3 = thousands */
+  var PLACE_NAMES = ['ones', 'tens', 'hundreds', 'thousands'];
+  /* the letters on the column heads — English school letters (Th H T O) */
+  var PLACE_LETTERS = ['O', 'T', 'H', 'Th'];
+  var REGROUP_UP = ['Ten ones make one ten.', 'Ten tens make one hundred.', 'Ten hundreds make one thousand.'];
+  var REGROUP_DOWN = ['One ten makes ten ones.', 'One hundred makes ten tens.', 'One thousand makes ten hundreds.'];
+  var LINES = ["Jack's Thousands.", "Let's go!", 'Try again', 'Look!', 'On fire!', 'Goal!',
+               'Full time!', 'Well done, Jack!'];
+
+  function under100(n) {
+    if (n < 20) return [ONES[n]];
+    var t = Math.floor(n / 10), o = n % 10;
+    return o ? [TENS[t], ONES[o]] : [TENS[t]];
+  }
+
+  /* 3412 -> three thousand four hundred and twelve (British "and") */
+  function numAtoms(n) {
+    if (n === 0) return ['zero'];
+    var out = [], th = Math.floor(n / 1000), h = Math.floor(n % 1000 / 100), r = n % 100;
+    if (th) out = out.concat(under100(th), ['thousand']);
+    if (h) out = out.concat([ONES[h], 'hundred']);
+    if (r) { if (th || h) out.push('and'); out = out.concat(under100(r)); }
+    return out;
+  }
+  function numText(n) { return numAtoms(n).join(' ... '); }
+
+  function questionText(p) {
+    return numText(p.a) + ' ... ' + (p.op === '+' ? 'plus' : 'minus') + ' ... ' + numText(p.b);
+  }
+  function answerOf(p) { return p.op === '+' ? p.a + p.b : p.a - p.b; }
+  function answerLine(p) { return questionText(p) + ' ... equals ... ' + numText(answerOf(p)); }
+  /* what a tap on a column head or a cell says */
+  function placeValueText(count, place) { return numText(count * Math.pow(10, place)); }
+
+  /* A line is spoken segment by segment, split at " ... " and after . ! ? :
+     Written out by hand because a lookbehind regex would not parse on older
+     phones. */
+  function segments(text) {
+    var t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim(), out = [], buf = '', i = 0;
+    var BREAK = /^\s*(?:!\s*\.\.\.\s*|\.\.\.\s*)/;
+    while (i < t.length) {
+      var m = BREAK.exec(t.slice(i));
+      if (m && m[0].length) {
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+        i += m[0].length;
+        continue;
+      }
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?' || ch === ':') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* ---- the sums ---- */
+  function digitsOf(n) { return [n % 10, Math.floor(n / 10) % 10, Math.floor(n / 100) % 10, Math.floor(n / 1000) % 10]; }
+
+  /* how many columns carry (plus) or unbundle (minus); `bad` is set when a
+     minus would have to unbundle from an empty column */
+  function regroupInfo(p) {
+    var A = digitsOf(p.a), B = digitsOf(p.b), c = 0, n = 0, cols = [], bad = false, i;
+    for (i = 0; i < 4; i++) {
+      if (p.op === '+') {
+        c = (A[i] + B[i] + c >= 10) ? 1 : 0;
+        if (c) { n++; cols.push(i); }
+      } else {
+        var have = A[i] - c;
+        if (have < B[i]) {
+          n++; cols.push(i);
+          if (i === 3 || A[i + 1] < 1) bad = true;
+          c = 1;
+        } else c = 0;
+      }
+    }
+    return { n: n, cols: cols, bad: bad };
+  }
+
+  var STEP_SIZE = 10;
+  var SEED = 20201108;
+
+  function makeRng(seed) {
+    var s = seed >>> 0;
+    return function () {               /* mulberry32 */
+      s = (s + 0x6D2B79F5) >>> 0;
+      var t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* does p follow the rule of its step? (used by the generator and the self test) */
+  function fitsStep(p) {
+    var r = regroupInfo(p), ans = answerOf(p);
+    if (p.a < 0 || p.b < 1 || p.a > 9999 || p.b > 9999 || ans < 0 || ans > 9999 || r.bad) return false;
+    if (p.op === '-' && p.b > p.a) return false;
+    switch (p.step) {
+      case 1: return p.a % 1000 === 0 && p.b % 1000 === 0 && p.a > 0 && ans > 0 && r.n === 0;
+      case 2: return p.a % 100 === 0 && p.b % 100 === 0 && p.a >= 1000 && p.a % 1000 !== 0 &&
+                     p.b % 1000 !== 0 && r.n === 0 && ans > 0;
+      case 3: return p.a >= 1000 && p.a % 100 !== 0 && p.b >= 10 && r.n === 0;
+      case 4: return p.op === '+' && p.a >= 1000 && p.b >= 10 && r.n === 1;
+      case 5: return p.op === '-' && p.a >= 1000 && p.b >= 10 && r.n === 1;
+      case 6: return p.a >= 1000 && p.b >= 100 && (r.n === 1 || r.n === 2);
+    }
+    return false;
+  }
+
+  function generateProblems(seed) {
+    var rng = makeRng(seed), out = [], seen = {}, step, k;
+    function ri(lo, hi) { return lo + Math.floor(rng() * (hi - lo + 1)); }
+    /* five plus, five minus, in a seeded order */
+    function opsMix() {
+      var o = ['+', '+', '+', '+', '+', '-', '-', '-', '-', '-'], i, j, t;
+      for (i = o.length - 1; i > 0; i--) { j = Math.floor(rng() * (i + 1)); t = o[i]; o[i] = o[j]; o[j] = t; }
+      return o;
+    }
+    function candidate(step, op, k) {
+      switch (step) {
+        case 1: return { a: 1000 * ri(1, 9), b: 1000 * ri(1, 8) };
+        case 2: return { a: 1000 * ri(1, 9) + 100 * ri(1, 9),
+                         b: (rng() < .5 ? 1000 * ri(1, 8) : 0) + 100 * ri(1, 9) };
+        case 3: return { a: ri(1000, 9999), b: rng() < .5 ? ri(100, 999) : ri(1000, 8999) };
+        case 4: case 5: return { a: ri(1000, 9999), b: rng() < .4 ? ri(10, 999) : ri(1000, 8999) };
+        default: return { a: ri(1000, 9999), b: rng() < .3 ? ri(100, 999) : ri(1000, 8999) };
+      }
+    }
+    for (step = 1; step <= 6; step++) {
+      var ops = step === 4 ? '++++++++++'.split('') : step === 5 ? '----------'.split('') : opsMix();
+      for (k = 0; k < STEP_SIZE; k++) {
+        var p = null, tries = 0;
+        while (tries++ < 20000) {
+          var c = candidate(step, ops[k], k);
+          var q = { step: step, op: ops[k], a: c.a, b: c.b };
+          if (!fitsStep(q) || seen[q.op + q.a + ',' + q.b]) continue;
+          var r = regroupInfo(q);
+          /* steps 4 and 5: walk the carry through ones, tens and hundreds */
+          if ((step === 4 || step === 5) && r.cols[0] !== k % 3) continue;
+          /* step 6: half of them need two regroupings */
+          if (step === 6 && (k % 2 === 1) !== (r.n === 2)) continue;
+          p = q; break;
+        }
+        if (!p) throw new Error('could not make a sum for step ' + step);
+        seen[p.op + p.a + ',' + p.b] = 1;
+        out.push(p);
+      }
+    }
+    return out;
+  }
+
+  var PROBLEMS = generateProblems(SEED);
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i;
+    function add(s) { if (s && !seen[s]) { seen[s] = 1; out.push(s); } }
+    LINES.forEach(add);
+    REGROUP_UP.forEach(add);
+    REGROUP_DOWN.forEach(add);
+    PLACE_NAMES.forEach(add);
+    for (i = 0; i < ONES.length; i++) add(ONES[i]);
+    for (i = 2; i < TENS.length; i++) add(TENS[i]);
+    WORDS.forEach(add);
+    return out;
+  }
+
+  /* everything the game ever says, as whole lines (before splitting) */
+  function spokenLines() {
+    var out = ["Jack's Thousands. ... Let's go!", 'Try again', 'Look!', 'On fire!',
+               'Goal! ... Well done, Jack!', 'Full time! ... Well done, Jack!'], i, c, k;
+    out = out.concat(REGROUP_UP, REGROUP_DOWN, PLACE_NAMES);
+    for (i = 0; i < PROBLEMS.length; i++) {
+      out.push(questionText(PROBLEMS[i]));
+      out.push(answerLine(PROBLEMS[i]));
+      out.push('Well done, Jack! ... ' + answerLine(PROBLEMS[i]));
+    }
+    /* cell taps and the counts said during the worked answer (up to 19 of a kind) */
+    for (c = 0; c < 4; c++) for (k = 0; k <= 19; k++) out.push(placeValueText(k, c));
+    return out;
+  }
+
+  /* checks the sums and the phrase list; returns { ok, errors, count } */
+  function selfTest() {
+    var errors = [], i, j, have = {}, again = generateProblems(SEED);
+    /* like clipFor(): a segment matches a phrase with or without its final . ! ? */
+    phraseList().forEach(function (s) { have[s] = 1; have[s.replace(/[.!?]+$/, '')] = 1; });
+    if (PROBLEMS.length !== 60) errors.push('expected 60 sums, got ' + PROBLEMS.length);
+    for (i = 0; i < PROBLEMS.length; i++) {
+      var p = PROBLEMS[i], ans = answerOf(p);
+      if (p.step !== Math.floor(i / STEP_SIZE) + 1) errors.push('#' + i + ' in the wrong step');
+      if (!fitsStep(p)) errors.push('#' + i + ' breaks the rule of step ' + p.step + ': ' + p.a + p.op + p.b);
+      if (ans !== (p.op === '+' ? p.a + p.b : p.a - p.b) || ans < 0 || ans > 10000) errors.push('#' + i + ' bad answer');
+      if (String(ans).length > 4) errors.push('#' + i + ' answer does not fit four boxes');
+      if (again[i].a !== p.a || again[i].b !== p.b || again[i].op !== p.op) errors.push('#' + i + ' not deterministic');
+      for (j = 0; j < i; j++) if (PROBLEMS[j].a === p.a && PROBLEMS[j].b === p.b && PROBLEMS[j].op === p.op) errors.push('#' + i + ' repeats #' + j);
+    }
+    for (i = 1; i <= 6; i++) {
+      var inStep = PROBLEMS.filter(function (p) { return p.step === i; });
+      var plus = inStep.filter(function (p) { return p.op === '+'; }).length;
+      if (inStep.length !== STEP_SIZE) errors.push('step ' + i + ' has ' + inStep.length + ' sums');
+      if ((i === 1 || i === 2 || i === 3 || i === 6) && (plus === 0 || plus === STEP_SIZE)) errors.push('step ' + i + ' is not mixed');
+    }
+    spokenLines().forEach(function (line) {
+      segments(line).forEach(function (s) { if (!have[s] && !have[s.replace(/[.!?]+$/, '')]) errors.push('no phrase for "' + s + '"'); });
+    });
+    if (numAtoms(3412).join(' ') !== 'three thousand four hundred and twelve') errors.push('number words broken');
+    if (numAtoms(3005).join(' ') !== 'three thousand and five') errors.push('number words broken (3005)');
+    if (numAtoms(10000).join(' ') !== 'ten thousand') errors.push('number words broken (10000)');
+    return { ok: errors.length === 0, errors: errors, count: PROBLEMS.length };
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') { return; }
+  window.__phrases = phraseList;
+  window.__selfTest = selfTest;
+  window.__problems = PROBLEMS;
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🧱', '💛'];
+  var PLACE_COLORS = ['var(--cO)', 'var(--cT)', 'var(--cH)', 'var(--cTh)'];
+  var PLACE_CLASS = ['o', 't', 'h', 'th'];
+  /* the same colours, see-through, for the cells (no color-mix(): older iPads) */
+  var PLACE_TINT = ['rgba(253,224,71,.22)', 'rgba(74,222,128,.22)', 'rgba(96,165,250,.22)', 'rgba(192,132,252,.22)'];
+  var KEY_LOCK_MS = 1500;
+  var KEY_STEP_MS = 1400;
+
+  /* ================= State ================= */
+  /* jackThousandsFootballs counts right answers; every ten of them is a ball in the net */
+  var footballs = parseInt(localStorage.getItem('jackThousandsFootballs') || '0', 10) || 0;
+  var probIndex = parseInt(localStorage.getItem('jackThousandsIndex') || '0', 10) || 0;
+  if (!(probIndex >= 0) || probIndex >= PROBLEMS.length) probIndex = 0;
+  var streak = 0;
+  var entry = '';
+  var misses = 0;
+  var busy = false;          /* keypad locked: after a miss or while the answer is shown */
+  var solveTimers = [];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), top: $('top'), problem: $('problem'), hearBtn: $('hearBtn'),
+    board: $('board'), grid: $('grid'), pad: $('pad'), after: $('after'),
+    cheer: $('cheer'), nextBtn: $('nextBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    endOverlay: $('endOverlay'), endScore: $('endScore'), playAgainBtn: $('playAgainBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'), resetBtn: $('resetBtn')
+  };
+
+  function save() {
+    try {
+      localStorage.setItem('jackThousandsFootballs', String(footballs));
+      localStorage.setItem('jackThousandsIndex', String(probIndex));
+    } catch (e) { /* private mode: the game still plays */ }
+  }
+
+  /* ================= Voice =================
+     Every line is meant to be a pre-rendered neural clip (tools/build-audio.py)
+     played through Web Audio; speechSynthesis is only the fallback. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/thousands/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};
+  var loading = {};
+  var actx = null;
+  var sources = [];
+  var speakToken = 0;
+  window.__clipPlays = 0;
+  window.__lastSpoken = '';
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var segs = segments(list[i]);
+        for (var j = 0; j < segs.length; j++) {
+          var f = clipFor(segs[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Samantha|Martha|Serena|Kate|Karen|Moira|Zira|Aria|Jenny|Susan|Fiona|Tessa)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) || find(en, good) ||
+      find(en, /Google UK English Female/i) ||
+      find(gb, /female|woman/i) || find(gb, female) ||
+      find(en, /female|woman/i) || find(en, female) ||
+      gb[0] || en[0] || vs[0] || null;
+  }
+
+  function say(text, rate, pitch, my, done) {
+    if (!hasSpeech) { if (done) done(); return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-GB';
+      u.rate = (rate || 0.95);
+      u.pitch = pitch || 1;
+      u.onend = function () { if (my === speakToken && done) done(); };
+      u.onerror = u.onend;
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { if (done) done(); }
+  }
+
+  function speak(text, rate, pitch) {
+    if (!hasTTS) return;
+    stopSpeaking();
+    var my = speakToken;
+    var parts = segments(text);
+    if (!parts.length) return;
+    window.__lastSpoken = parts.join(' ');
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      /* no clips at all: one utterance, so the number words do not come out
+         one by one with a gap after each */
+      if (!clips) { say(parts.join(' '), rate, pitch, my, null); return; }
+      (function step(i) {
+        if (my !== speakToken || i >= parts.length) return;
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) onward();
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            src.start(0);
+          }, function () { say(parts[i], rate, pitch, my, onward); });
+        } else {
+          say(parts[i], rate, pitch, my, onward);
+        }
+      })(0);
+    });
+  }
+
+  window.__speak = speak;
+
+  if (hasSpeech) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+  if (!hasTTS) els.hearBtn.style.display = 'none';
+
+  /* ================= Small helpers ================= */
+  function showFeedback(text) {
+    var old = $('feedback');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = 'feedback';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1600);
+  }
+
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+      c.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (n) { n.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justNetted) {
+    var nets = Math.floor(footballs / 10), rest = footballs % 10, html = '', i;
+    if (nets <= 4) {
+      for (i = 0; i < nets; i++) html += '<span class="netball' + (justNetted && i === nets - 1 ? ' new' : '') + '">⚽</span>';
+    } else {
+      html = '<span class="netball' + (justNetted ? ' new' : '') + '">⚽</span><span class="count">× ' + nets + '</span>';
+    }
+    html += '<span class="prog" title="next ball">';
+    for (i = 0; i < 10; i++) html += '<i class="' + (i < rest ? 'on' : '') + '"></i>';
+    html += '</span>';
+    els.score.innerHTML = html;
+  }
+
+  function current() { return PROBLEMS[probIndex]; }
+  function opSign(p) { return p.op === '+' ? '+' : '−'; }
+
+  /* ================= The board ================= */
+  var CUBE_SVG = '<svg viewBox="0 0 20 20" aria-hidden="true">' +
+    '<polygon points="10,1 19,5.5 10,10 1,5.5" fill="#e9d5ff" stroke="#581c87" stroke-width=".7"/>' +
+    '<polygon points="1,5.5 10,10 10,19 1,14.5" fill="#c084fc" stroke="#581c87" stroke-width=".7"/>' +
+    '<polygon points="10,10 19,5.5 19,14.5 10,19" fill="#9333ea" stroke="#581c87" stroke-width=".7"/>' +
+    '<path d="M4,7 L4,16 M7,8.5 L7,17.5 M13,8.5 L13,17.5 M16,7 L16,16 M1,8.5 L10,13 L19,8.5 M1,11.5 L10,16 L19,11.5" ' +
+    'stroke="#581c87" stroke-width=".35" fill="none" opacity=".7"/></svg>';
+
+  function makeBlock(place, cls) {
+    var b = document.createElement('span');
+    b.className = 'blk ' + PLACE_CLASS[place] + (cls ? ' ' + cls : '');
+    if (place === 3) b.innerHTML = CUBE_SVG;
+    return b;
+  }
+
+  /* `count` blocks of one place; marks apply to the LAST n blocks */
+  function fillCell(cell, place, count, mark) {
+    cell.innerHTML = '';
+    mark = mark || {};
+    var i, holder = null;
+    for (i = 0; i < count; i++) {
+      var fromEnd = count - i;            /* 1 = the last block */
+      var cls = [];
+      if (mark.glow && fromEnd <= mark.glow) cls.push('glow');
+      if (mark.pop && fromEnd <= mark.pop) cls.push('pop');
+      if (mark.cross && fromEnd <= mark.cross) cls.push('cross');
+      var blk = makeBlock(place, cls.join(' '));
+      if (place <= 1) {
+        /* ones and rods in fives */
+        if (i % 5 === 0) {
+          holder = document.createElement('span');
+          holder.className = 'five' + (place === 0 ? ' ones' : '');
+          cell.appendChild(holder);
+        }
+        holder.appendChild(blk);
+      } else {
+        cell.appendChild(blk);
+      }
+    }
+  }
+
+  var cells = { a: [], b: [] }, boxes = [];
+
+  function buildBoard(p) {
+    var g = els.grid, c;
+    g.innerHTML = '';
+    cells = { a: [], b: [] };
+    boxes = [];
+    /* column heads: Th H T O */
+    g.appendChild(document.createElement('span'));
+    for (c = 3; c >= 0; c--) {
+      var h = document.createElement('button');
+      h.className = 'colhead';
+      h.textContent = PLACE_LETTERS[c];
+      h.style.background = PLACE_COLORS[c];
+      h.setAttribute('aria-label', PLACE_NAMES[c]);
+      h.addEventListener('click', speak.bind(null, PLACE_NAMES[c], 0.9, 1));
+      g.appendChild(h);
+    }
+    ['a', 'b'].forEach(function (row) {
+      var sign = document.createElement('span');
+      sign.className = 'sign';
+      sign.textContent = row === 'b' ? opSign(p) : '';
+      g.appendChild(sign);
+      for (var c2 = 3; c2 >= 0; c2--) {
+        var cell = document.createElement('div');
+        cell.className = 'cell row-' + row;
+        cell.style.background = PLACE_TINT[c2];
+        cell.dataset.place = c2;
+        cell.dataset.row = row;
+        cell.addEventListener('click', onCell);
+        cells[row][c2] = cell;
+        g.appendChild(cell);
+      }
+    });
+    var rule = document.createElement('span');
+    rule.className = 'rule';
+    g.appendChild(rule);
+    var eq = document.createElement('span');
+    eq.className = 'sign';
+    eq.textContent = '=';
+    g.appendChild(eq);
+    for (c = 3; c >= 0; c--) {
+      var bx = document.createElement('div');
+      bx.className = 'box';
+      bx.style.borderColor = PLACE_COLORS[c];
+      boxes[c] = bx;
+      g.appendChild(bx);
+    }
+  }
+
+  var counts = { a: [0, 0, 0, 0], b: [0, 0, 0, 0] };
+
+  /* draw both rows from `counts`; marks = { 'a0': {glow:..}, ... } */
+  function drawCells(marks) {
+    marks = marks || {};
+    ['a', 'b'].forEach(function (row) {
+      for (var c = 0; c < 4; c++) {
+        var cell = cells[row][c];
+        fillCell(cell, c, counts[row][c], marks[row + c]);
+        /* the digit of the number, small in the corner, only while it is the sum */
+        if (!marks.noDigits && counts[row][c] <= 9) {
+          var d = document.createElement('span');
+          d.className = 'dig';
+          d.textContent = counts[row][c];
+          cell.appendChild(d);
+        }
+      }
+    });
+    fitBoard();
+  }
+
+  function onCell(ev) {
+    var cell = ev.currentTarget;
+    var place = +cell.dataset.place, n = counts[cell.dataset.row][place];
+    speak(placeValueText(n, place), 0.9);
+  }
+
+  /* shrink the blocks until the board fits the space it was given, so the
+     keypad never gets pushed off the screen */
+  function fitBoard() {
+    var el = els.board, s = 56, guard = 0;
+    el.style.setProperty('--s', s + 'px');
+    while (guard++ < 30 && s > 10 &&
+           (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1 ||
+            els.grid.scrollWidth > els.grid.clientWidth + 1)) {
+      s = Math.max(10, Math.floor(s * 0.9));
+      el.style.setProperty('--s', s + 'px');
+    }
+  }
+
+  /* the typed answer, right-aligned into the place boxes like a calculator */
+  function drawEntry(text, cls) {
+    for (var c = 0; c < 4; c++) {
+      var ch = text.length > c ? text.charAt(text.length - 1 - c) : '';
+      boxes[c].textContent = ch;
+      boxes[c].className = 'box' + (cls ? ' ' + cls : '');
+    }
+  }
+
+  /* ================= Keypad ================= */
+  function buildPad() {
+    var keys = ['1', '2', '3', '4', '5', 'del', '6', '7', '8', '9', '0', 'ok'];
+    els.pad.innerHTML = '';
+    keys.forEach(function (k) {
+      var b = document.createElement('button');
+      b.className = 'key' + (k === 'del' ? ' del' : k === 'ok' ? ' ok' : '');
+      b.textContent = k === 'del' ? '⌫' : k === 'ok' ? '✔' : k;
+      b.setAttribute('aria-label', k === 'del' ? 'delete' : k === 'ok' ? 'check' : k);
+      b.dataset.key = k;
+      b.addEventListener('click', function () { onKey(k); });
+      els.pad.appendChild(b);
+    });
+  }
+
+  function onKey(k) {
+    if (busy) return;
+    if (k === 'del') { entry = entry.slice(0, -1); drawEntry(entry); return; }
+    if (k === 'ok') { check(); return; }
+    if (entry.length >= 4) return;
+    if (entry === '0') entry = '';
+    entry += k;
+    drawEntry(entry, 'set');
+    speak(ONES[+k], 1);
+  }
+
+  function lockPad(on) {
+    busy = on;
+    els.pad.classList.toggle('locked', on);
+  }
+
+  /* ================= Play ================= */
+  function enterPlay() {
+    var p = current();
+    clearSolve();
+    els.endOverlay.classList.add('hidden');
+    entry = '';
+    misses = 0;
+    lockPad(false);
+
+    els.problem.textContent = p.a + ' ' + opSign(p) + ' ' + p.b + ' = ?';
+    var A = digitsOf(p.a), B = digitsOf(p.b);
+    els.top.classList.remove('hidden');
+    els.board.classList.remove('hidden');
+    els.pad.classList.remove('hidden');
+    els.after.classList.add('hidden');
+    buildBoard(p);
+    counts = { a: A.slice(), b: B.slice() };
+    drawEntry('');
+    drawCells();
+
+    preload([questionText(p), answerLine(p), 'Try again', 'Well done, Jack!', 'Look!']
+      .concat(REGROUP_UP, REGROUP_DOWN));
+    speak(questionText(p), 0.9);
+  }
+
+  function check() {
+    var p = current();
+    if (!entry) { speak(questionText(p), 0.9); return; }
+    var val = parseInt(entry, 10);
+    if (val === answerOf(p)) { onRight(); return; }
+    misses++;
+    streak = 0;
+    boxes.forEach(function (b) { b.className = 'box shake'; });
+    setTimeout(function () { boxes.forEach(function (b) { b.classList.remove('shake'); }); }, 400);
+    if (misses >= 2) {
+      lockPad(true);
+      showFeedback('Look! 👀');
+      setTimeout(function () { solve(); }, 700);
+      return;
+    }
+    showFeedback('Try again 🙂');
+    speak('Try again', 0.95);
+    /* a short pause so the keys cannot just be tried one after another */
+    lockPad(true);
+    setTimeout(function () {
+      if (current() !== p || misses >= 2) return;
+      entry = '';
+      drawEntry('');
+      lockPad(false);
+    }, KEY_LOCK_MS);
+  }
+
+  function onRight() {
+    var p = current();
+    lockPad(true);
+    footballs++;
+    streak++;
+    save();
+    var netted = footballs % 10 === 0;
+    renderScore(netted);
+    drawEntry(String(answerOf(p)), 'good');
+    boxes.forEach(function (b) { if (b.textContent) b.innerHTML = '<span class="rainbow">' + b.textContent + '</span>'; });
+    celebrate(netted ? 50 : 24);
+    if (netted) {
+      var f = document.createElement('div');
+      f.id = 'goalFlash';
+      f.textContent = '⚽ GOAL!';
+      document.body.appendChild(f);
+      setTimeout(function () { f.remove(); }, 1800);
+      speak('Goal! ... Well done, Jack!', 0.95);
+      setTimeout(function () { showAfter(true); }, 900);
+    } else if (streak > 0 && streak % 5 === 0) {
+      showFeedback('On fire! 🔥');
+      speak('On fire!', 0.95);
+      setTimeout(function () { showAfter(true); }, 900);
+    } else {
+      speak('Well done, Jack! ... ' + answerLine(p), 0.9);
+      showAfter(true);
+    }
+  }
+
+  function showAfter(won) {
+    var isLast = probIndex === PROBLEMS.length - 1;
+    els.cheer.textContent = won ? '⚽ Well done, Jack!' : '';
+    els.nextBtn.textContent = isLast ? 'Full time ➜ 🏁' : 'Next ➜';
+    els.pad.classList.add('hidden');
+    els.after.classList.remove('hidden');
+    fitBoard();
+  }
+
+  /* ================= The worked answer =================
+     After the second miss the board works the sum out column by column, ones
+     first: plus pours the second row into the first and swaps ten for one of
+     the next place; minus unbundles one of the next place into ten and crosses
+     out what is taken away. Steps run on timers, never on animationend, so it
+     also works with reduced motion. */
+  function clearSolve() {
+    solveTimers.forEach(clearTimeout);
+    solveTimers = [];
+  }
+
+  function buildSolveFrames(p) {
+    var A = digitsOf(p.a), B = digitsOf(p.b), ans = answerOf(p);
+    var len = String(ans).length, frames = [], c;
+    var a = A.slice(), b = B.slice();
+    function snap(marks, sayText, digit, dur) {
+      frames.push({ a: a.slice(), b: b.slice(), marks: marks || {}, say: sayText || '', digit: digit, dur: dur || KEY_STEP_MS });
+    }
+    for (c = 0; c < 4; c++) {
+      var m;
+      if (p.op === '+') {
+        if (b[c]) {
+          var poured = b[c];
+          a[c] += b[c]; b[c] = 0;
+          m = {}; m['a' + c] = { pop: poured };
+          snap(m, placeValueText(a[c], c));
+        }
+        if (a[c] >= 10) {
+          m = {}; m['a' + c] = { glow: 10 };
+          snap(m, REGROUP_UP[c], null, 2300);
+          a[c] -= 10; a[c + 1] += 1;
+          m = {}; m['a' + (c + 1)] = { glow: 1, pop: 1 };
+          snap(m, '', null, 1100);
+        }
+      } else {
+        if (a[c] < b[c]) {
+          m = {}; m['a' + (c + 1)] = { glow: 1 };
+          snap(m, REGROUP_DOWN[c], null, 2300);
+          a[c + 1] -= 1; a[c] += 10;
+          m = {}; m['a' + c] = { glow: 10, pop: 10 };
+          snap(m, placeValueText(a[c], c), null, 1600);
+        }
+        if (b[c]) {
+          m = {}; m['a' + c] = { cross: b[c] }; m['b' + c] = { cross: b[c] };
+          snap(m, placeValueText(b[c], c));
+          a[c] -= b[c]; b[c] = 0;
+          snap({}, '', null, 600);
+        }
+      }
+      if (c < len) snap({}, '', { place: c, value: a[c] }, 700);
+    }
+    return frames;
+  }
+
+  function solve() {
+    var p = current();
+    var frames = buildSolveFrames(p);
+    var shown = ['', '', '', ''];
+    drawEntry('');
+    speak('Look!', 0.95);
+    var t = 900;
+    frames.forEach(function (f) {
+      solveTimers.push(setTimeout(function () {
+        if (current() !== p) return;
+        counts = { a: f.a, b: f.b };
+        var marks = {}, k;
+        for (k in f.marks) marks[k] = f.marks[k];
+        marks.noDigits = true;
+        drawCells(marks);
+        if (f.digit) {
+          shown[f.digit.place] = String(f.digit.value);
+          for (var c = 0; c < 4; c++) {
+            boxes[c].textContent = shown[c];
+            boxes[c].className = 'box' + (c === f.digit.place ? ' set good' : (shown[c] ? ' good' : ''));
+          }
+        }
+        if (f.say) speak(f.say, 0.9);
+      }, t));
+      t += f.dur;
+    });
+    solveTimers.push(setTimeout(function () {
+      if (current() !== p) return;
+      drawEntry(String(answerOf(p)), 'good');
+      speak(answerLine(p), 0.9);
+      showAfter(false);
+    }, t + 200));
+  }
+
+  function nextProblem() {
+    clearSolve();
+    if (probIndex >= PROBLEMS.length - 1) {
+      probIndex = PROBLEMS.length - 1;
+      save();
+      enterFullTime();
+      return;
+    }
+    probIndex++;
+    save();
+    enterPlay();
+  }
+
+  function enterFullTime() {
+    var nets = Math.floor(footballs / 10);
+    /* the balls in the net, and how many sums were right */
+    els.endScore.textContent = '⚽ × ' + nets + '   ✔ × ' + footballs;
+    els.endOverlay.classList.remove('hidden');
+    celebrate(50);
+    speak('Full time! ... Well done, Jack!', 0.9);
+  }
+
+  /* ================= Wiring ================= */
+  buildPad();
+
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasTTS) pickVoice();
+    els.startOverlay.remove();
+    speak("Jack's Thousands. ... Let's go!", 0.9);
+    setTimeout(function () { enterPlay(); }, 10);
+  });
+
+  els.problem.addEventListener('click', function () { speak(questionText(current()), 0.9); });
+  els.hearBtn.addEventListener('click', function () { speak(questionText(current()), 0.9); });
+  els.nextBtn.addEventListener('click', nextProblem);
+
+  els.playAgainBtn.addEventListener('click', function () {
+    probIndex = 0;
+    streak = 0;
+    save();
+    els.endOverlay.classList.add('hidden');
+    enterPlay();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Clear the footballs and start from the first sum?')) {
+      footballs = 0;
+      probIndex = 0;
+      streak = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+      els.endOverlay.classList.add('hidden');
+      enterPlay();
+    }
+  });
+
+  /* a hardware keyboard works too (handy on an iPad with a keyboard) */
+  document.addEventListener('keydown', function (e) {
+    if (els.pad.classList.contains('hidden')) {
+      if (e.key === 'Enter' && !els.after.classList.contains('hidden')) nextProblem();
+      return;
+    }
+    if (/^[0-9]$/.test(e.key)) onKey(e.key);
+    else if (e.key === 'Backspace') onKey('del');
+    else if (e.key === 'Enter') onKey('ok');
+  });
+
+  window.addEventListener('resize', function () {
+    if (!els.board.classList.contains('hidden')) fitBoard();
+  });
+
+  renderScore(false);
+})();
+</script>
+</body>
+</html>

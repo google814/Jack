@@ -212,6 +212,8 @@
   .sight   { background: linear-gradient(160deg, #7c3aed, #4c1d95); }
   .clock   { background: linear-gradient(160deg, #ec4899, #9d174d); }
   .frames  { background: linear-gradient(160deg, #84cc16, #3f6212); }
+  .times   { background: linear-gradient(160deg, #f97316, #9a3412); }
+  .thousands { background: linear-gradient(160deg, #06b6d4, #155e75); }
   .chess {
     color: var(--chess-deep);
     background:
@@ -782,6 +784,22 @@
       <span class="what">Homework</span>
     </a>
 
+    <a class="card times" href="times-tables/" data-group="practice" data-subject="maths" data-new="2026-11-08" data-say="Jack's Times Tables. Times.">
+      <span class="score" id="score-times" hidden></span>
+      <button class="say" type="button" aria-label="Say: Jack's Times Tables">🔊</button>
+      <span class="icon" aria-hidden="true">✖️</span>
+      <span class="name">Jack's Times Tables</span>
+      <span class="what">Times to ten</span>
+    </a>
+
+    <a class="card thousands" href="thousands/" data-group="practice" data-subject="maths" data-new="2026-11-08" data-say="Jack's Thousands. Adding and taking away to ten thousand.">
+      <span class="score" id="score-thousands" hidden></span>
+      <button class="say" type="button" aria-label="Say: Jack's Thousands">🔊</button>
+      <span class="icon" aria-hidden="true">🧱</span>
+      <span class="name">Jack's Thousands</span>
+      <span class="what">Plus and minus</span>
+    </a>
+
     <a class="card frames" href="ten-frames/" data-group="practice" data-subject="maths" data-new="2026-10-03" data-say="Jack's Ten Frames. Adding with ten frames.">
       <span class="score" id="score-frames" hidden></span>
       <button class="say" type="button" aria-label="Say: Jack's Ten Frames">🔊</button>
@@ -951,6 +969,8 @@
     var sight   = num('jackSightStars');
     var clock   = num('jackClockFootballs');
     var frames  = num('jackFramesFootballs');
+    var times   = num('jackTimesFootballs');
+    var thous   = num('jackThousandsFootballs');
     var letters = (localStorage.getItem('jackLettersDone') || '').length;
     badge('score-words',   read,    '⚽ ' + read);
     badge('score-match',   match,   '⚽ ' + match);
@@ -961,6 +981,8 @@
     badge('score-sight',   sight,   '⭐ ' + sight);
     badge('score-clock',   clock,   '⚽ ' + clock);
     badge('score-frames',  frames,  '⚽ ' + frames);
+    badge('score-times',   times,   '⚽ ' + times);
+    badge('score-thousands', thous, '⚽ ' + thous);
     badge('score-chess',   xp,      '⭐ ' + xp);
     document.querySelectorAll('.card[data-hw]').forEach(function (c) {
       var v = num(c.getAttribute('data-hw'));
@@ -1001,6 +1023,8 @@
     'sight-words/':   function () { return num('jackSightStars'); },
     'clock-game/':    function () { return num('jackClockFootballs'); },
     'ten-frames/':    function () { return num('jackFramesFootballs'); },
+    'times-tables/':  function () { return num('jackTimesFootballs'); },
+    'thousands/':     function () { return num('jackThousandsFootballs'); },
     'chess/':         function () { return num('jackChessXp'); }
   };
   function scoreOf(c) {
