@@ -115,313 +115,598 @@ ninety-seven
 ninety-eight
 ninety-nine
 one hundred
+Times means groups that are the same.
+Tap to count.
+Two bags.
+Three apples in each bag.
+Two times three is six.
 What is nine times five?
 Nine times five is forty-five.
 Let's count in fives.
 Five, ten, fifteen, twenty, twenty-five, thirty, thirty-five, forty, forty-five.
+Nine bags.
+Five apples in each bag.
+Think of bags:
+nine bags, five in each.
+Nine bags of five is forty-five.
 What is three times four?
 Three times four is twelve.
 Let's count in fours.
 Four, eight, twelve.
+Three bags.
+Four footballs in each bag.
+three bags, four in each.
+Three bags of four is twelve.
 What is six times one?
 Six times one is six.
 Let's count in ones.
 One, two, three, four, five, six.
+Six boxes.
+One star in each box.
+Think of boxes:
+six boxes, one in each.
+Six boxes of one is six.
 What is eight times two?
 Eight times two is sixteen.
 Let's count in twos.
 Two, four, six, eight, ten, twelve, fourteen, sixteen.
+Eight plates.
+Two cookies on each plate.
+Think of plates:
+eight plates, two on each.
+Eight plates of two is sixteen.
 What is five times eight?
 Five times eight is forty.
 Let's count in eights.
 Eight, sixteen, twenty-four, thirty-two, forty.
+Five boxes.
+Eight chicks in each box.
+five boxes, eight in each.
+Five boxes of eight is forty.
 What is seven times six?
 Seven times six is forty-two.
 Let's count in sixes.
 Six, twelve, eighteen, twenty-four, thirty, thirty-six, forty-two.
+Seven bags.
+Six apples in each bag.
+seven bags, six in each.
+Seven bags of six is forty-two.
 What is nine times seven?
 Nine times seven is sixty-three.
 Let's count in sevens.
 Seven, fourteen, twenty-one, twenty-eight, thirty-five, forty-two, forty-nine, fifty-six, sixty-three.
+Seven footballs in each bag.
+nine bags, seven in each.
+Nine bags of seven is sixty-three.
 What is one times five?
 One times five is five.
 Five.
+One box.
+Five stars in the box.
+one box, five in it.
+One box of five is five.
 What is ten times five?
 Ten times five is fifty.
 Five, ten, fifteen, twenty, twenty-five, thirty, thirty-five, forty, forty-five, fifty.
+Ten plates.
+Five cookies on each plate.
+ten plates, five on each.
+Ten plates of five is fifty.
 What is seven times one?
 Seven times one is seven.
 One, two, three, four, five, six, seven.
+Seven boxes.
+One chick in each box.
+seven boxes, one in each.
+Seven boxes of one is seven.
 What is five times four?
 Five times four is twenty.
 Four, eight, twelve, sixteen, twenty.
+Five bags.
+Four apples in each bag.
+five bags, four in each.
+Five bags of four is twenty.
 What is five times two?
 Five times two is ten.
 Two, four, six, eight, ten.
+Two footballs in each bag.
+five bags, two in each.
+Five bags of two is ten.
 What is ten times two?
 Ten times two is twenty.
 Two, four, six, eight, ten, twelve, fourteen, sixteen, eighteen, twenty.
+Ten boxes.
+Two stars in each box.
+ten boxes, two in each.
+Ten boxes of two is twenty.
 What is seven times five?
 Seven times five is thirty-five.
 Five, ten, fifteen, twenty, twenty-five, thirty, thirty-five.
+Seven plates.
+seven plates, five on each.
+Seven plates of five is thirty-five.
 What is ten times nine?
 Ten times nine is ninety.
 Let's count in nines.
 Nine, eighteen, twenty-seven, thirty-six, forty-five, fifty-four, sixty-three, seventy-two, eighty-one, ninety.
+Nine chicks in each box.
+ten boxes, nine in each.
+Ten boxes of nine is ninety.
 What is one times three?
 One times three is three.
 Let's count in threes.
 Three.
+One bag.
+Three apples in the bag.
+one bag, three in it.
+One bag of three is three.
 What is three times eight?
 Three times eight is twenty-four.
 Eight, sixteen, twenty-four.
+Eight footballs in each bag.
+three bags, eight in each.
+Three bags of eight is twenty-four.
 What is three times ten?
 Three times ten is thirty.
 Let's count in tens.
 Ten, twenty, thirty.
+Three boxes.
+Ten stars in each box.
+three boxes, ten in each.
+Three boxes of ten is thirty.
 What is six times three?
 Six times three is eighteen.
 Three, six, nine, twelve, fifteen, eighteen.
+Six plates.
+Three cookies on each plate.
+six plates, three on each.
+Six plates of three is eighteen.
 What is seven times seven?
 Seven times seven is forty-nine.
 Seven, fourteen, twenty-one, twenty-eight, thirty-five, forty-two, forty-nine.
+Seven chicks in each box.
+seven boxes, seven in each.
+Seven boxes of seven is forty-nine.
 What is four times four?
 Four times four is sixteen.
 Four, eight, twelve, sixteen.
+Four bags.
+four bags, four in each.
+Four bags of four is sixteen.
 What is two times five?
 Two times five is ten.
 Five, ten.
+Five footballs in each bag.
+two bags, five in each.
+Two bags of five is ten.
 What is one times six?
 One times six is six.
 Six.
+Six stars in the box.
+one box, six in it.
+One box of six is six.
 What is nine times six?
 Nine times six is fifty-four.
 Six, twelve, eighteen, twenty-four, thirty, thirty-six, forty-two, forty-eight, fifty-four.
+Nine plates.
+Six cookies on each plate.
+nine plates, six on each.
+Nine plates of six is fifty-four.
 What is three times one?
 Three times one is three.
 One, two, three.
+three boxes, one in each.
+Three boxes of one is three.
 What is four times six?
 Four times six is twenty-four.
 Six, twelve, eighteen, twenty-four.
+four bags, six in each.
+Four bags of six is twenty-four.
 What is four times five?
 Four times five is twenty.
 Five, ten, fifteen, twenty.
+four bags, five in each.
+Four bags of five is twenty.
 What is eight times six?
 Eight times six is forty-eight.
 Six, twelve, eighteen, twenty-four, thirty, thirty-six, forty-two, forty-eight.
+Eight boxes.
+Six stars in each box.
+eight boxes, six in each.
+Eight boxes of six is forty-eight.
 What is six times eight?
 Six times eight is forty-eight.
 Eight, sixteen, twenty-four, thirty-two, forty, forty-eight.
+Eight cookies on each plate.
+six plates, eight on each.
+Six plates of eight is forty-eight.
 What is three times three?
 Three times three is nine.
 Three, six, nine.
+Three chicks in each box.
+three boxes, three in each.
+Three boxes of three is nine.
 What is two times nine?
 Two times nine is eighteen.
 Nine, eighteen.
+Nine apples in each bag.
+two bags, nine in each.
+Two bags of nine is eighteen.
 What is six times two?
 Six times two is twelve.
 Two, four, six, eight, ten, twelve.
+Six bags.
+six bags, two in each.
+Six bags of two is twelve.
 What is seven times two?
 Seven times two is fourteen.
 Two, four, six, eight, ten, twelve, fourteen.
+seven boxes, two in each.
+Seven boxes of two is fourteen.
 What is seven times three?
 Seven times three is twenty-one.
 Three, six, nine, twelve, fifteen, eighteen, twenty-one.
+seven plates, three on each.
+Seven plates of three is twenty-one.
 What is eight times three?
 Eight times three is twenty-four.
 Three, six, nine, twelve, fifteen, eighteen, twenty-one, twenty-four.
+eight boxes, three in each.
+Eight boxes of three is twenty-four.
 What is two times seven?
 Two times seven is fourteen.
 Seven, fourteen.
+Seven apples in each bag.
+two bags, seven in each.
+Two bags of seven is fourteen.
 What is two times two?
 Two times two is four.
 Two, four.
+two bags, two in each.
+Two bags of two is four.
 What is nine times four?
 Nine times four is thirty-six.
 Four, eight, twelve, sixteen, twenty, twenty-four, twenty-eight, thirty-two, thirty-six.
+Nine boxes.
+Four stars in each box.
+nine boxes, four in each.
+Nine boxes of four is thirty-six.
 What is ten times three?
 Ten times three is thirty.
 Three, six, nine, twelve, fifteen, eighteen, twenty-one, twenty-four, twenty-seven, thirty.
+ten plates, three on each.
+Ten plates of three is thirty.
 What is eight times nine?
 Eight times nine is seventy-two.
 Nine, eighteen, twenty-seven, thirty-six, forty-five, fifty-four, sixty-three, seventy-two.
+eight boxes, nine in each.
+Eight boxes of nine is seventy-two.
 What is nine times nine?
 Nine times nine is eighty-one.
 Nine, eighteen, twenty-seven, thirty-six, forty-five, fifty-four, sixty-three, seventy-two, eighty-one.
+nine bags, nine in each.
+Nine bags of nine is eighty-one.
 What is eight times one?
 Eight times one is eight.
 One, two, three, four, five, six, seven, eight.
+Eight bags.
+One football in each bag.
+eight bags, one in each.
+Eight bags of one is eight.
 What is six times four?
 Six times four is twenty-four.
 Four, eight, twelve, sixteen, twenty, twenty-four.
+six boxes, four in each.
+Six boxes of four is twenty-four.
 What is eight times seven?
 Eight times seven is fifty-six.
 Seven, fourteen, twenty-one, twenty-eight, thirty-five, forty-two, forty-nine, fifty-six.
+Seven cookies on each plate.
+eight plates, seven on each.
+Eight plates of seven is fifty-six.
 What is ten times six?
 Ten times six is sixty.
 Six, twelve, eighteen, twenty-four, thirty, thirty-six, forty-two, forty-eight, fifty-four, sixty.
+Six chicks in each box.
+ten boxes, six in each.
+Ten boxes of six is sixty.
 What is seven times ten?
 Seven times ten is seventy.
 Ten, twenty, thirty, forty, fifty, sixty, seventy.
+Ten apples in each bag.
+seven bags, ten in each.
+Seven bags of ten is seventy.
 What is five times six?
 Five times six is thirty.
 Six, twelve, eighteen, twenty-four, thirty.
+Six footballs in each bag.
+five bags, six in each.
+Five bags of six is thirty.
 What is seven times nine?
 Seven times nine is sixty-three.
 Nine, eighteen, twenty-seven, thirty-six, forty-five, fifty-four, sixty-three.
+Nine stars in each box.
+seven boxes, nine in each.
+Seven boxes of nine is sixty-three.
 What is five times nine?
 Five times nine is forty-five.
 Nine, eighteen, twenty-seven, thirty-six, forty-five.
+Five plates.
+Nine cookies on each plate.
+five plates, nine on each.
+Five plates of nine is forty-five.
 What is nine times three?
 Nine times three is twenty-seven.
 Three, six, nine, twelve, fifteen, eighteen, twenty-one, twenty-four, twenty-seven.
+nine boxes, three in each.
+Nine boxes of three is twenty-seven.
 What is nine times eight?
 Nine times eight is seventy-two.
 Eight, sixteen, twenty-four, thirty-two, forty, forty-eight, fifty-six, sixty-four, seventy-two.
+Eight apples in each bag.
+nine bags, eight in each.
+Nine bags of eight is seventy-two.
 What is five times one?
 Five times one is five.
 One, two, three, four, five.
+five bags, one in each.
+Five bags of one is five.
 What is six times ten?
 Six times ten is sixty.
 Ten, twenty, thirty, forty, fifty, sixty.
+six boxes, ten in each.
+Six boxes of ten is sixty.
 What is one times seven?
 One times seven is seven.
 Seven.
+One plate.
+Seven cookies on the plate.
+one plate, seven on it.
+One plate of seven is seven.
 What is three times six?
 Three times six is eighteen.
 Six, twelve, eighteen.
+three boxes, six in each.
+Three boxes of six is eighteen.
 What is two times four?
 Two times four is eight.
 Four, eight.
+two bags, four in each.
+Two bags of four is eight.
 What is three times five?
 Three times five is fifteen.
 Five, ten, fifteen.
+three bags, five in each.
+Three bags of five is fifteen.
 What is nine times two?
 Nine times two is eighteen.
 Two, four, six, eight, ten, twelve, fourteen, sixteen, eighteen.
+nine boxes, two in each.
+Nine boxes of two is eighteen.
 What is one times four?
 One times four is four.
 Four.
+Four cookies on the plate.
+one plate, four on it.
+One plate of four is four.
 What is two times one?
 Two times one is two.
 One, two.
+Two boxes.
+two boxes, one in each.
+Two boxes of one is two.
 What is three times nine?
 Three times nine is twenty-seven.
 Nine, eighteen, twenty-seven.
+three bags, nine in each.
+Three bags of nine is twenty-seven.
 What is seven times eight?
 Seven times eight is fifty-six.
 Eight, sixteen, twenty-four, thirty-two, forty, forty-eight, fifty-six.
+seven bags, eight in each.
+Seven bags of eight is fifty-six.
 What is two times six?
 Two times six is twelve.
 Six, twelve.
+two boxes, six in each.
+Two boxes of six is twelve.
 What is four times three?
 Four times three is twelve.
 Three, six, nine, twelve.
+Four plates.
+four plates, three on each.
+Four plates of three is twelve.
 What is six times nine?
 Six times nine is fifty-four.
 Nine, eighteen, twenty-seven, thirty-six, forty-five, fifty-four.
+six boxes, nine in each.
+Six boxes of nine is fifty-four.
 What is eight times ten?
 Eight times ten is eighty.
 Ten, twenty, thirty, forty, fifty, sixty, seventy, eighty.
+eight bags, ten in each.
+Eight bags of ten is eighty.
 What is three times two?
 Three times two is six.
 Two, four, six.
+three bags, two in each.
+Three bags of two is six.
 What is five times three?
 Five times three is fifteen.
 Three, six, nine, twelve, fifteen.
+Three stars in each box.
+five boxes, three in each.
+Five boxes of three is fifteen.
 What is ten times seven?
 Ten times seven is seventy.
 Seven, fourteen, twenty-one, twenty-eight, thirty-five, forty-two, forty-nine, fifty-six, sixty-three, seventy.
+ten plates, seven on each.
+Ten plates of seven is seventy.
 What is five times ten?
 Five times ten is fifty.
 Ten, twenty, thirty, forty, fifty.
+Ten chicks in each box.
+five boxes, ten in each.
+Five boxes of ten is fifty.
 What is four times nine?
 Four times nine is thirty-six.
 Nine, eighteen, twenty-seven, thirty-six.
+four bags, nine in each.
+Four bags of nine is thirty-six.
 What is four times two?
 Four times two is eight.
 Two, four, six, eight.
+four bags, two in each.
+Four bags of two is eight.
 What is nine times ten?
 Nine times ten is ninety.
 Ten, twenty, thirty, forty, fifty, sixty, seventy, eighty, ninety.
+nine boxes, ten in each.
+Nine boxes of ten is ninety.
 What is nine times one?
 Nine times one is nine.
 One, two, three, four, five, six, seven, eight, nine.
+One cookie on each plate.
+nine plates, one on each.
+Nine plates of one is nine.
 What is eight times eight?
 Eight times eight is sixty-four.
 Eight, sixteen, twenty-four, thirty-two, forty, forty-eight, fifty-six, sixty-four.
+eight boxes, eight in each.
+Eight boxes of eight is sixty-four.
 What is six times six?
 Six times six is thirty-six.
 Six, twelve, eighteen, twenty-four, thirty, thirty-six.
+six bags, six in each.
+Six bags of six is thirty-six.
 What is four times eight?
 Four times eight is thirty-two.
 Eight, sixteen, twenty-four, thirty-two.
+four bags, eight in each.
+Four bags of eight is thirty-two.
 What is seven times four?
 Seven times four is twenty-eight.
 Four, eight, twelve, sixteen, twenty, twenty-four, twenty-eight.
+seven boxes, four in each.
+Seven boxes of four is twenty-eight.
 What is ten times one?
 Ten times one is ten.
 One, two, three, four, five, six, seven, eight, nine, ten.
+ten plates, one on each.
+Ten plates of one is ten.
 What is one times two?
 One times two is two.
 Two.
+Two chicks in the box.
+one box, two in it.
+One box of two is two.
 What is two times ten?
 Two times ten is twenty.
 Ten, twenty.
+two bags, ten in each.
+Two bags of ten is twenty.
 What is five times seven?
 Five times seven is thirty-five.
 Seven, fourteen, twenty-one, twenty-eight, thirty-five.
+five bags, seven in each.
+Five bags of seven is thirty-five.
 What is one times eight?
 One times eight is eight.
 Eight.
+Eight stars in the box.
+one box, eight in it.
+One box of eight is eight.
 What is six times five?
 Six times five is thirty.
 Five, ten, fifteen, twenty, twenty-five, thirty.
+six plates, five on each.
+Six plates of five is thirty.
 What is ten times four?
 Ten times four is forty.
 Four, eight, twelve, sixteen, twenty, twenty-four, twenty-eight, thirty-two, thirty-six, forty.
+Four chicks in each box.
+ten boxes, four in each.
+Ten boxes of four is forty.
 What is eight times four?
 Eight times four is thirty-two.
 Four, eight, twelve, sixteen, twenty, twenty-four, twenty-eight, thirty-two.
+eight bags, four in each.
+Eight bags of four is thirty-two.
 What is eight times five?
 Eight times five is forty.
 Five, ten, fifteen, twenty, twenty-five, thirty, thirty-five, forty.
+eight bags, five in each.
+Eight bags of five is forty.
 What is two times eight?
 Two times eight is sixteen.
 Eight, sixteen.
+Eight stars in each box.
+two boxes, eight in each.
+Two boxes of eight is sixteen.
 What is six times seven?
 Six times seven is forty-two.
 Seven, fourteen, twenty-one, twenty-eight, thirty-five, forty-two.
+six plates, seven on each.
+Six plates of seven is forty-two.
 What is four times ten?
 Four times ten is forty.
 Ten, twenty, thirty, forty.
+Four boxes.
+four boxes, ten in each.
+Four boxes of ten is forty.
 What is four times seven?
 Four times seven is twenty-eight.
 Seven, fourteen, twenty-one, twenty-eight.
+four bags, seven in each.
+Four bags of seven is twenty-eight.
 What is ten times eight?
 Ten times eight is eighty.
 Eight, sixteen, twenty-four, thirty-two, forty, forty-eight, fifty-six, sixty-four, seventy-two, eighty.
+Ten bags.
+ten bags, eight in each.
+Ten bags of eight is eighty.
 What is ten times ten?
 Ten times ten is one hundred.
 Ten, twenty, thirty, forty, fifty, sixty, seventy, eighty, ninety, one hundred.
+ten boxes, ten in each.
+Ten boxes of ten is one hundred.
 What is two times three?
-Two times three is six.
 Three, six.
+Two plates.
+two plates, three on each.
+Two plates of three is six.
 What is one times one?
 One times one is one.
 One.
+One chick in the box.
+one box, one in it.
+One box of one is one.
 What is four times one?
 Four times one is four.
 One, two, three, four.
+One apple in each bag.
+four bags, one in each.
+Four bags of one is four.
 What is three times seven?
 Three times seven is twenty-one.
 Seven, fourteen, twenty-one.
+three bags, seven in each.
+Three bags of seven is twenty-one.
 What is five times five?
 Five times five is twenty-five.
 Five, ten, fifteen, twenty, twenty-five.
+Five stars in each box.
+five boxes, five in each.
+Five boxes of five is twenty-five.
 What is one times nine?
 One times nine is nine.
 Nine.
+Nine cookies on the plate.
+one plate, nine on it.
+One plate of nine is nine.
 What is one times ten?
 One times ten is ten.
 Ten.
+Ten chicks in the box.
+one box, ten in it.
+One box of ten is ten.

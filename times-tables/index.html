@@ -130,6 +130,61 @@
     animation: pop .35s ease both;
   }
   #seq .chip.last { background: #fde047; color: #0f172a; }
+  /* under the bags the count is only a small line */
+  #seq { gap: clamp(3px, .9vmin, 8px); }
+  #seq .chip {
+    min-width: clamp(28px, 6vmin, 50px);
+    padding: clamp(3px, .7vmin, 7px) clamp(3px, .7vmin, 7px);
+    border-radius: 10px;
+    font-size: clamp(.85rem, 2.6vmin, 1.35rem);
+  }
+  #seq .chip.cur { box-shadow: 0 0 0 3px #fde047; }
+
+  /* ---------- the bags: a x b is a groups of b things ---------- */
+  .groups {
+    --s: 30px;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--s) * .12);
+    width: max-content;
+    cursor: pointer;
+  }
+  .groups .grp {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    padding: calc(var(--s) * .05) calc(var(--s) * .2);
+    border-radius: calc(var(--s) * .4);
+    background: hsla(var(--h), 85%, 65%, .18);
+    box-shadow: inset 0 0 0 2px hsla(var(--h), 85%, 72%, .45);
+    transition: background .25s, box-shadow .25s;
+  }
+  .groups .grp.on { background: hsla(var(--h), 90%, 62%, .5); }
+  .groups .grp.cur { box-shadow: inset 0 0 0 3px #fde047, 0 0 14px rgba(253,224,71,.7); }
+  .groups .holder {
+    display: inline-block; width: calc(var(--s) * 1.25);
+    font-size: calc(var(--s) * .9); line-height: 1.15; text-align: center;
+    margin-right: calc(var(--s) * .15);
+  }
+  .groups .it {
+    display: inline-block; width: calc(var(--s) * 1.15);
+    font-size: var(--s); line-height: 1.15; text-align: center;
+  }
+  .groups .tot {
+    display: inline-block; min-width: 2.3em; text-align: right;
+    font-size: calc(var(--s) * .8); font-weight: 900; color: #fde047;
+    padding-left: calc(var(--s) * .2);
+    visibility: hidden;
+  }
+  .groups .grp.on .tot { visibility: visible; }
+  .groups.quiet { cursor: default; }
+  .groups.quiet .grp { background: hsla(var(--h), 85%, 65%, .3); }
+  .groups.quiet .tot { display: none; }
+  /* while the bags are up the answer tiles are a bit lower */
+  main.helping .tile { height: clamp(54px, 9vh, 104px); }
+
+  #playRow { flex: 0 0 auto; display: flex; gap: 12px; justify-content: center; }
 
   /* ---------- answer tiles ---------- */
   #tiles {
@@ -223,6 +278,21 @@
     gap: clamp(16px, 4vh, 32px); text-align: center; padding: 24px;
   }
   #netOverlay { background: rgba(15,23,42,.82); z-index: 65; cursor: pointer; }
+
+  /* the little lesson: what "times" means */
+  #lesson {
+    position: fixed; inset: 0; z-index: 68;
+    background: linear-gradient(160deg, #1e3a8a, #6d28d9 55%, #1e3a8a);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: clamp(10px, 2.6vh, 26px); text-align: center;
+    padding: 56px 12px calc(20px + env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+  #lessonClose { position: absolute; top: 10px; right: 12px; min-width: 48px; padding: 8px 14px; }
+  #lessonEq { flex: 0 0 auto; font-size: clamp(2.2rem, 9vmin, 5rem); font-weight: 900; white-space: nowrap; }
+  #lessonDots { flex: 0 0 auto; font-size: 1.2rem; letter-spacing: .4em; opacity: .85; }
+  #lessonRow { flex: 0 0 auto; display: flex; gap: 14px; }
+  #lessonNext { font-size: clamp(1.4rem, 4vmin, 2rem); padding: clamp(10px, 2vh, 16px) clamp(30px, 7vw, 50px); }
   #startOverlay h2, #endOverlay h2, #netOverlay h2 { font-size: clamp(1.5rem, 5.5vmin, 2.8rem); }
   #startOverlay p, #endOverlay p { max-width: 28ch; opacity: .9; font-size: clamp(.95rem, 2.4vmin, 1.2rem); }
   #endScore { font-size: clamp(1.4rem, 5vmin, 2.4rem); font-weight: 900; opacity: 1; }
@@ -316,14 +386,19 @@
 <main>
   <!-- play -->
   <div id="problem" class="hidden"></div>
+  <div id="groups" class="groups hidden"></div>
   <div id="seq" class="hidden"></div>
   <div id="tiles" class="hidden"></div>
   <div id="lockBar" class="hidden"><i></i></div>
-  <button id="hearBtn" class="btn ghost hidden">🔊 Hear it</button>
+  <div id="playRow" class="hidden">
+    <button id="hearBtn" class="btn ghost">🔊 Hear it</button>
+    <button id="lessonBtn" class="btn ghost" title="What does times mean?">💡</button>
+  </div>
 
   <!-- the answer -->
   <div id="cheer" class="hidden"></div>
   <div id="equation" class="hidden"></div>
+  <div id="ansGroups" class="groups quiet hidden"></div>
   <button id="hearAnswerBtn" class="btn ghost hidden">🔊 Hear it</button>
   <button id="nextBtn" class="btn hidden">Next ➜ ⚽</button>
 </main>
@@ -332,6 +407,17 @@
   <h2>✖️ Jack's Times Tables</h2>
   <p>One times one all the way to ten times ten.</p>
   <button id="playBtn" class="btn">▶</button>
+</div>
+
+<div id="lesson" class="hidden">
+  <button id="lessonClose" class="btn ghost" title="Close">✕</button>
+  <div id="lessonPic" class="groups"></div>
+  <div id="lessonEq" class="hidden"></div>
+  <div id="lessonDots"></div>
+  <div id="lessonRow">
+    <button id="lessonHear" class="btn ghost">🔊</button>
+    <button id="lessonNext" class="btn">▶</button>
+  </div>
 </div>
 
 <div id="netOverlay" class="hidden">
@@ -394,10 +480,60 @@
       j = Math.floor(rnd() * (i + 1));
       t = list[i]; list[i] = list[j]; list[j] = t;
     }
+    /* the things in the bags change from sum to sum, always the same way round */
+    for (i = 0; i < list.length; i++) list[i].t = i % 5;
     return list;
   })();
 
   function answerOf(p) { return p.a * p.b; }
+
+  /* "Times means groups that are the same": a x b is a bags with b things in
+     each. Fixed pairs of thing and holder, so the lines stay a short list. */
+  var THEMES = [
+    { one: 'apple',    many: 'apples',    icon: '🍎', box: 'bag',   boxes: 'bags',   inn: 'in',   boxIcon: '🛍️' },
+    { one: 'football', many: 'footballs', icon: '⚽', box: 'bag',   boxes: 'bags',   inn: 'in',   boxIcon: '🛍️' },
+    { one: 'star',     many: 'stars',     icon: '⭐', box: 'box',   boxes: 'boxes',  inn: 'in',   boxIcon: '📦' },
+    { one: 'cookie',   many: 'cookies',   icon: '🍪', box: 'plate', boxes: 'plates', inn: 'on',   boxIcon: '🍽️' },
+    { one: 'chick',    many: 'chicks',    icon: '🐥', box: 'box',   boxes: 'boxes',  inn: 'in',   boxIcon: '📦' }
+  ];
+  function themeOf(p) { return THEMES[(p.t || 0) % THEMES.length]; }
+  function holders(p) { var th = themeOf(p); return p.a === 1 ? th.box : th.boxes; }
+
+  /* the first lesson: two bags of three apples */
+  var LESSON_DEMO = { a: 2, b: 3, t: 0 };
+  var LESSON_START = 'Times means groups that are the same.';
+  var TAP_COUNT = 'Tap to count.';
+
+  /* "Seven bags." / "One bag." */
+  function groupsHead(p) { return cap(NUM_WORDS[p.a]) + ' ' + holders(p) + '.'; }
+  /* "Eight apples in each bag." / "Eight apples in the bag." / "One apple in each bag." */
+  function groupsEach(p) {
+    var th = themeOf(p);
+    return cap(NUM_WORDS[p.b]) + ' ' + (p.b === 1 ? th.one : th.many) +
+      ' ' + th.inn + (p.a === 1 ? ' the ' : ' each ') + th.box + '.';
+  }
+  /* "Seven bags. Eight apples in each bag." — two segments */
+  function groupsIntro(p) { return groupsHead(p) + ' ' + groupsEach(p); }
+  /* counting bag by bag: "eight", "sixteen" … — plain number words */
+  function groupsCount(p) {
+    var s = countSteps(p), w = [], i;
+    for (i = 0; i < s.length; i++) w.push(NUM_WORDS[s[i]]);
+    return w;
+  }
+  /* after the first miss: "Think of bags:" + "seven bags, eight in each." */
+  function hintLead(p) { return 'Think of ' + themeOf(p).boxes + ':'; }
+  function hintBody(p) {
+    return NUM_WORDS[p.a] + ' ' + holders(p) + ', ' + NUM_WORDS[p.b] + ' ' + themeOf(p).inn + (p.a === 1 ? ' it.' : ' each.');
+  }
+  function hintLine(p) { return hintLead(p) + ' ' + hintBody(p); }
+  /* on the answer screen: "Seven bags of eight is fifty-six." */
+  function bagsSentence(p) {
+    return cap(NUM_WORDS[p.a]) + ' ' + holders(p) + ' of ' + NUM_WORDS[p.b] + ' is ' + NUM_WORDS[answerOf(p)] + '.';
+  }
+  /* the three steps of the lesson, one per tap of ▶ */
+  function lessonLines(p) {
+    return [LESSON_START, groupsIntro(p) + ' ' + TAP_COUNT, answerSentence(p)];
+  }
 
   /* "What is seven times eight?" */
   function questionText(p) { return 'What is ' + NUM_WORDS[p.a] + ' times ' + NUM_WORDS[p.b] + '?'; }
@@ -433,11 +569,21 @@
     add('Well done, Jack!');
     for (i = 0; i < PRAISE.length; i++) add(PRAISE[i]);
     for (i = 0; i <= 100; i++) add(NUM_WORDS[i]);   /* tapping a step of the count */
+    add(LESSON_START);
+    add(TAP_COUNT);
+    add(groupsHead(LESSON_DEMO));
+    add(groupsEach(LESSON_DEMO));
+    add(answerSentence(LESSON_DEMO));
     for (i = 0; i < PROBLEMS.length; i++) {
       add(questionText(PROBLEMS[i]));
       add(answerSentence(PROBLEMS[i]));
       add(countIntro(PROBLEMS[i]));
       add(countLine(PROBLEMS[i]));
+      add(groupsHead(PROBLEMS[i]));
+      add(groupsEach(PROBLEMS[i]));
+      add(hintLead(PROBLEMS[i]));
+      add(hintBody(PROBLEMS[i]));
+      add(bagsSentence(PROBLEMS[i]));
     }
     return out;
   }
@@ -458,10 +604,14 @@
   if (!(probIndex >= 0) || probIndex >= PROBLEMS.length) probIndex = 0;
   var wrong = 0;               /* misses on the sum on screen */
   var locked = false;
-  var timers = { lock: null, net: null, next: null };
+  var timers = { lock: null, net: null, next: null, count: null };
 
   var $ = function (id) { return document.getElementById(id); };
   var els = {
+    main: document.querySelector('main'),
+    groups: $('groups'), ansGroups: $('ansGroups'), playRow: $('playRow'), lessonBtn: $('lessonBtn'),
+    lesson: $('lesson'), lessonPic: $('lessonPic'), lessonEq: $('lessonEq'), lessonDots: $('lessonDots'),
+    lessonHear: $('lessonHear'), lessonNext: $('lessonNext'), lessonClose: $('lessonClose'),
     score: $('score'), problem: $('problem'), seq: $('seq'), tiles: $('tiles'),
     lockBar: $('lockBar'), lockFill: $('lockBar').querySelector('i'), hearBtn: $('hearBtn'),
     cheer: $('cheer'), equation: $('equation'), hearAnswerBtn: $('hearAnswerBtn'), nextBtn: $('nextBtn'),
@@ -650,7 +800,8 @@
     } catch (e) { if (done) done(); }
   }
 
-  function speak(text, rate, pitch) {
+  /* done (optional) runs once the whole line has been said — not when it is talked over */
+  function speak(text, rate, pitch, done) {
     window.__said.push(norm(text));
     if (!hasTTS) return;
     stopSpeaking();
@@ -660,7 +811,8 @@
     clipsReady.then(function () {
       if (my !== speakToken) return;
       (function step(i) {
-        if (my !== speakToken || i >= parts.length) return;
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
         var onward = function () { step(i + 1); };
         var file = clipFor(parts[i]);
         var ac = file ? audioReady() : null;
@@ -695,6 +847,18 @@
   if (!hasTTS) {
     els.hearBtn.style.display = 'none';
     els.hearAnswerBtn.style.display = 'none';
+    els.lessonHear.style.display = 'none';
+  }
+
+  /* say a line, then go on — or go on anyway after maxMs (no voice, a stuck
+     utterance), unless something else has been said in between */
+  function speakThen(text, rate, then, maxMs) {
+    var fired = false;
+    function go() { if (fired) return; fired = true; clearTimeout(timers.count); then(); }
+    speak(text, rate, 1, go);
+    var my = speakToken;
+    clearTimeout(timers.count);
+    timers.count = setTimeout(function () { if (speakToken === my) go(); }, maxMs);
   }
 
   /* ================= Small helpers ================= */
@@ -750,20 +914,121 @@
   }
 
   var STATE_ELS = {
-    play: ['problem', 'tiles', 'hearBtn'],
+    play: ['problem', 'tiles', 'playRow'],
     answer: ['cheer', 'equation', 'hearAnswerBtn', 'nextBtn']
   };
   function show(state) {
-    [].concat(STATE_ELS.play, STATE_ELS.answer, ['seq', 'lockBar']).forEach(function (id) {
+    [].concat(STATE_ELS.play, STATE_ELS.answer, ['seq', 'lockBar', 'groups', 'ansGroups']).forEach(function (id) {
       els[id].classList.add('hidden');
     });
+    els.main.classList.remove('helping');
     STATE_ELS[state].forEach(function (id) { els[id].classList.remove('hidden'); });
   }
 
   function clearTimers() {
-    clearTimeout(timers.lock); clearTimeout(timers.net); clearTimeout(timers.next);
-    timers.lock = timers.net = timers.next = null;
+    clearTimeout(timers.lock); clearTimeout(timers.net); clearTimeout(timers.next); clearTimeout(timers.count);
+    timers.lock = timers.net = timers.next = timers.count = null;
   }
+
+  /* ================= The bags =================
+     a rows (the bags), b things in each, every bag its own soft colour.
+     Tapping counts on bag by bag: "eight", "sixteen" … */
+  var HUES = [200, 140, 45, 330, 270, 20, 175, 95, 300, 0];
+  function renderGroups(el, p) {
+    var th = themeOf(p), i, j;
+    el.innerHTML = '';
+    el._p = p;
+    el._n = 0;
+    for (i = 0; i < p.a; i++) {
+      var row = document.createElement('div');
+      row.className = 'grp';
+      row.style.setProperty('--h', String(HUES[i % HUES.length]));
+      var h = document.createElement('span');
+      h.className = 'holder';
+      h.textContent = th.boxIcon;
+      row.appendChild(h);
+      for (j = 0; j < p.b; j++) {
+        var it = document.createElement('span');
+        it.className = 'it';
+        it.textContent = th.icon;
+        row.appendChild(it);
+      }
+      var tot = document.createElement('span');
+      tot.className = 'tot';
+      tot.textContent = (i + 1) * p.b;
+      row.appendChild(tot);
+      el.appendChild(row);
+    }
+  }
+
+  function resetGroups(el) {
+    var rows = el.querySelectorAll('.grp'), k;
+    for (k = 0; k < rows.length; k++) rows[k].classList.remove('on', 'cur');
+    el._n = 0;
+    if (el === els.groups) {
+      var chips = els.seq.querySelectorAll('.chip');
+      for (k = 0; k < chips.length; k++) chips[k].classList.remove('cur');
+    }
+  }
+
+  /* light the next bag and say how many there are so far */
+  function countNext(el, done) {
+    var p = el._p, rows = el.querySelectorAll('.grp'), k;
+    if (!p || !rows.length) return;
+    if (el._n >= p.a) resetGroups(el);
+    var i = el._n;
+    for (k = 0; k < rows.length; k++) rows[k].classList.remove('cur');
+    rows[i].classList.add('on', 'cur');
+    el._n = i + 1;
+    if (el === els.groups) {
+      var chips = els.seq.querySelectorAll('.chip');
+      for (k = 0; k < chips.length; k++) chips[k].classList.toggle('cur', k === i);
+      if (el._n === p.a) lightTile(p);   /* the last bag counted: that number is the answer */
+    }
+    speakThen(groupsCount(p)[i], 0.95, done || function () {}, 1500);
+  }
+
+  /* count every bag in turn, then go on */
+  function runCount(el, then) {
+    resetGroups(el);
+    (function next() {
+      if (!el._p || el._n >= el._p.a) { if (then) then(); return; }
+      countNext(el, function () { timers.count = setTimeout(next, 220); });
+    })();
+  }
+
+  /* make the bags as big as they can be without anything leaving the screen */
+  function fitsIn(el, host) {
+    var cs = getComputedStyle(host);
+    var padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    var padH = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    var gap = parseFloat(cs.rowGap) || 0, h = 0, n = 0, k;
+    for (k = 0; k < host.children.length; k++) {
+      var kid = host.children[k], ks = getComputedStyle(kid);
+      if (ks.display === 'none' || ks.position === 'absolute' || ks.position === 'fixed') continue;
+      h += kid.offsetHeight + parseFloat(ks.marginTop) + parseFloat(ks.marginBottom);
+      n++;
+    }
+    h += gap * Math.max(0, n - 1) + padV;
+    return h <= host.clientHeight && el.offsetWidth <= host.clientWidth - padH;
+  }
+  function fitGroups(el, host, maxS) {
+    if (el.classList.contains('hidden')) return;
+    var lo = 8, hi = maxS, best = 8;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      el.style.setProperty('--s', mid + 'px');
+      if (fitsIn(el, host)) { best = mid; lo = mid + 1; } else hi = mid - 1;
+    }
+    el.style.setProperty('--s', best + 'px');
+  }
+  var FIT_PLAY = 46, FIT_ANSWER = 30, FIT_LESSON = 64;
+  function refit() {
+    fitGroups(els.groups, els.main, FIT_PLAY);
+    fitGroups(els.ansGroups, els.main, FIT_ANSWER);
+    if (!els.lesson.classList.contains('hidden')) fitGroups(els.lessonPic, els.lesson, FIT_LESSON);
+  }
+  window.addEventListener('resize', refit);
 
   /* ================= Distractors =================
      The mistakes a six-year-old really makes with a times table: the next or
@@ -827,12 +1092,13 @@
     show('play');
 
     preload([questionText(p), answerSentence(p), countIntro(p), countLine(p), 'Try again',
-             'Listen again.'].concat(PRAISE));
+             'Listen again.', groupsHead(p), groupsEach(p), hintLead(p), hintBody(p),
+             bagsSentence(p)].concat(PRAISE, groupsCount(p)));
     /* one speak() for the welcome and the first question, or the second would cut off the first */
     speak((intro ? intro + ' ' : '') + questionText(p), 0.9);
   }
 
-  /* after two misses: show the steps up the table and light up the right tile */
+  /* after two misses: the steps up the table as a small line under the bags */
   function showCount(p) {
     var steps = countSteps(p), i;
     els.seq.innerHTML = '';
@@ -845,10 +1111,28 @@
       els.seq.appendChild(chip);
     }
     els.seq.classList.remove('hidden');
-    var tiles = els.tiles.querySelectorAll('.tile');
+  }
+
+  /* this is the one */
+  function lightTile(p) {
+    var tiles = els.tiles.querySelectorAll('.tile'), i;
     for (i = 0; i < tiles.length; i++) {
       if (parseInt(tiles[i].getAttribute('data-value'), 10) === answerOf(p)) tiles[i].classList.add('hint');
     }
+  }
+
+  /* after two misses: the sum as bags, counted bag by bag, then the right tile lights up */
+  function showBags(p) {
+    renderGroups(els.groups, p);
+    showCount(p);
+    els.groups.classList.remove('hidden');
+    els.main.classList.add('helping');
+    fitGroups(els.groups, els.main, FIT_PLAY);
+  }
+  function talkBags(p, lead) {
+    speakThen(lead + groupsIntro(p), 0.9, function () {
+      runCount(els.groups, function () { lightTile(p); });
+    }, 6000);
   }
 
   /* the pause after a wrong tap: no tile takes a tap, a bar counts down */
@@ -875,6 +1159,7 @@
     if (num === answerOf(p)) {
       setLocked(true);          /* no second football for a double tap */
       clearTimeout(timers.lock);
+      if (timers.count) { clearTimeout(timers.count); timers.count = null; stopSpeaking(); }  /* stop counting bags */
       els.lockBar.classList.add('hidden');
       footballs++;
       save();
@@ -896,12 +1181,15 @@
     tile.classList.add('shake');
     showFeedback('Try again 🙂');
     if (wrong >= 2) {
-      showCount(p);
-      speak('Try again ... ' + countIntro(p) + ' ' + countLine(p), 0.9);
-      lockTiles(null);
+      lockTiles(null);          /* first, so the bags are sized with the bar on screen */
+      showBags(p);
+      talkBags(p, 'Try again ... ');
     } else {
       speak('Try again', 0.95);
-      lockTiles(function () { speak('Listen again. ' + questionText(current()), 0.9); });
+      lockTiles(function () {
+        var q = current();
+        speak('Listen again. ' + questionText(q) + ' ' + hintLine(q), 0.9);
+      });
     }
   }
 
@@ -945,7 +1233,11 @@
     els.nextBtn.textContent = isLast ? 'Full time ➜ 🏁' : 'Next ➜ ⚽';
 
     show('answer');
-    speak(praise + ' ' + answerSentence(p), 0.9);
+    /* the same bags, small, to say it once more */
+    renderGroups(els.ansGroups, p);
+    els.ansGroups.classList.remove('hidden');
+    fitGroups(els.ansGroups, els.main, FIT_ANSWER);
+    speak(praise + ' ' + answerSentence(p) + ' ' + bagsSentence(p), 0.9);
   }
 
   function nextProblem() {
@@ -969,22 +1261,82 @@
     speak('Full time! Well done, Jack!', 0.9);
   }
 
+  /* ================= The lesson =================
+     Three taps of ▶, everything said out loud: the same groups, how many
+     bags and how many in each (tap the bags to count), then the sum. */
+  var lesson = { p: null, step: 0, first: false };
+
+  function openLesson(p, first) {
+    clearTimeout(timers.count);
+    lesson.p = p;
+    lesson.first = !!first;
+    renderGroups(els.lessonPic, p);
+    els.lessonEq.textContent = p.a + ' × ' + p.b + ' = ' + answerOf(p);
+    els.lesson.classList.remove('hidden');
+    lessonStep(0, first ? "Jack's Times Tables. " : '');
+  }
+
+  function lessonStep(i, lead) {
+    lesson.step = i;
+    els.lessonDots.textContent = ['●○○', '●●○', '●●●'][i];
+    els.lessonEq.classList.toggle('hidden', i < 2);
+    els.lessonNext.textContent = i < 2 ? '▶' : (lesson.first ? '▶ ⚽' : '✔');
+    if (i === 2) {
+      /* every bag counted: the last number is the answer */
+      var rows = els.lessonPic.querySelectorAll('.grp'), k;
+      for (k = 0; k < rows.length; k++) rows[k].classList.add('on');
+      els.lessonPic._n = lesson.p.a;
+    }
+    fitGroups(els.lessonPic, els.lesson, FIT_LESSON);
+    speak((lead || '') + lessonLines(lesson.p)[i], 0.9);
+  }
+
+  function closeLesson() {
+    clearTimeout(timers.count);
+    els.lesson.classList.add('hidden');
+    try { localStorage.setItem('jackTimesIntroSeen', '1'); } catch (e) {}
+    if (lesson.first) {
+      lesson.first = false;
+      enterPlay("Let's go!");
+    } else {
+      if (wrong >= 2) lightTile(current());   /* the count may have been cut short */
+      speak(questionText(current()), 0.9);
+    }
+  }
+
+  els.lessonNext.addEventListener('click', function () {
+    if (lesson.step < 2) lessonStep(lesson.step + 1);
+    else closeLesson();
+  });
+  els.lessonHear.addEventListener('click', function () { speak(lessonLines(lesson.p)[lesson.step], 0.9); });
+  els.lessonClose.addEventListener('click', closeLesson);
+  els.lessonPic.addEventListener('click', function () { countNext(els.lessonPic); });
+  els.lessonBtn.addEventListener('click', function () { openLesson(current(), false); });
+
   /* ================= Wiring ================= */
   els.playBtn.addEventListener('click', function () {
     audioReady();               /* iOS: the audio has to start inside this tap */
     if (hasTTS) pickVoice();
     els.startOverlay.remove();
-    enterPlay("Jack's Times Tables. Let's go!");
+    var seen = false;
+    try { seen = localStorage.getItem('jackTimesIntroSeen') === '1'; } catch (e) {}
+    if (seen) enterPlay("Jack's Times Tables. Let's go!");
+    else openLesson(LESSON_DEMO, true);
   });
 
   els.problem.addEventListener('click', function () { speak(questionText(current()), 0.9); });
   els.hearBtn.addEventListener('click', function () {
     var p = current();
-    if (wrong >= 2) speak(questionText(p) + ' ' + countIntro(p) + ' ' + countLine(p), 0.9);
+    if (wrong >= 2) talkBags(p, questionText(p) + ' ');
     else speak(questionText(p), 0.9);
   });
+  els.groups.addEventListener('click', function () { countNext(els.groups); });
+  els.ansGroups.addEventListener('click', function () { speak(bagsSentence(current()), 0.9); });
   els.equation.addEventListener('click', function () { speak(answerSentence(current()), 0.9); });
-  els.hearAnswerBtn.addEventListener('click', function () { speak(answerSentence(current()), 0.9); });
+  els.hearAnswerBtn.addEventListener('click', function () {
+    var p = current();
+    speak(answerSentence(p) + ' ' + bagsSentence(p), 0.9);
+  });
   els.nextBtn.addEventListener('click', nextProblem);
   els.netOverlay.addEventListener('click', function () { els.netOverlay.classList.add('hidden'); });
 
