@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#15803d">
+<title>Tens Frames: One More, One Less ⚽</title>
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" href="../icons/icon-192.png" sizes="192x192">
+<meta name="apple-mobile-web-app-title" content="Tens Frames">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Comic Sans MS", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #052e16 0%, #15803d 52%, #052e16 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    background: rgba(0,0,0,.24);
+  }
+  header .home {
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+  }
+  header h1 { font-size: clamp(1.1rem, 3.2vw, 1.6rem); flex: 0 1 auto; min-width: 0; }
+  @media (max-width: 620px) { header h1 { display: none; } }
+  #half {
+    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.3);
+    white-space: nowrap;
+  }
+  #score {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #score .ball.new { display: inline-block; animation: bounceIn .8s ease; }
+  #score .count { font-weight: 800; font-size: 1.3rem; margin-left: 6px; }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-40deg); }
+    60% { transform: scale(1.4) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #settingsBtn {
+    background: none; border: none; color: #fff;
+    font-size: 1.2rem; opacity: .45; cursor: pointer; padding: 6px;
+  }
+
+  /* ---------- Stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2vh, 20px);
+    padding: clamp(8px, 2vh, 22px) 12px calc(clamp(10px, 2.4vh, 24px) + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .hidden { display: none !important; }
+  .lead { font-size: clamp(1.05rem, 2.8vmin, 1.5rem); font-weight: 700; }
+  .lead .ls { color: #93c5fd; }
+  .lead .mo { color: #fdba74; }
+  .lead b { color: #fde047; }
+
+  /* ---------- The worksheet row: One less · the number · One more ---------- */
+  #pitch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(12px, 3vmin, 32px);
+    --cell: clamp(30px, min(6.4vmin, 8vw), 62px);
+  }
+  .side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: opacity .25s ease;
+  }
+  .side.idle { opacity: .5; }
+  .tag {
+    font-family: inherit;
+    font-weight: 900;
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 0 rgba(0,0,0,.25);
+  }
+  #tagLess { background: #2563eb; }
+  #tagMore { background: #ea580c; }
+  .tag .ans {
+    min-width: 1.4em;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: #fff;
+    color: #1e293b;
+    font-size: 1.15em;
+  }
+  .tag .ans:empty { display: none; }
+  .side.done .tag .ans { animation: bounceIn .5s ease; }
+
+  /* a tens frame: 2 rows of 5, the top row fills first */
+  .frame {
+    --c: var(--cell);
+    display: grid;
+    grid-template-columns: repeat(5, var(--c));
+    grid-template-rows: repeat(2, var(--c));
+    gap: 3px;
+    padding: 3px;
+    background: #1e293b;
+    border-radius: 8px;
+    touch-action: none;
+    transition: box-shadow .2s ease;
+  }
+  .cell {
+    width: var(--c);
+    height: var(--c);
+    background: #fff;
+    border-radius: 3px;
+    position: relative;
+    cursor: pointer;
+  }
+  .cell.on::after {
+    content: '';
+    position: absolute;
+    inset: 13%;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.2);
+  }
+  .cell.new::after { animation: bounceIn .35s ease; }
+  .cell.lift::after { opacity: .2; }
+  .cell.lit { outline: 4px solid #facc15; outline-offset: -4px; }
+  .side.active .frame { box-shadow: 0 0 0 6px #fde047, 0 6px 0 rgba(0,0,0,.25); }
+  .side.done .frame { box-shadow: 0 0 0 5px #4ade80; }
+  .frame.wrong { animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  #mid { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  #num {
+    font-family: inherit;
+    font-weight: 900;
+    font-size: calc(var(--cell) * 1.25);
+    line-height: 1;
+    width: calc(var(--cell) * 1.9);
+    height: calc(var(--cell) * 1.9);
+    border-radius: 22px;
+    border: 6px solid #fde047;
+    background: #fff;
+    color: #1e293b;
+    cursor: pointer;
+    box-shadow: 0 6px 0 rgba(0,0,0,.25);
+  }
+  #num.pulse { animation: pulse 1s ease 2; }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  .frame.mini { --c: calc(var(--cell) * .42); gap: 2px; padding: 2px; border-radius: 5px; }
+  .frame.mini .cell { cursor: default; }
+
+  /* ---------- The line of 20 loose dots ---------- */
+  #tray {
+    --ld: clamp(22px, min(4.2vw, 5vh), 38px);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 14px;
+    max-width: calc((var(--ld) + 6px) * 20 + 28px);
+    background: rgba(255,255,255,.14);
+    border-radius: 999px;
+    touch-action: none;
+  }
+  .ldot {
+    width: var(--ld);
+    height: var(--ld);
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.2);
+    cursor: grab;
+  }
+  .ldot.gone { visibility: hidden; }
+  .ldot.lift { opacity: .25; }
+  .ghost {
+    position: fixed;
+    z-index: 70;
+    width: 46px;
+    height: 46px;
+    margin: -23px 0 0 -23px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 6px 14px rgba(0,0,0,.4), inset 0 -4px 0 rgba(0,0,0,.2);
+    pointer-events: none;
+  }
+
+  /* phone in portrait: one above the other, the working frame big */
+  @media (orientation: portrait) and (max-width: 760px) {
+    #pitch {
+      flex-direction: column;
+      gap: 10px;
+      --cell: clamp(30px, min(14vw, 7vh), 60px);
+    }
+    #mid { order: -1; flex-direction: row; gap: 14px; }
+    #num { width: calc(var(--cell) * 1.5); height: calc(var(--cell) * 1.5); font-size: calc(var(--cell) * 1.05); border-radius: 16px; }
+    main { gap: 8px; }
+    .side { gap: 6px; }
+    .side:not(.active) .frame { --c: calc(var(--cell) * .55); gap: 2px; padding: 2px; }
+    #tray { --ld: clamp(20px, min(7.2vw, 4.4vh), 36px); max-width: calc((var(--ld) + 6px) * 10 + 28px); border-radius: 26px; }
+  }
+
+  /* ---------- Buttons ---------- */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: clamp(11px, 2vh, 17px) clamp(20px, 5vw, 40px);
+    font-size: clamp(1rem, 2.8vmin, 1.4rem);
+    box-shadow: 0 8px 0 rgba(0,0,0,.25);
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+  }
+  .btn:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .btn.big { background: linear-gradient(145deg, #f59e0b, #d97706); }
+  .btn.ok { background: linear-gradient(145deg, #22c55e, #15803d); font-size: clamp(1.15rem, 3.4vmin, 1.7rem); }
+  .btn.quiet {
+    background: rgba(0,0,0,.32);
+    box-shadow: none;
+    font-size: clamp(.9rem, 2.2vmin, 1.15rem);
+    padding: clamp(10px, 1.6vh, 14px) clamp(16px, 4vw, 30px);
+  }
+
+  /* ---------- Half time / full time board ---------- */
+  #boardBox { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2vh, 18px); }
+  #boardTitle { font-size: clamp(1.5rem, 5.6vmin, 2.8rem); font-weight: 800; }
+  #board {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(6px, 1.4vmin, 12px);
+    justify-content: center;
+    max-width: 720px;
+  }
+  .chip {
+    font-family: inherit;
+    font-size: clamp(1.05rem, 3vmin, 1.5rem);
+    font-weight: 900;
+    padding: clamp(8px, 1.6vh, 14px) clamp(12px, 2.6vw, 20px);
+    border-radius: 16px;
+    border: 3px solid #fde047;
+    background: #fff;
+    color: #1e293b;
+    cursor: pointer;
+  }
+  .chip .ls { color: #1d4ed8; }
+  .chip .mo { color: #ea580c; }
+  .chip small { display: block; font-size: .55em; font-weight: 700; opacity: .6; }
+  .chip.saying { outline: 4px solid #fde047; outline-offset: 3px; }
+
+  /* ---------- Overlays ---------- */
+  #startOverlay, #settingsPanel { position: fixed; z-index: 60; }
+  #startOverlay {
+    inset: 0;
+    background: linear-gradient(160deg, #052e16 0%, #15803d 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vh, 34px);
+    text-align: center;
+    padding: 24px;
+  }
+  #startOverlay h2 { font-size: clamp(1.5rem, 6vmin, 2.8rem); }
+  #startOverlay p { max-width: 30ch; opacity: .92; font-size: clamp(.95rem, 2.4vmin, 1.2rem); line-height: 1.5; }
+  #playBtn { font-size: clamp(1.6rem, 5vmin, 2.6rem); padding: clamp(16px, 3vh, 26px) clamp(34px, 8vw, 64px); }
+  #settingsPanel {
+    top: 58px; right: 12px;
+    background: #fff; color: #1e293b;
+    border-radius: 16px; padding: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column; gap: 10px; font-size: .95rem;
+  }
+  #settingsPanel button {
+    font-family: inherit; font-size: .95rem; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #cbd5e1; background: #f1f5f9; cursor: pointer;
+  }
+
+  .confetti {
+    position: fixed;
+    top: -6vh;
+    font-size: 2rem;
+    animation: fall linear forwards;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes fall { to { transform: translateY(112vh) rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="home" href="../" title="All games">🏠</a>
+  <h1>One more, one less</h1>
+  <span id="half">Kick off</span>
+  <div id="score"></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main>
+  <p class="lead hidden" id="lead"></p>
+
+  <div id="pitch" class="hidden">
+    <div class="side" id="sideLess">
+      <button class="tag" id="tagLess" type="button"><span>One less</span><b class="ans"></b></button>
+      <div class="frame" id="frameLess"></div>
+    </div>
+    <div id="mid">
+      <button id="num" type="button"></button>
+      <div class="frame mini" id="frameMid"></div>
+    </div>
+    <div class="side" id="sideMore">
+      <button class="tag" id="tagMore" type="button"><span>One more</span><b class="ans"></b></button>
+      <div class="frame" id="frameMore"></div>
+    </div>
+  </div>
+
+  <div id="tray" class="hidden"></div>
+
+  <div class="row hidden" id="btnRow">
+    <button class="btn quiet" id="sayBtn">🔊 Say it again</button>
+    <button class="btn ok" id="doneBtn">✓ Done</button>
+    <button class="btn big" id="nextBtn">Next ➜</button>
+  </div>
+
+  <div id="boardBox" class="hidden">
+    <div id="boardTitle"></div>
+    <p id="boardText" class="lead"></p>
+    <div id="board"></div>
+    <div class="row">
+      <button class="btn quiet" id="boardSayBtn">🔊 Say them all</button>
+      <button class="btn big" id="boardBtn"></button>
+    </div>
+  </div>
+</main>
+
+<div id="startOverlay">
+  <h2>⚽ One more, one less ⚽</h2>
+  <p>Tens frames.<br>Move the dots to show one less and one more.<br>One less · 6 · One more</p>
+  <button id="playBtn" class="btn big">▶ Kick off</button>
+</div>
+
+<div id="settingsPanel" class="hidden">
+  <label><input type="checkbox" id="slowToggle"> Slower talking</label>
+  <button id="resetBtn">Reset score</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Homework =================
+     Mathematics - Homework Week 2: one more and one less using tens frames.
+     "Please use the tens frames provided and move the dots to show one more
+      and one less for the numbers shown."  Row one: One less · 6 · One more
+     (the frames hold 6 = five on top, one below, and 7). Row two: One less ·
+     8 · One more with empty frames, and a line of 20 loose dots to move.
+
+     A match starts with 6 shown and read out step by step: take one dot away
+     (five), put one more dot in (seven). First half: the frames already hold
+     the number, he takes one dot out for One less and moves one in for One
+     more. Second half (starting with 8): the frames are empty and he moves
+     the dots in from the line. A dot moves by a tap or a drag. One football
+     ⚽ for every number done both ways. */
+
+  var CONFETTI = ['⚽', '⭐', '🎉', '🌟', '🔴'];
+  var TRAY_DOTS = 20;
+
+  /* ==== TEXT-CORE ====
+     Everything the game can say is built in here and nowhere else. It touches
+     no DOM, so the phrase list for the voice clips can be generated straight
+     out of this block. */
+
+  var WORDS = ['zero', 'one', 'two', 'three', 'four', 'five',
+               'six', 'seven', 'eight', 'nine', 'ten'];
+  var EXAMPLE_N = 6;          /* row one of the sheet */
+  var FIRST_EMPTY_N = 8;      /* row two of the sheet: empty frames */
+  var MIN_N = 1, MAX_N = 9;   /* one less >= 0, one more <= 10: fits a tens frame */
+  var ROUNDS_PER_HALF = 4;
+
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function targetOf(which, n) { return which === 'less' ? n - 1 : n + 1; }
+
+  function countSay(k) { return WORDS[k]; }                  /* a dot moved: "five" */
+  function numberSay(n) { return WORDS[n]; }                 /* the number tapped */
+  function frameSay(which) { return which === 'less' ? 'One less.' : 'One more.'; }
+  function dotsSay(k) { return cap(WORDS[k]) + (k === 1 ? ' dot.' : ' dots.'); }
+
+  function askSay(which, n) {
+    return (which === 'less' ? 'Show one less than ' : 'Show one more than ') + WORDS[n] + '.';
+  }
+  /* first half: the frames hold the number already; second half: empty */
+  function hintSay(which, half) {
+    if (half === 1) return which === 'less' ? 'Take one dot away.' : 'Put one more dot in.';
+    return 'Move the dots into the tens frame.';
+  }
+  function introSay(half) {
+    return half === 1 ? 'The dots are in the tens frames. Move the dots to show one less and one more.'
+                      : 'Now the tens frames are empty.';
+  }
+  function taskSay(which, n, half, first) {
+    return (first ? introSay(half) + ' ' : '') + askSay(which, n) + ' ' + hintSay(which, half);
+  }
+
+  /* "Five is one less than six." */
+  function relSay(which, n) {
+    return cap(WORDS[targetOf(which, n)]) + ' is ' +
+           (which === 'less' ? 'one less' : 'one more') + ' than ' + WORDS[n] + '.';
+  }
+  function yesSay(which, n) { return 'Yes! ' + relSay(which, n); }
+  function goalSay(n) { return 'Goal! ' + relSay('more', n); }
+  function goalShort() { return 'Goal!'; }
+  function rowSay(n) { return relSay('less', n) + ' ' + relSay('more', n); }
+
+  function wrongSay(have, which, n) {
+    return 'You have ' + WORDS[have] + (have === 1 ? ' dot.' : ' dots.') + ' ' +
+           (have > targetOf(which, n) ? 'That is too many.' : 'That is not enough.') + ' ' +
+           askSay(which, n);
+  }
+  function fullSay() { return 'The tens frame is full.'; }
+
+  /* after two wrong tries the game moves the dots itself */
+  var SHOW_SAY = 'Let me show you.';
+  function moveSay(which) { return which === 'less' ? 'Take one away.' : 'Add one more.'; }
+
+  function scoredSay(n) { return 'You scored ' + WORDS[n] + (n === 1 ? ' goal.' : ' goals.'); }
+  function halfTimeSay(n) {
+    return 'Half time! ' + scoredSay(n) + ' In the second half, the tens frames are empty.';
+  }
+  function fullTimeSay(n) { return 'Full time! ' + scoredSay(n) + ' Brilliant!'; }
+
+  /* the example, line by line (6: one less is 5, one more is 7) */
+  var EXAMPLE_SAY = [
+    'Here is the example. Use the tens frames to show one more and one less.',
+    'This is the number ' + WORDS[EXAMPLE_N] + '.',
+    dotsSay(EXAMPLE_N) + ' Five on the top, one on the bottom.',
+    frameSay('less') + ' ' + hintSay('less', 1),
+    countSay(EXAMPLE_N - 1),
+    relSay('less', EXAMPLE_N),
+    frameSay('more') + ' ' + hintSay('more', 1),
+    countSay(EXAMPLE_N + 1),
+    relSay('more', EXAMPLE_N),
+    'Now it is your turn!'
+  ];
+
+  function norm(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+  function bare(t) { return norm(t).replace(/[.!?]+$/, ''); }
+
+  /* A line is spoken segment by segment, split after . ! ? and a space, and
+     every segment is its own clip. Written out by hand because a lookbehind
+     regex would not parse on older phones. */
+  function segments(text) {
+    var t = norm(text), out = [], buf = '', i = 0;
+    while (i < t.length) {
+      var ch = t.charAt(i);
+      buf += ch;
+      i++;
+      if ((ch === '.' || ch === '!' || ch === '?') && /\s/.test(t.charAt(i))) {
+        while (i < t.length && /\s/.test(t.charAt(i))) i++;
+        if (buf.trim()) out.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+
+  /* every line the game can play, one segment per entry */
+  function phraseList() {
+    var out = [], seen = {}, i, n, k, h, w, both = ['less', 'more'];
+    function add(s) { var b = bare(s); if (b && !seen[b]) { seen[b] = 1; out.push(s); } }
+    function addAll(text) { var p = segments(text); for (var q = 0; q < p.length; q++) add(p[q]); }
+    for (i = 0; i < EXAMPLE_SAY.length; i++) addAll(EXAMPLE_SAY[i]);
+    for (k = 0; k <= 10; k++) { addAll(countSay(k)); addAll(dotsSay(k)); }
+    for (i = 0; i < 2; i++) addAll(frameSay(both[i]));
+    addAll(fullSay());
+    addAll(SHOW_SAY);
+    addAll(goalShort());
+    for (i = 0; i < 2; i++) addAll(moveSay(both[i]));
+    for (n = MIN_N; n <= MAX_N; n++) {
+      addAll(numberSay(n));
+      addAll(rowSay(n));
+      addAll(goalSay(n));
+      for (i = 0; i < 2; i++) {
+        w = both[i];
+        addAll(relSay(w, n));
+        addAll(yesSay(w, n));
+        for (h = 1; h <= 2; h++) {
+          addAll(taskSay(w, n, h, true));
+          addAll(taskSay(w, n, h, false));
+          addAll(yesSay(w, n) + ' ' + taskSay(w, n, h, false));
+        }
+        for (k = 0; k <= 10; k++) addAll(wrongSay(k, w, n));
+      }
+    }
+    for (k = 0; k <= 10; k++) { addAll(halfTimeSay(k)); addAll(fullTimeSay(k)); }
+    return out;
+  }
+  /* ==== END TEXT-CORE ==== */
+
+  if (typeof window === 'undefined') return;
+  window.__phrases = phraseList;
+
+  /* ================= State ================= */
+  var SCORE_KEY = 'jackHw_hw20261113mathematicshomeworkwee3';
+  var SLOW_KEY  = 'jackHw_hw20261113mathematicshomeworkwee3_slow';
+
+  var footballs = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10) || 0;
+  var slow      = localStorage.getItem(SLOW_KEY) === 'yes';
+
+  var half = 1;
+  var round = 0;
+  var queue1 = [], queue2 = [];
+  var done = [];          /* numbers finished this match */
+  var n = EXAMPLE_N;      /* the number shown */
+  var frames = { less: 0, more: 0 };       /* dots in each frame */
+  var finished = { less: false, more: false };
+  var active = null;      /* the frame he is working on: 'less' | 'more' */
+  var attempts = 0;
+  var busy = false;
+  var mode = 'start';     /* start | example | round | finished | board */
+  var flowToken = 0;      /* cancels a talking sequence */
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    score: $('score'), half: $('half'), lead: $('lead'),
+    pitch: $('pitch'), tray: $('tray'), num: $('num'), frameMid: $('frameMid'),
+    sideLess: $('sideLess'), sideMore: $('sideMore'),
+    tagLess: $('tagLess'), tagMore: $('tagMore'),
+    frameLess: $('frameLess'), frameMore: $('frameMore'),
+    btnRow: $('btnRow'), sayBtn: $('sayBtn'), doneBtn: $('doneBtn'), nextBtn: $('nextBtn'),
+    boardBox: $('boardBox'), boardTitle: $('boardTitle'), boardText: $('boardText'),
+    board: $('board'), boardSayBtn: $('boardSayBtn'), boardBtn: $('boardBtn'),
+    startOverlay: $('startOverlay'), playBtn: $('playBtn'),
+    settingsBtn: $('settingsBtn'), settingsPanel: $('settingsPanel'),
+    slowToggle: $('slowToggle'), resetBtn: $('resetBtn')
+  };
+  var SIDE  = { less: els.sideLess,  more: els.sideMore };
+  var TAG   = { less: els.tagLess,   more: els.tagMore };
+  var FRAME = { less: els.frameLess, more: els.frameMore };
+
+  function save() {
+    localStorage.setItem(SCORE_KEY, String(footballs));
+    localStorage.setItem(SLOW_KEY, slow ? 'yes' : 'no');
+  }
+
+  /* ================= Voice =================
+     He cannot read yet, so every line is spoken. The browser's own voice
+     sounds like a computer, so every line is pre-rendered with a neural
+     en-GB voice (tools/build-audio.py) and played back through Web Audio,
+     segment by segment. speechSynthesis is only the fallback for a segment
+     that has no clip. speak() calls done() when the line has finished — with
+     a timer as a safety net, because iOS does not always fire onend. */
+  var hasSpeech = 'speechSynthesis' in window;
+  var hasAudio = !!(window.AudioContext || window.webkitAudioContext);
+  var hasTTS = hasSpeech || hasAudio;
+  var voice = null;
+
+  var CLIP_DIR = '../audio/hw-20261113-mathematics-homework-wee-3/';
+  var clips = null;          /* exact line -> mp3 file */
+  var clipsLoose = null;     /* the same without a final . ! ? */
+  var buffers = {};          /* file -> decoded AudioBuffer */
+  var spans = {};            /* file -> { start, dur }: the speech inside the clip */
+  var loading = {};          /* file -> in-flight promise */
+  var actx = null;
+  var sources = [];          /* clips still playing */
+  var speakToken = 0;        /* cancels a line that has been talked over */
+  window.__clipPlays = 0;    /* handy when checking the page is really using clips */
+  window.__clipMisses = [];  /* segments that had to fall back to speechSynthesis */
+
+  var clipsReady = (function () {
+    var load = (typeof fetch === 'function')
+      ? fetch(CLIP_DIR + 'manifest.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) {
+            if (!m || !m.clips) return;
+            clips = m.clips;
+            clipsLoose = {};
+            for (var k in clips) {
+              var b = bare(k);
+              if (!(b in clipsLoose)) clipsLoose[b] = clips[k];
+            }
+          })
+          .catch(function () { /* no clips: Web Speech carries the game */ })
+      : Promise.resolve();
+    /* never let a stuck download keep the game silent */
+    return Promise.race([load, new Promise(function (res) { setTimeout(res, 3000); })]);
+  })();
+
+  function clipFor(text) {
+    var t = norm(text);
+    if (!t || !clips) return null;
+    return clips[t] || (clipsLoose ? clipsLoose[bare(t)] : null) || null;
+  }
+
+  /* iOS only starts audio inside a real tap: the context is made on the first
+     pointer down (the ▶ button) and resumed on every tap after that. */
+  function audioReady() {
+    if (!hasAudio) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { hasAudio = false; return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  document.addEventListener('pointerdown', audioReady, true);
+  document.addEventListener('touchstart', audioReady, true);
+
+  /* Every clip comes with a little silence in front and a longer tail behind.
+     Played back to back that is a robot pause, so only the speech is played
+     and the gap between two clips is a breath (GAP_MS). */
+  var GAP_MS = 170;
+  function speechSpan(buf) {
+    var d = buf.getChannelData(0), n = d.length, rate = buf.sampleRate;
+    var floor = 0.006;                         /* about -45 dB */
+    var a = 0, b = n - 1;
+    while (a < n && Math.abs(d[a]) < floor) a++;
+    while (b > a && Math.abs(d[b]) < floor) b--;
+    if (a >= b) return { start: 0, dur: buf.duration };
+    a = Math.max(0, a - Math.floor(rate * 0.04));
+    b = Math.min(n - 1, b + Math.floor(rate * 0.08));    /* the fade of the last sound */
+    return { start: a / rate, dur: (b - a + 1) / rate };
+  }
+
+  function loadClip(file) {
+    if (buffers[file]) return Promise.resolve(buffers[file]);
+    if (loading[file]) return loading[file];
+    if (!actx) {
+      if (typeof fetch === 'function') fetch(CLIP_DIR + file).catch(function () {});
+      return Promise.reject(new Error('no audio yet'));
+    }
+    var ac = audioReady();
+    if (!ac) return Promise.reject(new Error('no audio yet'));
+    loading[file] = fetch(CLIP_DIR + file)
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) {
+        return new Promise(function (res, rej) {
+          var p = ac.decodeAudioData(ab, res, rej);
+          if (p && p.then) p.then(res, rej);
+        });
+      })
+      .then(function (buf) { buffers[file] = buf; spans[file] = speechSpan(buf); delete loading[file]; return buf; },
+            function (e) { delete loading[file]; throw e; });
+    return loading[file];
+  }
+
+  /* warm the clips so a tap answers at once */
+  function preload(list) {
+    if (!list || !list.length) return;
+    clipsReady.then(function () {
+      for (var i = 0; i < list.length; i++) {
+        var parts = segments(list[i]);
+        for (var j = 0; j < parts.length; j++) {
+          var f = clipFor(parts[j]);
+          if (f && !buffers[f]) loadClip(f).catch(function () {});
+        }
+      }
+    });
+  }
+
+  function pickVoice() {
+    if (!hasSpeech) return;
+    var vs = speechSynthesis.getVoices();
+    var en = vs.filter(function (v) { return /^en([-_]|$)/i.test(v.lang); });
+    var gb = en.filter(function (v) { return /GB/i.test(v.lang); });
+    var find = function (list, re) {
+      for (var i = 0; i < list.length; i++) if (re.test(list[i].name)) return list[i];
+      return null;
+    };
+    var female = /(Sonia|Libby|Hazel|Serena|Kate|Martha|Stephanie|Fiona|Samantha|Karen|Moira)/i;
+    var good = /(Enhanced|Premium|Natural)/i;
+    voice =
+      find(gb, good) ||
+      find(gb, /Google UK English Female/i) ||
+      find(gb, female) || gb[0] ||
+      find(en, good) || find(en, female) || en[0] || null;
+  }
+
+  function stopSpeaking() {
+    speakToken++;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].onended = null; sources[i].stop(0); } catch (e) {}
+    }
+    sources = [];
+    if (hasSpeech) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+
+  /* the fallback: only used for a segment that has no clip */
+  function say(text, my, done, rate) {
+    window.__clipMisses.push(text);
+    var factor = slow ? 1.25 : 1;
+    if (!hasSpeech) {
+      setTimeout(function () { if (my === speakToken && done) done(); }, (600 + text.length * 45) * factor);
+      return;
+    }
+    var finished = false;
+    var guard = null;
+    var fin = function () {
+      if (finished) return;
+      finished = true;
+      clearTimeout(guard);
+      if (my === speakToken && done) done();
+    };
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = 'en-GB';
+      u.rate = (rate || 0.9) * (slow ? 0.8 : 1);
+      u.onend = fin;
+      u.onerror = fin;
+      guard = setTimeout(fin, (2500 + text.length * 110) * factor);
+      /* iOS Safari drops an utterance queued in the same tick as cancel() */
+      setTimeout(function () { if (my === speakToken) speechSynthesis.speak(u); }, 40);
+    } catch (e) { fin(); }
+  }
+
+  /* Plays a list of clip texts one after another, a breath between them.
+     `done` fires after the last one, unless something talked over it. */
+  function speakParts(parts, done, rate) {
+    stopSpeaking();
+    var my = speakToken;
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) { if (done) done(); return; }
+    if (!hasTTS) {
+      var len = parts.join(' ').length;
+      if (done) setTimeout(function () { if (my === speakToken) done(); }, (600 + len * 45) * (slow ? 1.25 : 1));
+      return;
+    }
+    clipsReady.then(function () {
+      if (my !== speakToken) return;
+      (function step(i) {
+        if (my !== speakToken) return;
+        if (i >= parts.length) { if (done) done(); return; }
+        var onward = function () { step(i + 1); };
+        var file = clipFor(parts[i]);
+        var ac = file ? audioReady() : null;
+        if (file && ac) {
+          loadClip(file).then(function (buf) {
+            if (my !== speakToken) return;
+            var src = ac.createBufferSource();
+            src.buffer = buf;
+            src.connect(ac.destination);
+            src.onended = function () {
+              var k = sources.indexOf(src);
+              if (k >= 0) sources.splice(k, 1);
+              if (my === speakToken) setTimeout(function () { if (my === speakToken) onward(); }, GAP_MS);
+            };
+            sources.push(src);
+            window.__clipPlays++;
+            var span = spans[file] || { start: 0, dur: buf.duration };
+            src.start(0, span.start, span.dur);
+          }, function () { say(parts[i], my, onward, rate); });
+        } else {
+          say(parts[i], my, onward, rate);
+        }
+      })(0);
+    });
+  }
+
+  /* one line, cut into its segments */
+  function speak(text, done, rate) {
+    speakParts(segments(text), done, rate);
+  }
+
+  if (hasSpeech) {
+    pickVoice();
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function stopAll() {
+    flowToken++;
+    stopSpeaking();
+  }
+
+  /* Run a list of { act, say } one after another, each line waiting for
+     the one before it to finish. Anything else that talks stops it. */
+  function sequence(list) {
+    var token = ++flowToken;
+    (function next(i) {
+      if (token !== flowToken || i >= list.length) return;
+      var s = list[i];
+      if (s.act) s.act();
+      if (s.say) speak(s.say, function () { setTimeout(function () { next(i + 1); }, 300); }, s.rate);
+      else setTimeout(function () { next(i + 1); }, s.wait || 500);
+    })(0);
+  }
+
+  /* ================= Small helpers ================= */
+  function celebrate(count) {
+    for (var i = 0; i < count; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.textContent = CONFETTI[Math.floor(Math.random() * CONFETTI.length)];
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      document.body.appendChild(c);
+      setTimeout(function (el) { el.remove(); }.bind(null, c), 4200);
+    }
+  }
+
+  function renderScore(justScored) {
+    var html = '';
+    if (footballs <= 9) {
+      for (var i = 0; i < footballs; i++) {
+        html += '<span class="ball' + (justScored && i === footballs - 1 ? ' new' : '') + '">⚽</span>';
+      }
+    } else {
+      html = '<span class="ball' + (justScored ? ' new' : '') + '">⚽</span><span class="count">× ' + footballs + '</span>';
+    }
+    els.score.innerHTML = html;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  /* ================= Screens ================= */
+  var ALL = ['lead', 'pitch', 'tray', 'btnRow', 'boardBox'];
+  function show(list, buttons) {
+    ALL.forEach(function (id) { els[id].classList.toggle('hidden', list.indexOf(id) === -1); });
+    buttons = buttons || [];
+    ['sayBtn', 'doneBtn', 'nextBtn'].forEach(function (id) {
+      els[id].classList.toggle('hidden', buttons.indexOf(id) === -1);
+    });
+  }
+
+  /* ================= Tens frames ================= */
+  function buildFrame(el) {
+    el.innerHTML = '';
+    for (var i = 0; i < 10; i++) {
+      var c = document.createElement('div');
+      c.className = 'cell';
+      c.setAttribute('data-i', String(i));
+      el.appendChild(c);
+    }
+  }
+
+  function paintFrame(el, count, popAt) {
+    var cells = el.querySelectorAll('.cell');
+    for (var i = 0; i < cells.length; i++) {
+      cells[i].className = 'cell' + (i < count ? ' on' : '') + (i === popAt ? ' new' : '');
+    }
+  }
+
+  function trayCount() { return TRAY_DOTS - frames.less - frames.more; }
+
+  function buildTray() {
+    els.tray.innerHTML = '';
+    for (var i = 0; i < TRAY_DOTS; i++) {
+      var d = document.createElement('div');
+      d.className = 'ldot';
+      els.tray.appendChild(d);
+    }
+  }
+  function paintTray() {
+    var dots = els.tray.querySelectorAll('.ldot'), left = trayCount();
+    for (var i = 0; i < dots.length; i++) dots[i].className = 'ldot' + (i < left ? '' : ' gone');
+  }
+
+  function setCount(which, c, pop) {
+    frames[which] = Math.max(0, Math.min(10, c));
+    paintFrame(FRAME[which], frames[which], pop ? frames[which] - 1 : -1);
+    paintTray();
+  }
+
+  function setNumber(value, withPicture) {
+    els.num.textContent = String(value);
+    paintFrame(els.frameMid, value, -1);
+    els.frameMid.classList.toggle('hidden', !withPicture);
+  }
+
+  function paintSides() {
+    ['less', 'more'].forEach(function (w) {
+      var s = SIDE[w];
+      s.classList.toggle('active', active === w);
+      s.classList.toggle('done', finished[w]);
+      s.classList.toggle('idle', mode === 'round' && active !== w && !finished[w]);
+      TAG[w].querySelector('.ans').textContent =
+        finished[w] ? String(targetOf(w, n)) : (active === w ? '?' : '');
+    });
+  }
+
+  function leadFor(which) {
+    return which === 'less'
+      ? 'Show <span class="ls">one less</span> than <b>' + n + '</b>'
+      : 'Show <span class="mo">one more</span> than <b>' + n + '</b>';
+  }
+
+  /* ================= Moving dots ================= */
+  function addDot() {
+    var c = frames[active];
+    if (c >= 10) { speak(fullSay()); return; }
+    if (trayCount() <= 0) return;
+    setCount(active, c + 1, true);
+    speak(countSay(c + 1), null, 0.85);
+  }
+
+  function removeDot() {
+    var c = frames[active];
+    if (c <= 0) return;
+    setCount(active, c - 1);
+    speak(countSay(c - 1), null, 0.85);
+  }
+
+  function canMove() { return mode === 'round' && !busy && !!active; }
+
+  /* a tap moves one dot; a drag carries it there */
+  var drag = null;
+
+  function lastDotCell(which) {
+    return frames[which] > 0 ? FRAME[which].querySelectorAll('.cell')[frames[which] - 1] : null;
+  }
+  function lastTrayDot() {
+    var left = trayCount();
+    return left > 0 ? els.tray.querySelectorAll('.ldot')[left - 1] : null;
+  }
+
+  function tapOtherFrame(which) {
+    if (mode !== 'round' && mode !== 'finished') return;
+    if (busy && mode === 'round') return;
+    if (finished[which]) speak(relSay(which, n));
+    else if (active) speak(askSay(active, n));
+  }
+
+  function onDown(e) {
+    var frameEl = e.target.closest ? e.target.closest('.frame') : null;
+    var inTray = e.target.closest ? e.target.closest('#tray') : null;
+    if (frameEl && frameEl !== els.frameLess && frameEl !== els.frameMore) return;
+    if (frameEl) {
+      var which = frameEl === els.frameLess ? 'less' : 'more';
+      if (!canMove() || which !== active) { tapOtherFrame(which); return; }
+      var cell = e.target.closest('.cell');
+      if (!cell) return;
+      e.preventDefault();
+      if (!cell.classList.contains('on')) { addDot(); return; }
+      var src = lastDotCell(which);
+      drag = { from: 'frame', src: src, x0: e.clientX, y0: e.clientY, ghost: null };
+    } else if (inTray) {
+      if (!canMove()) return;
+      var dot = lastTrayDot();
+      if (!dot) return;
+      e.preventDefault();
+      drag = { from: 'tray', src: dot, x0: e.clientX, y0: e.clientY, ghost: null };
+    }
+  }
+
+  function onMove(e) {
+    if (!drag) return;
+    var dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+    if (!drag.ghost && dx * dx + dy * dy > 100) {
+      drag.ghost = document.createElement('div');
+      drag.ghost.className = 'ghost';
+      document.body.appendChild(drag.ghost);
+      if (drag.src) drag.src.classList.add('lift');
+    }
+    if (drag.ghost) {
+      drag.ghost.style.left = e.clientX + 'px';
+      drag.ghost.style.top = e.clientY + 'px';
+      e.preventDefault();
+    }
+  }
+
+  function endDrag() {
+    if (!drag) return null;
+    var d = drag;
+    drag = null;
+    if (d.ghost) d.ghost.remove();
+    if (d.src) d.src.classList.remove('lift');
+    return d;
+  }
+
+  function onUp(e) {
+    var d = endDrag();
+    if (!d || !canMove()) return;
+    if (!d.ghost) {                       /* a tap */
+      if (d.from === 'tray') addDot(); else removeDot();
+      return;
+    }
+    var hit = document.elementFromPoint(e.clientX, e.clientY);
+    var onActive = !!(hit && hit.closest && hit.closest('.side') === SIDE[active]);
+    if (d.from === 'tray' && onActive) addDot();
+    else if (d.from === 'frame' && !onActive) removeDot();
+  }
+
+  els.pitch.addEventListener('pointerdown', onDown);
+  els.tray.addEventListener('pointerdown', onDown);
+  document.addEventListener('pointermove', onMove, { passive: false });
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', endDrag);
+
+  /* ================= The example: 6 → one less 5, one more 7 ================= */
+  function enterExample() {
+    stopAll();
+    mode = 'example';
+    n = EXAMPLE_N;
+    els.half.textContent = 'Example';
+    els.lead.textContent = 'The first one is an example. 👀';
+    els.nextBtn.textContent = 'My turn ➜';
+    show(['lead', 'pitch', 'tray', 'btnRow'], ['sayBtn', 'nextBtn']);
+    playExample();
+  }
+
+  function playExample() {
+    stopAll();
+    active = null;
+    finished.less = finished.more = false;
+    setNumber(EXAMPLE_N, true);
+    setCount('less', EXAMPLE_N);
+    setCount('more', EXAMPLE_N);
+    paintSides();
+    var lit = function (on) {
+      var cells = els.frameMid.querySelectorAll('.cell');
+      for (var i = 0; i < cells.length; i++) cells[i].classList.toggle('lit', on && i < EXAMPLE_N);
+    };
+    sequence([
+      { say: EXAMPLE_SAY[0] },
+      { act: function () { els.num.classList.remove('pulse'); void els.num.offsetWidth; els.num.classList.add('pulse'); },
+        say: EXAMPLE_SAY[1] },
+      { act: function () { lit(true); }, say: EXAMPLE_SAY[2] },
+      { act: function () { lit(false); active = 'less'; paintSides(); }, say: EXAMPLE_SAY[3] },
+      { act: function () { setCount('less', EXAMPLE_N - 1); }, say: EXAMPLE_SAY[4] },
+      { act: function () { finished.less = true; active = null; paintSides(); }, say: EXAMPLE_SAY[5] },
+      { act: function () { active = 'more'; paintSides(); }, say: EXAMPLE_SAY[6] },
+      { act: function () { setCount('more', EXAMPLE_N + 1, true); }, say: EXAMPLE_SAY[7] },
+      { act: function () { finished.more = true; active = null; paintSides(); }, say: EXAMPLE_SAY[8] },
+      { say: EXAMPLE_SAY[9] }
+    ]);
+  }
+
+  /* ================= A round ================= */
+  function current() { return half === 1 ? queue1[round] : queue2[round]; }
+
+  function taskLine(first) { return taskSay(active, n, half, first); }
+
+  function enterRound() {
+    stopAll();
+    mode = 'round';
+    busy = false;
+    n = current();
+    attempts = 0;
+    active = 'less';
+    finished.less = finished.more = false;
+    els.half.textContent = (half === 1 ? 'First half · ' : 'Second half · ') + (round + 1) + '/' + ROUNDS_PER_HALF;
+    /* first half: the frames hold the number; second half: empty frames */
+    var start = half === 1 ? n : 0;
+    setNumber(n, half === 1);
+    setCount('less', start);
+    setCount('more', start);
+    paintSides();
+    els.lead.innerHTML = leadFor('less');
+    show(['lead', 'pitch', 'tray', 'btnRow'], ['sayBtn', 'doneBtn']);
+    var first = round === 0;
+    setTimeout(function () {
+      if (mode === 'round' && active === 'less' && !busy) speak(taskLine(first));
+    }, 300);
+  }
+
+  function check() {
+    if (!canMove()) return;
+    stopAll();
+    var have = frames[active];
+    if (have === targetOf(active, n)) { advance(false); return; }
+    attempts++;
+    var f = FRAME[active];
+    f.classList.remove('wrong');
+    void f.offsetWidth;
+    f.classList.add('wrong');
+    if (attempts >= 2) showIt();
+    else speak(wrongSay(have, active, n));
+  }
+
+  /* two wrong tries: the game moves the dots and says why */
+  function showIt() {
+    busy = true;
+    var which = active;
+    sequence([
+      { say: SHOW_SAY },
+      { act: function () { setCount(which, n); }, say: dotsSay(n) },
+      { act: function () { setCount(which, targetOf(which, n), which === 'more'); }, say: moveSay(which) },
+      { say: relSay(which, n) },
+      { act: function () { busy = false; advance(true); } }
+    ]);
+    /* never leave the frames locked */
+    setTimeout(function () { if (busy && active === which && mode === 'round') { busy = false; } }, 20000);
+  }
+
+  function advance(shown) {
+    if (mode !== 'round') return;
+    var which = active;
+    finished[which] = true;
+    attempts = 0;
+    if (which === 'less') {
+      active = 'more';
+      paintSides();
+      els.lead.innerHTML = leadFor('more');
+      speak(shown ? taskLine(false) : yesSay('less', n) + ' ' + taskLine(false));
+      return;
+    }
+    active = null;
+    finishRound(shown);
+  }
+
+  function finishRound(shown) {
+    busy = true;
+    mode = 'finished';
+    paintSides();
+    done.push(n);
+    footballs++;
+    save();
+    renderScore(true);
+    celebrate(22);
+    els.lead.innerHTML = 'GOAL! ⚽ <span class="ls">' + (n - 1) + '</span> · <b>' + n + '</b> · <span class="mo">' + (n + 1) + '</span>';
+    var last = round === ROUNDS_PER_HALF - 1;
+    els.nextBtn.textContent = last ? (half === 1 ? 'Half time ➜' : 'Full time ➜') : 'Next ➜';
+    show(['lead', 'pitch', 'tray', 'btnRow'], ['sayBtn', 'nextBtn']);
+    speak(shown ? goalShort() : goalSay(n));
+  }
+
+  function nextRound() {
+    stopAll();
+    endDrag();
+    if (mode === 'example') { half = 1; round = 0; enterRound(); return; }
+    round++;
+    if (round >= ROUNDS_PER_HALF) {
+      if (half === 1) enterHalfTime(); else enterFullTime();
+      return;
+    }
+    enterRound();
+  }
+
+  /* ================= Board ================= */
+  function renderBoard() {
+    els.board.innerHTML = '';
+    done.forEach(function (v, i) {
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.innerHTML = '<span class="ls">' + (v - 1) + '</span> · ' + v + ' · <span class="mo">' + (v + 1) +
+        '</span><small>one less · · one more</small>';
+      b.addEventListener('click', function () { sayChip(i); });
+      els.board.appendChild(b);
+    });
+  }
+
+  function sayChip(i) {
+    stopAll();
+    var chips = els.board.querySelectorAll('.chip');
+    for (var c = 0; c < chips.length; c++) chips[c].classList.toggle('saying', c === i);
+    speak(rowSay(done[i]), function () { if (chips[i]) chips[i].classList.remove('saying'); });
+  }
+
+  function sayAll() {
+    var chips = els.board.querySelectorAll('.chip');
+    var list = [];
+    done.forEach(function (v, i) {
+      list.push({
+        act: function () { for (var c = 0; c < chips.length; c++) chips[c].classList.toggle('saying', c === i); },
+        say: rowSay(v)
+      });
+    });
+    list.push({ act: function () { for (var c = 0; c < chips.length; c++) chips[c].classList.remove('saying'); } });
+    sequence(list);
+  }
+
+  function enterHalfTime() {
+    mode = 'board';
+    half = 2;
+    round = 0;
+    els.half.textContent = 'Half time';
+    els.boardTitle.textContent = '📣 Half time!';
+    els.boardText.textContent = 'Next: empty tens frames.';
+    els.boardBtn.textContent = 'Second half ➜';
+    renderBoard();
+    show(['boardBox']);
+    speak(halfTimeSay(done.length));
+  }
+
+  function enterFullTime() {
+    mode = 'board';
+    half = 3;
+    els.half.textContent = 'Full time';
+    els.boardTitle.textContent = '🏆 Full time!';
+    els.boardText.textContent = done.length + ' ⚽';
+    els.boardBtn.textContent = 'Play again ⚽';
+    renderBoard();
+    show(['boardBox']);
+    celebrate(45);
+    speak(fullTimeSay(done.length));
+  }
+
+  /* ================= Match ================= */
+  /* first half: four numbers (not 6, the example, nor 8); second half: 8
+     from the sheet first, then three that were not played yet */
+  function buildQueues() {
+    var all = [], i;
+    for (i = MIN_N; i <= MAX_N; i++) all.push(i);
+    var pool1 = all.filter(function (v) { return v !== EXAMPLE_N && v !== FIRST_EMPTY_N; });
+    queue1 = shuffle(pool1).slice(0, ROUNDS_PER_HALF);
+    /* not 1 here: with empty frames "one less than one" would be nothing to move */
+    var rest = all.filter(function (v) { return v !== 1 && v !== FIRST_EMPTY_N && queue1.indexOf(v) === -1; });
+    queue2 = [FIRST_EMPTY_N].concat(shuffle(rest).slice(0, ROUNDS_PER_HALF - 1));
+  }
+
+  function startMatch() {
+    stopAll();
+    buildQueues();
+    done = [];
+    half = 1;
+    round = 0;
+    enterExample();
+  }
+
+  /* ================= Wiring ================= */
+  els.playBtn.addEventListener('click', function () {
+    audioReady();               /* iOS: the audio has to start inside this tap */
+    if (hasSpeech) {
+      pickVoice();
+      /* iOS: speech has to start inside this tap */
+      try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+    }
+    preload(phraseList());
+    els.startOverlay.remove();
+    startMatch();
+  });
+
+  els.num.addEventListener('click', function () {
+    if (mode === 'start' || mode === 'board' || busy && mode === 'round') return;
+    if (mode === 'example') return;
+    speak(numberSay(n));
+  });
+  els.tagLess.addEventListener('click', function () {
+    if (mode === 'round' || mode === 'finished') { if (!busy || mode === 'finished') speak(frameSay('less')); }
+  });
+  els.tagMore.addEventListener('click', function () {
+    if (mode === 'round' || mode === 'finished') { if (!busy || mode === 'finished') speak(frameSay('more')); }
+  });
+
+  els.doneBtn.addEventListener('click', check);
+  els.sayBtn.addEventListener('click', function () {
+    if (mode === 'example') playExample();
+    else if (mode === 'round' && !busy && active) { stopAll(); speak(taskLine(false)); }
+    else if (mode === 'finished') { stopAll(); speak(rowSay(n)); }
+  });
+  els.nextBtn.addEventListener('click', nextRound);
+
+  els.boardSayBtn.addEventListener('click', sayAll);
+  els.boardBtn.addEventListener('click', function () {
+    stopAll();
+    if (half === 2) enterRound();
+    else startMatch();
+  });
+
+  els.settingsBtn.addEventListener('click', function () {
+    els.settingsPanel.classList.toggle('hidden');
+  });
+  els.slowToggle.checked = slow;
+  els.slowToggle.addEventListener('change', function () {
+    slow = this.checked;
+    save();
+    els.settingsPanel.classList.add('hidden');
+  });
+  els.resetBtn.addEventListener('click', function () {
+    if (confirm('Reset all footballs?')) {
+      footballs = 0;
+      save();
+      renderScore(false);
+      els.settingsPanel.classList.add('hidden');
+    }
+  });
+
+  buildFrame(els.frameLess);
+  buildFrame(els.frameMore);
+  buildFrame(els.frameMid);
+  buildTray();
+  paintTray();
+  renderScore(false);
+})();
+</script>
+</body>
+</html>
